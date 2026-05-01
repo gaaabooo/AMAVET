@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import api from '../../lib/api';
 
 interface Mascota {
@@ -76,6 +77,29 @@ export default function Admin() {
     }
   };
 
+  const subirPDF = async (examenId: string, archivo: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('archivo', archivo);
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/examenes/${examenId}/subir`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      setMensaje('✅ PDF subido correctamente');
+      cargarDatos();
+      setTimeout(() => setMensaje(''), 3000);
+    } catch (err) {
+      console.error(err);
+      setMensaje('❌ Error al subir el archivo');
+    }
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
@@ -106,7 +130,11 @@ export default function Admin() {
       </nav>
 
       <div className="max-w-5xl mx-auto p-6">
-        {mensaje && <div className="bg-green-50 text-green-700 p-3 rounded-lg mb-4 text-sm">{mensaje}</div>}
+        {mensaje && (
+          <div className={`p-3 rounded-lg mb-4 text-sm ${mensaje.includes('❌') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            {mensaje}
+          </div>
+        )}
 
         <div className="flex gap-2 mb-6">
           <button onClick={() => setVista('mascotas')}
@@ -156,7 +184,7 @@ export default function Admin() {
               <form onSubmit={crearExamen} className="grid grid-cols-3 gap-4">
                 <select required value={nuevoExamen.mascotaId}
                   onChange={e => setNuevoExamen({ ...nuevoExamen, mascotaId: e.target.value })}
-                  className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                  className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900">
                   <option value="">Seleccionar mascota</option>
                   {mascotas.map(m => (
                     <option key={m.id} value={m.id}>{m.nombre} ({m.tutor?.nombre})</option>
@@ -164,7 +192,7 @@ export default function Admin() {
                 </select>
                 <input required placeholder="Tipo de examen" value={nuevoExamen.tipo}
                   onChange={e => setNuevoExamen({ ...nuevoExamen, tipo: e.target.value })}
-                  className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                  className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-400" />
                 <button type="submit"
                   className="bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition">
                   Crear Examen
@@ -189,13 +217,20 @@ export default function Admin() {
                       <td className="px-4 py-3 text-gray-500 text-sm">{ex.tipo}</td>
                       <td className="px-4 py-3">{estadoBadge(ex.estado)}</td>
                       <td className="px-4 py-3">
-                        <select value={ex.estado}
-                          onChange={e => actualizarEstado(ex.id, e.target.value)}
-                          className="border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                          <option value="PENDIENTE">Pendiente</option>
-                          <option value="EN_PROCESO">En Proceso</option>
-                          <option value="DISPONIBLE">Disponible</option>
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select value={ex.estado}
+                            onChange={e => actualizarEstado(ex.id, e.target.value)}
+                            className="border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900">
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="EN_PROCESO">En Proceso</option>
+                            <option value="DISPONIBLE">Disponible</option>
+                          </select>
+                          <label className="cursor-pointer bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs">
+                            📄 PDF
+                            <input type="file" accept=".pdf" className="hidden"
+                              onChange={e => e.target.files && subirPDF(ex.id, e.target.files[0])} />
+                          </label>
+                        </div>
                       </td>
                     </tr>
                   ))}

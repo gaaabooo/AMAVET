@@ -1,18 +1,55 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ExamsService } from './exams.service';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { EstadoExamen } from '@prisma/client';
+import { SupabaseService } from '../supabase.service';
 
-describe('ExamsService', () => {
-  let service: ExamsService;
+@Injectable()
+export class ExamsService {
+  constructor(
+    private prisma: PrismaService,
+    private supabase: SupabaseService,
+  ) {}
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ExamsService],
-    }).compile();
+  async crear(tipo: string, mascotaId: string) {
+    return this.prisma.examen.create({
+      data: { tipo, mascotaId },
+    });
+  }
 
-    service = module.get<ExamsService>(ExamsService);
-  });
+  async listarPorMascota(mascotaId: string) {
+    return this.prisma.examen.findMany({
+      where: { mascotaId },
+      include: { mascota: true },
+    });
+  }
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-});
+  async listarTodos() {
+    return this.prisma.examen.findMany({
+      include: { mascota: { include: { tutor: true } } },
+    });
+  }
+
+  async actualizarEstado(id: string, estado: EstadoExamen, archivoUrl?: string) {
+    return this.prisma.examen.update({
+      where: { id },
+      data: { estado, ...(archivoUrl && { archivoUrl }) },
+    });
+  }
+
+  async buscarPorId(id: string) {
+    return this.prisma.examen.findUnique({
+      where: { id },
+      include: { mascota: { include: { tutor: true } } },
+    });
+  }
+
+  async subirArchivo(id: string, archivo: Express.Multer.File) {
+    const nombreArchivo = `${id}-${Date.now()}.pdf`;
+    const url = await this.supabase.subirArchivo(
+      archivo.buffer,
+      nombreArchivo,
+      archivo.mimetype,
+    );
+    return this.actualizarEstado(id, EstadoExamen.DISPONIBLE, url);
+  }
+}

@@ -4,6 +4,24 @@ export default function Home() {
   return (
     <main className="w-full relative" style={{ fontFamily: 'var(--font-manrope)' }}>
 
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center"
+        style={{ background: 'rgba(248,249,250,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e1e3e4' }}>
+        <span className="font-black text-sm" style={{ color: '#012d1d' }}>AMAVET</span>
+        <div className="flex gap-3">
+          <Link href="/login"
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-gray-100"
+            style={{ border: '1px solid #012d1d', color: '#012d1d' }}>
+            Iniciar sesión
+          </Link>
+          <Link href="/registro"
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+            style={{ background: '#012d1d', color: '#ffffff' }}>
+            Registrarse
+          </Link>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <section className="relative w-full min-h-screen flex items-center pt-24 pb-32 overflow-hidden"
         style={{ background: '#f8f9fa' }}>
@@ -11,7 +29,8 @@ export default function Home() {
           <img
             src="/close-up-veterinarian-taking-care-dog.jpg"
             alt="Veterinario con mascota"
-            className="w-full h-full object-cover object-center opacity-30"
+            className="w-full h-full object-cover opacity-30"
+            style={{ objectPosition: 'center 60%' }}
           />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, #f8f9fa 50%, transparent)' }} />
         </div>
@@ -208,6 +227,7 @@ export default function Home() {
           💬 Agendar visita
         </a>
       </div>
+
     </main>
   );
 }

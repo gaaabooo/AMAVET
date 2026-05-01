@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
+import { SupabaseService } from '../supabase.service';
 
 @Injectable()
 export class ExamsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(SupabaseService) private supabase: SupabaseService,
+  ) {}
 
   async crear(tipo: string, mascotaId: string) {
     return this.prisma.examen.create({
@@ -37,5 +41,15 @@ export class ExamsService {
       where: { id },
       include: { mascota: { include: { tutor: true } } },
     });
+  }
+
+  async subirArchivo(id: string, archivo: Express.Multer.File) {
+    const nombreArchivo = `${id}-${Date.now()}.pdf`;
+    const url = await this.supabase.subirArchivo(
+      archivo.buffer,
+      nombreArchivo,
+      archivo.mimetype,
+    );
+    return this.actualizarEstado(id, EstadoExamen.DISPONIBLE, url);
   }
 }

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { EstadoExamen } from '@prisma/client';
 
@@ -32,5 +33,14 @@ export class ExamsController {
     @Body() body: { estado: EstadoExamen; archivoUrl?: string },
   ) {
     return this.examsService.actualizarEstado(id, body.estado, body.archivoUrl);
+  }
+
+  @Post(':id/subir')
+  @UseInterceptors(FileInterceptor('archivo'))
+  async subirArchivo(
+    @Param('id') id: string,
+    @UploadedFile() archivo: Express.Multer.File,
+  ) {
+    return this.examsService.subirArchivo(id, archivo);
   }
 }
