@@ -107,18 +107,20 @@ npm run start:prod
 
 ## 📁 Estructura del proyecto
 apps/
- ├── web/
- │    ├── components/
- │    ├── pages/
- │    └── styles/
- │
- └── api/
-      ├── src/
-      │    ├── auth/
-      │    ├── users/
-      │    ├── pets/
-      │    └── exams/
+├── web/ # Frontend (Next.js)
+│ ├── components/ # Componentes reutilizables
+│ ├── pages/ # Rutas de la aplicación
+│ └── styles/ # Estilos globales
+│
+└── api/ # Backend (NestJS)
+└── src/
+├── auth/ # Autenticación y JWT
+├── users/ # Gestión de usuarios
+├── pets/ # Gestión de mascotas
+└── exams/ # Exámenes clínicos
 
+packages/
+└── db/ # Prisma schema y configuración DB
 packages/
  └── db/
 
