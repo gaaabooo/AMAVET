@@ -2,7 +2,6 @@
 
 Plataforma web fullstack para la gestión de servicios de veterinaria a domicilio, enfocada en experiencia de usuario, eficiencia operativa y entrega segura de resultados clínicos.
 
----
 
 ## 🚀 Overview
 
@@ -14,45 +13,41 @@ AMAVET permite:
 - Entregar resultados de forma segura
 - Operar un servicio veterinario a domicilio de forma profesional
 
----
 
 ## 🧱 Arquitectura
 
----
 
-## 🛠️ Tecnologías
+### 🛠️ Tecnologías
 
-### Frontend
+#### Frontend
 - Next.js
 - React
 - Tailwind CSS
 - shadcn/ui
 
-### Backend
+#### Backend
 - NestJS
 - Node.js
 
-### Base de datos
+###$ Base de datos
 - PostgreSQL
 - Prisma ORM
 
-### Infraestructura
+#### Infraestructura
 - Vercel (frontend)
 - AWS S3 / Supabase (archivos)
 
----
 
-## 📦 Requisitos
+### 📦 Requisitos
 
 - Node.js >= 18
 - npm / pnpm / yarn
 - PostgreSQL
 
----
 
-## ⚙️ Instalación
+### ⚙️ Instalación
 
-### 1. Clonar repositorio
+#### 1. Clonar repositorio
 
 ```bash
 git clone https://github.com/tu-usuario/AMAVET.git
@@ -72,40 +67,40 @@ npm run build
 npm run start:prod
 ```
 
-## 🧩 Funcionalidades
+### 🧩 Funcionalidades
 
-### 👤 Usuarios
+#### 👤 Usuarios
 - Registro e inicio de sesión
 - Gestión de perfil
 
-### 🐶 Mascotas
+#### 🐶 Mascotas
 - Registro de múltiples mascotas
 - Visualización de datos
   
-### 🧪 Exámenes
+#### 🧪 Exámenes
 - Estados:
   - Pendiente
   - En proceso
   - Disponible
 - Descarga de resultados en PDF
   
-### 👩‍⚕️ Panel Admin
+#### 👩‍⚕️ Panel Admin
 - Gestión de mascotas
 - Subida de exámenes
 - Generación de acceso a resultados
   
-### 📲 Landing
+#### 📲 Landing
 - CTA directo a WhatsApp
 - Información de servicios
 - Estado de disponibilidad
   
-### 🔐 Seguridad
+#### 🔐 Seguridad
 - Autenticación con JWT
 - Control de roles (usuario / administrador)
 - Validación de datos en frontend y backend
 - Acceso protegido a resultados clínicos
 
-## 📁 Estructura del proyecto
+### 📁 Estructura del proyecto
 apps/
 ├── web/ # Frontend (Next.js)
 │ ├── components/ # Componentes reutilizables
@@ -124,5 +119,5 @@ packages/
 packages/
  └── db/
 
- ## 👨‍💻 Autor
+ ### 👨‍💻 Autor
 - Proyecto enfocado en la digitalización de servicios veterinarios a domicilio, utilizando arquitectura moderna y tecnologías escalables.
