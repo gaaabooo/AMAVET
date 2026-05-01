@@ -107,16 +107,16 @@ export default function Dashboard() {
             <form onSubmit={crearMascota} className="grid grid-cols-2 gap-4">
               <input required placeholder="Nombre" value={nuevaMascota.nombre}
                 onChange={e => setNuevaMascota({ ...nuevaMascota, nombre: e.target.value })}
-                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-400" />
               <input required placeholder="Tipo (Perro, Gato...)" value={nuevaMascota.tipo}
                 onChange={e => setNuevaMascota({ ...nuevaMascota, tipo: e.target.value })}
-                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-400" />
               <input required placeholder="Raza" value={nuevaMascota.raza}
                 onChange={e => setNuevaMascota({ ...nuevaMascota, raza: e.target.value })}
-                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-400" />
               <input required placeholder="Edad" type="number" value={nuevaMascota.edad}
                 onChange={e => setNuevaMascota({ ...nuevaMascota, edad: e.target.value })}
-                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-400" />
               <button type="submit"
                 className="col-span-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition">
                 Guardar Mascota
