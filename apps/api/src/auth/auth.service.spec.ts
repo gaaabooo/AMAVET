@@ -1,18 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcryptjs';
 
-describe('AuthService', () => {
-  let service: AuthService;
+@Injectable()
+export class AuthService {
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService],
-    }).compile();
+  async registro(nombre: string, email: string, telefono: string, password: string) {
+    const existe = await this.usersService.buscarPorEmail(email);
+    if (existe) throw new ConflictException('El email ya está registrado');
 
-    service = module.get<AuthService>(AuthService);
-  });
+    const usuario = await this.usersService.crear(nombre, email, telefono, password);
+    const token = this.jwtService.sign({ sub: usuario.id, email: usuario.email, rol: usuario.rol });
+    return { token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol } };
+  }
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-});
+  async login(email:
