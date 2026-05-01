@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  nombre    String
+  email     String   @unique
+  telefono  String
+  password  String
+  rol       Rol      @default(TUTOR)
+  mascotas  Mascota[]
+  creadoEn  DateTime @default(now())
+}
+
+model Mascota {
+  id        String   @id @default(uuid())
+  nombre    String
+  tipo      String
+  raza      String?
+  edad      Int?
+  tutorId   String
+  tutor     User     @relation(fields: [tutorId], references: [id])
+  examenes  Examen[]
+  creadoEn  DateTime @default(now())
+}
+
+model Examen {
+  id          String       @id @default(uuid())
+  tipo        String
+  estado      EstadoExamen @default(PENDIENTE)
+  archivoUrl  String?
+  mascotaId   String
+  mascota     Mascota      @relation(fields: [mascotaId], references: [id])
+  creadoEn    DateTime     @default(now())
+}
+
+enum Rol {
+  TUTOR
+  ADMIN
+}
+
+enum EstadoExamen {
+  PENDIENTE
+  EN_PROCESO
+  DISPONIBLE
+}
