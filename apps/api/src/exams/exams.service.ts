@@ -2,12 +2,14 @@ import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
 import { SupabaseService } from '../supabase.service';
+import { NotificacionesService } from '../notificaciones.service';
 
 @Injectable()
 export class ExamsService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(SupabaseService) private supabase: SupabaseService,
+    @Inject(NotificacionesService) private notificaciones: NotificacionesService,
   ) {}
 
   async crear(tipo: string, mascotaId: string) {
@@ -44,12 +46,19 @@ export class ExamsService {
   }
 
   async subirArchivo(id: string, archivo: Express.Multer.File) {
+    const examen = await this.buscarPorId(id);
     const nombreArchivo = `${id}-${Date.now()}.pdf`;
     const url = await this.supabase.subirArchivo(
       archivo.buffer,
       nombreArchivo,
       archivo.mimetype,
     );
-    return this.actualizarEstado(id, EstadoExamen.DISPONIBLE, url);
+    const resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, url);
+    await this.notificaciones.notificarExamenDisponible(
+      examen.mascota.tutor.email,
+      examen.mascota.nombre,
+      url,
+    );
+    return resultado;
   }
 }

@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Body, Param, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { EstadoExamen } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('examenes')
 export class ExamsController {
@@ -36,6 +37,7 @@ export class ExamsController {
   }
 
   @Post(':id/subir')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('archivo'))
   async subirArchivo(
     @Param('id') id: string,

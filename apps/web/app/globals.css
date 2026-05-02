@@ -10,6 +10,9 @@
   --on-surface: #191c1d;
   --on-surface-variant: #414844;
   --outline-variant: #c1c8c2;
+  --tertiary-fixed: #b1f0ce;
+  --surface-container-high: #e7e8e9;
+  --error-container: #ffdad6;
   --font-manrope: 'Manrope', sans-serif;
   --font-newsreader: 'Newsreader', serif;
 }

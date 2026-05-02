@@ -1,0 +1,6 @@
+# BMAD / agent tooling
+/_bmad/
+/_bmad-output/
+/.agents/
+/.claude/
+/docs/
