@@ -54,11 +54,17 @@ export class ExamsService {
       archivo.mimetype,
     );
     const resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, url);
-    await this.notificaciones.notificarExamenDisponible(
-      examen.mascota.tutor.email,
-      examen.mascota.nombre,
-      url,
-    );
+    if (examen) {
+      try {
+        await this.notificaciones.notificarExamenDisponible(
+          examen.mascota.tutor.email,
+          examen.mascota.nombre,
+          url,
+        );
+      } catch {
+        // fallo de SMTP no interrumpe la subida
+      }
+    }
     return resultado;
   }
 }
