@@ -31,10 +31,10 @@ export class ExamsService {
     });
   }
 
-  async actualizarEstado(id: string, estado: EstadoExamen, archivoUrl?: string) {
+  async actualizarEstado(id: string, estado: EstadoExamen, archivoUrl?: string | null) {
     return this.prisma.examen.update({
       where: { id },
-      data: { estado, ...(archivoUrl && { archivoUrl }) },
+      data: { estado, ...(archivoUrl !== undefined && { archivoUrl }) },
     });
   }
 

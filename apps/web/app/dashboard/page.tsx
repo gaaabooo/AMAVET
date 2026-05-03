@@ -82,10 +82,16 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-(--on-surface)">Mis Mascotas</h1>
-          <button onClick={() => setMostrarForm(!mostrarForm)}
-            className="bg-(--primary) hover:bg-(--primary-container) text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-            + Agregar Mascota
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => router.push('/dashboard/agendar')}
+              className="bg-(--surface-container-high) hover:bg-(--surface-container-highest) text-(--on-surface) px-4 py-2 rounded-lg text-sm font-medium transition">
+              Agendar Visita
+            </button>
+            <button onClick={() => setMostrarForm(!mostrarForm)}
+              className="bg-(--primary) hover:bg-(--primary-container) text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+              + Agregar Mascota
+            </button>
+          </div>
         </div>
 
         {mostrarForm && (

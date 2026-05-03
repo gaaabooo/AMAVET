@@ -26,6 +26,7 @@ model Mascota {
   tutorId   String
   tutor     User     @relation(fields: [tutorId], references: [id])
   examenes  Examen[]
+  citas     Cita[]
   creadoEn  DateTime @default(now())
 }
 
@@ -39,6 +40,17 @@ model Examen {
   creadoEn    DateTime     @default(now())
 }
 
+model Cita {
+  id        String     @id @default(uuid())
+  fecha     DateTime
+  direccion String
+  servicios String[]
+  estado    EstadoCita @default(PENDIENTE)
+  mascotaId String
+  mascota   Mascota    @relation(fields: [mascotaId], references: [id])
+  creadoEn  DateTime   @default(now())
+}
+
 enum Rol {
   TUTOR
   ADMIN
@@ -48,4 +60,11 @@ enum EstadoExamen {
   PENDIENTE
   EN_PROCESO
   DISPONIBLE
+}
+
+enum EstadoCita {
+  PENDIENTE
+  CONFIRMADA
+  COMPLETADA
+  CANCELADA
 }

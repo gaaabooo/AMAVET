@@ -31,7 +31,7 @@ export class ExamsController {
   @Patch(':id/estado')
   actualizarEstado(
     @Param('id') id: string,
-    @Body() body: { estado: EstadoExamen; archivoUrl?: string },
+    @Body() body: { estado: EstadoExamen; archivoUrl?: string | null },
   ) {
     return this.examsService.actualizarEstado(id, body.estado, body.archivoUrl);
   }
