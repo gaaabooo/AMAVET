@@ -11,7 +11,7 @@ export default function Home() {
         <Logo size="sm" variant="light" />
         <div className="flex gap-3">
           <Link href="/login"
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-gray-100"
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 hover:bg-(--surface)"
             style={{ border: '1px solid #012d1d', color: '#012d1d' }}>
             Iniciar sesión
           </Link>
@@ -41,11 +41,11 @@ export default function Home() {
             <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2"
               style={{ color: '#012d1d' }}>
               <span className="w-8 h-px" style={{ background: '#012d1d', display: 'inline-block' }}></span>
-              Veterinario a domicilio premium
+              Atención clínica en tu hogar
             </span>
 
             <h1 className="text-5xl font-bold leading-tight" style={{ color: '#191c1d', letterSpacing: '-0.02em' }}>
-              Veterinario a domicilio premium —{' '}
+              Veterinario a domicilio,{' '}
               <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300 }}>
                 sin estrés para tu mascota
               </span>
@@ -75,7 +75,7 @@ export default function Home() {
                 💬 Agendar por WhatsApp
               </a>
               <Link href="/registro"
-                className="flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-semibold transition-all hover:bg-gray-50"
+                className="flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-semibold transition-colors duration-150 hover:bg-(--surface)"
                 style={{ border: '2px solid #012d1d', color: '#012d1d', background: 'transparent' }}>
                 Solicitar visita
               </Link>
@@ -153,34 +153,76 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Servicios */}
+      {/* Servicios — registro editorial */}
       <section className="py-32" style={{ background: '#ffffff' }}>
         <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-12 pl-6" style={{ borderLeft: '4px solid #012d1d' }}>
-            <h2 className="text-4xl font-bold mb-2" style={{ color: '#191c1d' }}>Nuestros Servicios Médicos</h2>
-            <p className="text-xl max-w-2xl" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)' }}>
-              Procedimientos clínicos realizados con los más altos estándares de calidad, en la comodidad de tu hogar.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { icon: '💉', nombre: 'Vacunación', desc: 'Esquemas completos para cachorros y adultos, manteniendo la inmunidad al día.' },
-              { icon: '💊', nombre: 'Desparasitación interna', desc: 'Control y prevención de parásitos para la salud de tu mascota y familia.' },
-              { icon: '🩺', nombre: 'Control médico', desc: 'Examen físico completo y evaluación general del estado de salud.' },
-              { icon: '🩹', nombre: 'Curación de heridas', desc: 'Limpieza, desinfección y vendaje profesional de lesiones menores.' },
-              { icon: '📡', nombre: 'Colocación de microchips', desc: 'Identificación permanente y registro seguro bajo normativa vigente.' },
-              { icon: '🔬', nombre: 'Toma de muestras', desc: 'Análisis clínicos: Hemograma, Perfil bioquímico, TSH, T4.' },
-            ].map((s) => (
-              <div key={s.nombre} className="group p-6 rounded-xl border transition-all duration-300 hover:border-green-800 hover:bg-gray-50 cursor-pointer"
-                style={{ borderColor: '#c1c8c2' }}>
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-2xl transition-colors"
-                  style={{ background: 'rgba(1,45,29,0.08)' }}>
-                  {s.icon}
-                </div>
-                <h4 className="font-semibold mb-2" style={{ color: '#191c1d' }}>{s.nombre}</h4>
-                <p className="text-sm" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)' }}>{s.desc}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-12 gap-12 md:gap-8">
+
+            {/* Columna izquierda: encabezado, sticky en desktop */}
+            <div className="md:col-span-5 md:sticky md:top-32 self-start">
+              <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-4"
+                style={{ color: '#012d1d' }}>
+                <span className="w-8 h-px" style={{ background: '#012d1d', display: 'inline-block' }}></span>
+                Servicios médicos
+              </span>
+              <h2 className="text-5xl font-bold leading-[1.05] mb-6" style={{ color: '#191c1d', letterSpacing: '-0.02em' }}>
+                Procedimientos clínicos,{' '}
+                <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
+                  con el rigor de una clínica
+                </span>
+              </h2>
+              <p className="text-lg max-w-md" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
+                Cada visita sigue protocolos clínicos verificables. Los exámenes de laboratorio se procesan en laboratorio externo certificado y los resultados llegan a tu cuenta en PDF.
+              </p>
+            </div>
+
+            {/* Columna derecha: lista editorial numerada */}
+            <ol className="md:col-span-7 flex flex-col">
+              {[
+                { num: '01', nombre: 'Vacunación', desc: 'Esquemas completos para cachorros y adultos. Cumplimos calendario nacional y aplicamos refuerzos según especie, raza y edad.' },
+                { num: '02', nombre: 'Desparasitación interna', desc: 'Antiparasitarios de amplio espectro contra giardia, anquilostomas, áscaris y tenias. Pauta personalizada según peso y estilo de vida.' },
+                { num: '03', nombre: 'Control clínico', desc: 'Examen físico completo: auscultación cardíaca y pulmonar, palpación abdominal, evaluación de mucosas, peso, temperatura y dentición.' },
+                { num: '04', nombre: 'Curación de heridas', desc: 'Limpieza, desinfección, sutura simple si corresponde y vendaje profesional. Tratamos lesiones menores sin necesidad de traslado.' },
+                { num: '05', nombre: 'Colocación de microchips', desc: 'Identificación permanente bajo norma ISO 11784/11785, con registro inmediato en la base nacional.' },
+                {
+                  num: '06',
+                  nombre: 'Toma de muestras para laboratorio',
+                  desc: 'Sangre y orina para análisis clínicos. Trabajamos con laboratorio veterinario certificado.',
+                  panel: ['Hemograma completo', 'Perfil bioquímico', 'TSH', 'T4 total y libre'],
+                },
+              ].map((s, i) => (
+                <li
+                  key={s.num}
+                  className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 py-8"
+                  style={{ borderTop: i === 0 ? '1px solid #012d1d' : 'none', borderBottom: '1px solid #c1c8c2' }}
+                >
+                  <span
+                    className="text-sm font-bold tabular-nums pt-1"
+                    style={{ color: '#012d1d', letterSpacing: '0.05em' }}
+                  >
+                    {s.num}
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-2xl font-semibold" style={{ color: '#191c1d', letterSpacing: '-0.01em' }}>
+                      {s.nombre}
+                    </h3>
+                    <p className="text-base" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
+                      {s.desc}
+                    </p>
+                    {s.panel && (
+                      <ul className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm" style={{ color: '#717973' }}>
+                        {s.panel.map((p) => (
+                          <li key={p} className="inline-flex items-center gap-2">
+                            <span className="w-1 h-1 rounded-full" style={{ background: '#735c00' }} aria-hidden />
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
@@ -208,11 +250,18 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <Logo size="sm" variant="light" />
-            <p className="text-sm mt-2" style={{ color: '#414844' }}>© 2025 Silvestra Vet — Veterinario a Domicilio. Excelencia clínica en tu hogar.</p>
+            <p className="text-sm mt-2" style={{ color: '#414844' }}>© 2025 Silvestra Vet. Veterinario a domicilio. Excelencia clínica en tu hogar.</p>
           </div>
-          <div className="flex gap-6">
-            {['Política de Privacidad', 'Términos de Servicio', 'Área de Cobertura', 'Contacto'].map(l => (
-              <a key={l} href="#" className="text-sm hover:underline" style={{ color: '#717973' }}>{l}</a>
+          <div className="flex flex-wrap gap-6">
+            {[
+              { label: 'Política de Privacidad', href: '/legal/privacidad' },
+              { label: 'Términos de Servicio', href: '/legal/terminos' },
+              { label: 'Área de Cobertura', href: '/cobertura' },
+              { label: 'Contacto', href: '/contacto' },
+            ].map(l => (
+              <Link key={l.href} href={l.href} className="text-sm hover:underline underline-offset-4" style={{ color: '#717973' }}>
+                {l.label}
+              </Link>
             ))}
           </div>
         </div>
