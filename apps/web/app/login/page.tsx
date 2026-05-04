@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
-import api from '../../lib/api';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import api from '../../lib/api';
+import Logo from '../../components/Logo';
 
 export default function Login() {
   const router = useRouter();
@@ -27,43 +29,116 @@ export default function Login() {
       } else {
         router.push('/dashboard');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Credenciales inválidas');
+    } catch (err) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      setError(msg || 'Credenciales inválidas');
     } finally {
       setCargando(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Iniciar Sesión</h1>
-        <p className="text-gray-500 mb-6">Bienvenido de vuelta</p>
+    <main className="min-h-screen bg-(--surface) flex flex-col items-center justify-center p-4">
+      <Link href="/" className="absolute top-6 left-6">
+        <Logo size="sm" variant="light" />
+      </Link>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
+      <div
+        className="bg-(--surface-container-lowest) rounded-2xl p-10 w-full max-w-md"
+        style={{ boxShadow: '0 10px 25px -5px rgba(0,0,0,0.08)' }}
+      >
+        <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-(--primary) mb-4">
+          <span className="w-8 h-px bg-(--primary)" aria-hidden />
+          Acceso a tu cuenta
+        </span>
+
+        <h1
+          className="text-3xl font-bold text-(--on-surface) mb-2 leading-tight"
+          style={{ letterSpacing: '-0.015em' }}
+        >
+          Bienvenido{' '}
+          <span
+            className="font-light italic text-(--primary)"
+            style={{ fontFamily: 'var(--font-newsreader)' }}
+          >
+            de vuelta
+          </span>
+        </h1>
+        <p
+          className="text-(--on-surface-variant) mb-8"
+          style={{ fontFamily: 'var(--font-newsreader)', fontSize: '1.0625rem' }}
+        >
+          Ingresa para gestionar a tus mascotas y revisar resultados clínicos.
+        </p>
+
+        {error && (
+          <div
+            role="alert"
+            className="bg-(--error-container) text-(--on-surface) text-sm p-3 rounded-lg mb-5"
+          >
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-            <input name="email" type="email" required onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
-              placeholder="juan@ejemplo.com" />
+            <label
+              htmlFor="login-email"
+              className="block text-sm font-medium text-(--on-surface-variant) mb-1.5"
+            >
+              Correo electrónico
+            </label>
+            <input
+              id="login-email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              onChange={handleChange}
+              placeholder="juan@ejemplo.com"
+              className="sv-input"
+            />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input name="password" type="password" required onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
-              placeholder="Tu contraseña" />
+            <label
+              htmlFor="login-password"
+              className="block text-sm font-medium text-(--on-surface-variant) mb-1.5"
+            >
+              Contraseña
+            </label>
+            <input
+              id="login-password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              onChange={handleChange}
+              placeholder="Tu contraseña"
+              className="sv-input"
+            />
           </div>
-          <button type="submit" disabled={cargando}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
-            {cargando ? 'Ingresando...' : 'Iniciar Sesión'}
+
+          <button
+            type="submit"
+            disabled={cargando}
+            className="w-full bg-(--primary) hover:bg-(--primary-container) text-white font-semibold py-3 rounded-lg transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+          >
+            {cargando ? 'Ingresando…' : 'Iniciar sesión'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="text-center text-sm text-(--on-surface-variant) mt-6">
           ¿No tienes cuenta?{' '}
-          <a href="/registro" className="text-green-600 hover:underline font-medium">Regístrate aquí</a>
+          <Link
+            href="/registro"
+            className="text-(--primary) font-semibold hover:underline underline-offset-4"
+          >
+            Regístrate aquí
+          </Link>
         </p>
       </div>
     </main>

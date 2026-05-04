@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Logo from '../components/Logo';
 
 export default function Home() {
   return (
@@ -7,7 +8,7 @@ export default function Home() {
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center"
         style={{ background: 'rgba(248,249,250,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e1e3e4' }}>
-        <span className="font-black text-sm" style={{ color: '#012d1d' }}>AMAVET</span>
+        <Logo size="sm" variant="light" />
         <div className="flex gap-3">
           <Link href="/login"
             className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:bg-gray-100"
@@ -206,8 +207,8 @@ export default function Home() {
       <footer className="py-12 border-t" style={{ background: '#f8f9fa', borderColor: '#e1e3e4' }}>
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <span className="font-black text-sm" style={{ color: '#012d1d' }}>AMAVET</span>
-            <p className="text-sm mt-1" style={{ color: '#414844' }}>© 2025 AMAVET Veterinario a Domicilio. Excelencia clínica en tu hogar.</p>
+            <Logo size="sm" variant="light" />
+            <p className="text-sm mt-2" style={{ color: '#414844' }}>© 2025 Silvestra Vet — Veterinario a Domicilio. Excelencia clínica en tu hogar.</p>
           </div>
           <div className="flex gap-6">
             {['Política de Privacidad', 'Términos de Servicio', 'Área de Cobertura', 'Contacto'].map(l => (

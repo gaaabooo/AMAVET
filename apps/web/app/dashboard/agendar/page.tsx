@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import Logo from '@/components/Logo';
 
 interface Mascota {
   id: string;
@@ -199,8 +200,8 @@ export default function AgendarVisita() {
   return (
     <main className="min-h-screen bg-(--surface)">
       <nav className="bg-(--surface-container-lowest) border-b border-(--outline-variant) px-6 py-4 flex justify-between items-center">
-        <button onClick={() => router.push('/dashboard')} className="font-bold text-(--primary) text-xl">
-          AMAVET
+        <button onClick={() => router.push('/dashboard')} aria-label="Ir al dashboard">
+          <Logo size="sm" variant="light" />
         </button>
         <div className="flex items-center gap-4">
           <span className="text-(--on-surface-variant) text-sm">Hola, {usuario?.nombre}</span>

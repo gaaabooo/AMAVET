@@ -1,18 +1,36 @@
 @import "tailwindcss";
 
 :root {
+  /* Brand */
   --primary: #012d1d;
   --primary-container: #1b4332;
-  --secondary-container: #fed65b;
   --on-primary: #ffffff;
+
+  /* Acentos */
+  --secondary-container: #fed65b;
+  --on-secondary-container: #191c1d;
+  --tertiary-fixed: #b1f0ce;
+  --on-tertiary-fixed: #191c1d;
+
+  /* Surfaces */
   --surface: #f8f9fa;
   --surface-container-lowest: #ffffff;
+  --surface-container-low: #f1f3f4;
+  --surface-container-high: #e7e8e9;
+  --surface-container-highest: #d8dadb;
+
+  /* Tinta */
   --on-surface: #191c1d;
   --on-surface-variant: #414844;
+  --on-surface-muted: #717973;
   --outline-variant: #c1c8c2;
-  --tertiary-fixed: #b1f0ce;
-  --surface-container-high: #e7e8e9;
+
+  /* Estados */
+  --error: #b3261e;
   --error-container: #ffdad6;
+  --on-error-container: #410002;
+
+  /* Fuentes */
   --font-manrope: 'Manrope', sans-serif;
   --font-newsreader: 'Newsreader', serif;
 }
@@ -25,4 +43,28 @@ body {
 
 h1, h2, h3, h4, button, label, nav {
   font-family: var(--font-manrope);
+}
+
+.sv-input {
+  width: 100%;
+  background-color: var(--surface-container-lowest);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-family: var(--font-manrope);
+  font-size: 1rem;
+  line-height: 1.5;
+  transition: border-color 150ms cubic-bezier(0.25, 1, 0.5, 1),
+              box-shadow 150ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.sv-input::placeholder {
+  color: var(--on-surface-muted);
+}
+
+.sv-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
 }

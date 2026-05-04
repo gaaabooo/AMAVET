@@ -3,6 +3,8 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import ExamStatusBadge from '@/components/ExamStatusBadge';
+import CitaStatusBadge from '@/components/CitaStatusBadge';
+import Logo from '@/components/Logo';
 
 interface Tutor {
   id: string;
@@ -322,11 +324,11 @@ export default function Admin() {
       <aside className="w-60 bg-(--primary) flex flex-col fixed top-0 left-0 h-full z-10">
 
         <div className="px-6 py-5">
-          <span className="font-bold text-white text-xl font-[family-name:var(--font-manrope)]">AMAVET</span>
+          <Logo size="md" variant="dark" />
         </div>
 
         <div className="px-6 py-4 border-t border-b border-white/10">
-          <p className="text-white font-semibold text-sm">{usuario?.nombre || 'Dra. Amavet'}</p>
+          <p className="text-white font-semibold text-sm">{usuario?.nombre || 'Dra. Silvestra'}</p>
           <p className="text-white/50 text-xs mt-0.5">Clinical Excellence</p>
         </div>
 
@@ -668,7 +670,7 @@ function DashboardView({
                     </td>
                     <td className="px-4 py-4">
                       {citaMasReciente ? (
-                        <CitaEstadoBadge estado={citaMasReciente.estado} />
+                        <CitaStatusBadge estado={citaMasReciente.estado} />
                       ) : <span className="text-xs text-(--on-surface-variant)">—</span>}
                     </td>
                     <td className="px-4 py-4">
@@ -1053,11 +1055,7 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
                   <CitaCardRow label="Hora" value={horaCorta(citaSeleccionada.fecha)} />
                   <CitaCardRow
                     label="Estado de cita"
-                    value={
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${estiloEstado(citaSeleccionada.estado)}`}>
-                        {textoEstadoCita(citaSeleccionada.estado)}
-                      </span>
-                    }
+                    value={<CitaStatusBadge estado={citaSeleccionada.estado} />}
                   />
                   <div>
                     <p className="text-(--on-surface-variant) text-xs mb-1.5">Servicios solicitados:</p>
@@ -1185,13 +1183,6 @@ function fechaCortaCita(iso: string) {
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function textoEstadoCita(estado: EstadoCita) {
-  if (estado === 'COMPLETADA') return 'Atendida';
-  if (estado === 'CONFIRMADA') return 'Confirmada';
-  if (estado === 'CANCELADA')  return 'Cancelada';
-  return 'Pendiente';
-}
-
 function estadoServicio(servicio: string, cita: Cita, mascotas: Mascota[]): 'atendido' | 'pendiente' | 'cancelado' {
   if (cita.estado === 'CANCELADA') return 'cancelado';
   if (SERVICIOS_EXAMEN.has(servicio)) {
@@ -1247,21 +1238,6 @@ function estiloCitaCalendario(servicios: string[], estado: EstadoCita) {
   return `${bg} ${text} ${border}`;
 }
 
-function estiloEstado(estado: EstadoCita) {
-  if (estado === 'CONFIRMADA') return 'bg-emerald-100 text-emerald-700';
-  if (estado === 'COMPLETADA') return 'bg-emerald-100 text-emerald-700';
-  if (estado === 'CANCELADA')  return 'bg-(--error-container) text-(--on-error-container)';
-  return 'bg-(--secondary-container) text-(--on-secondary-container)';
-}
-
-function CitaEstadoBadge({ estado }: { estado: EstadoCita }) {
-  return (
-    <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${estiloEstado(estado)}`}>
-      {textoEstadoCita(estado)}
-    </span>
-  );
-}
-
 function horaCorta(iso: string) {
   return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 }
@@ -1275,7 +1251,7 @@ function AyudaView() {
   return (
     <div className="px-8 py-8 max-w-3xl">
       <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)] mb-1">Centro de ayuda</h1>
-      <p className="text-(--on-surface-variant) text-sm mb-6">Soporte y respuestas rápidas para AMAVET.</p>
+      <p className="text-(--on-surface-variant) text-sm mb-6">Soporte y respuestas rápidas para Silvestra Vet.</p>
 
       <div className="bg-(--surface-container-lowest) rounded-xl p-6 mb-4">
         <h2 className="font-bold text-(--on-surface) mb-4">Preguntas frecuentes</h2>
@@ -1294,7 +1270,7 @@ function AyudaView() {
       <div className="bg-(--surface-container-lowest) rounded-xl p-6">
         <h2 className="font-bold text-(--on-surface) mb-3">Contacto</h2>
         <div className="space-y-2 text-sm text-(--on-surface-variant)">
-          <p>Soporte: <span className="text-(--on-surface) font-medium">soporte@amavet.cl</span></p>
+          <p>Soporte: <span className="text-(--on-surface) font-medium">soporte@silvestravet.cl</span></p>
           <p>Horario: lunes a viernes, 9:00 a 18:00 hrs</p>
         </div>
       </div>

@@ -13,8 +13,8 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: 'AMAVET - Veterinario a domicilio premium',
-  description: 'Atención veterinaria profesional en tu hogar',
+  title: 'Silvestra Vet — Veterinario a domicilio',
+  description: 'Atención veterinaria profesional en tu hogar.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

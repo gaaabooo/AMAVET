@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import ExamStatusBadge from '@/components/ExamStatusBadge';
+import Logo from '@/components/Logo';
 
 interface Mascota {
   id: string;
@@ -72,7 +72,7 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-(--surface)">
       <nav className="bg-(--surface-container-lowest) border-b border-(--outline-variant) px-6 py-4 flex justify-between items-center">
-        <span className="font-bold text-(--primary) text-xl">AMAVET</span>
+        <Logo size="sm" variant="light" />
         <div className="flex items-center gap-4">
           <span className="text-(--on-surface-variant) text-sm">Hola, {usuario?.nombre}</span>
           <button onClick={cerrarSesion} className="text-sm text-red-500 hover:underline">Cerrar sesión</button>
@@ -126,39 +126,20 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-4">
             {mascotas.map(mascota => (
-              <div key={mascota.id} className="bg-(--surface-container-lowest) rounded-xl shadow p-6">
-                <div className="flex justify-between items-start mb-4">
+              <div key={mascota.id}
+                onClick={() => router.push(`/dashboard/mascotas/${mascota.id}`)}
+                className="bg-(--surface-container-lowest) rounded-xl shadow p-6 cursor-pointer hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-lg font-bold text-(--on-surface)">{mascota.nombre}</h2>
                     <p className="text-(--on-surface-variant) text-sm">
                       {mascota.tipo}{mascota.raza ? ` · ${mascota.raza}` : ''}{mascota.edad != null ? ` · ${mascota.edad} años` : ''}
                     </p>
                   </div>
+                  <p className="text-(--on-surface-variant) text-sm">
+                    {mascota.examenes.length === 1 ? '1 examen' : `${mascota.examenes.length} exámenes`}
+                  </p>
                 </div>
-                {mascota.examenes.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-(--on-surface-variant) mb-2">Exámenes</h3>
-                    <div className="space-y-2">
-                      {mascota.examenes.map(examen => (
-                        <div key={examen.id} className="flex justify-between items-center bg-(--surface) rounded-lg p-3">
-                          <div>
-                            <p className="text-sm font-medium text-(--on-surface)">{examen.tipo}</p>
-                            <p className="text-xs text-(--on-surface-variant)">{new Date(examen.creadoEn).toLocaleDateString('es-CL')}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <ExamStatusBadge estado={examen.estado} />
-                            {examen.estado === 'DISPONIBLE' && examen.archivoUrl && (
-                              <a href={examen.archivoUrl} target="_blank"
-                                className="text-xs bg-(--primary) text-white px-3 py-1 rounded-lg hover:bg-(--primary-container)">
-                                Descargar
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
