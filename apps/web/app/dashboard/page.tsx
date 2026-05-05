@@ -1,16 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Logo from '@/components/Logo';
 
-interface Mascota {
+interface Usuario {
   id: string;
   nombre: string;
-  tipo: string;
-  raza?: string;
-  edad?: number;
-  examenes: Examen[];
+  email?: string;
+  rol?: string;
 }
 
 interface Examen {
@@ -21,43 +19,69 @@ interface Examen {
   creadoEn: string;
 }
 
+interface Mascota {
+  id: string;
+  nombre: string;
+  tipo: string;
+  raza?: string;
+  edad?: number;
+  examenes: Examen[];
+}
+
 export default function Dashboard() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<any>(null);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [enviandoMascota, setEnviandoMascota] = useState(false);
+  const [errorMascota, setErrorMascota] = useState<string | null>(null);
   const [nuevaMascota, setNuevaMascota] = useState({ nombre: '', tipo: '', raza: '', edad: '' });
+
+  const cargarMascotas = useCallback(async (tutorId: string) => {
+    try {
+      const res = await api.get(`/mascotas/tutor/${tutorId}`);
+      setMascotas(res.data);
+    } finally {
+      setCargando(false);
+    }
+  }, []);
 
   useEffect(() => {
     const u = localStorage.getItem('usuario');
     const token = localStorage.getItem('token');
-    if (!u || !token) { router.push('/login'); return; }
-    const parsed = JSON.parse(u);
+    if (!u || !token) {
+      router.push('/login');
+      return;
+    }
+    const parsed = JSON.parse(u) as Usuario;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUsuario(parsed);
     cargarMascotas(parsed.id);
-  }, []);
-
-  const cargarMascotas = async (tutorId: string) => {
-    try {
-      const res = await api.get(`/mascotas/tutor/${tutorId}`);
-      setMascotas(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCargando(false);
-    }
-  };
+  }, [router, cargarMascotas]);
 
   const crearMascota = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!usuario) return;
+    setEnviandoMascota(true);
+    setErrorMascota(null);
     try {
-      await api.post('/mascotas', { ...nuevaMascota, edad: Number(nuevaMascota.edad), tutorId: usuario.id });
+      await api.post('/mascotas', {
+        ...nuevaMascota,
+        edad: nuevaMascota.edad ? Number(nuevaMascota.edad) : undefined,
+        tutorId: usuario.id,
+      });
       setMostrarForm(false);
       setNuevaMascota({ nombre: '', tipo: '', raza: '', edad: '' });
       cargarMascotas(usuario.id);
     } catch (err) {
-      console.error(err);
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      setErrorMascota(msg || 'No pudimos guardar la mascota. Intenta nuevamente.');
+    } finally {
+      setEnviandoMascota(false);
     }
   };
 
@@ -67,82 +91,293 @@ export default function Dashboard() {
     router.push('/login');
   };
 
-  if (cargando) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
-
   return (
     <main className="min-h-screen bg-(--surface)">
       <nav className="bg-(--surface-container-lowest) border-b border-(--outline-variant) px-6 py-4 flex justify-between items-center">
         <Logo size="sm" variant="light" />
         <div className="flex items-center gap-4">
-          <span className="text-(--on-surface-variant) text-sm">Hola, {usuario?.nombre}</span>
-          <button onClick={cerrarSesion} className="text-sm text-red-500 hover:underline">Cerrar sesión</button>
+          <span className="text-(--on-surface-variant) text-sm hidden sm:inline">
+            Hola, <span className="font-semibold text-(--on-surface)">{usuario?.nombre ?? '…'}</span>
+          </span>
+          <button
+            onClick={cerrarSesion}
+            className="text-sm font-medium text-(--on-surface-muted) hover:text-(--primary) transition-colors duration-150"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-(--on-surface)">Mis Mascotas</h1>
-          <div className="flex gap-2">
-            <button onClick={() => router.push('/dashboard/agendar')}
-              className="bg-(--surface-container-high) hover:bg-(--surface-container-highest) text-(--on-surface) px-4 py-2 rounded-lg text-sm font-medium transition">
-              Agendar Visita
-            </button>
-            <button onClick={() => setMostrarForm(!mostrarForm)}
-              className="bg-(--primary) hover:bg-(--primary-container) text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              + Agregar Mascota
-            </button>
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <header className="mb-10">
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-(--primary) mb-3">
+            <span className="w-8 h-px bg-(--primary)" aria-hidden />
+            Tu panel
+          </span>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <h1
+              className="text-3xl sm:text-4xl font-bold text-(--on-surface) leading-tight"
+              style={{ letterSpacing: '-0.015em' }}
+            >
+              Mis{' '}
+              <span
+                className="font-light italic text-(--primary)"
+                style={{ fontFamily: 'var(--font-newsreader)' }}
+              >
+                mascotas
+              </span>
+            </h1>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => router.push('/dashboard/agendar')}
+                className="border border-(--primary) text-(--primary) hover:bg-(--surface-container-low) px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150"
+              >
+                Agendar visita
+              </button>
+              <button
+                onClick={() => {
+                  setErrorMascota(null);
+                  setMostrarForm((v) => !v);
+                }}
+                aria-expanded={mostrarForm}
+                className="bg-(--primary) hover:bg-(--primary-container) text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150"
+              >
+                {mostrarForm ? 'Cancelar' : '+ Agregar mascota'}
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
 
         {mostrarForm && (
-          <div className="bg-(--surface-container-lowest) rounded-xl shadow p-6 mb-6">
-            <h2 className="font-semibold text-(--on-surface-variant) mb-4">Nueva Mascota</h2>
-            <form onSubmit={crearMascota} className="grid grid-cols-2 gap-4">
-              <input required placeholder="Nombre" value={nuevaMascota.nombre}
-                onChange={e => setNuevaMascota({ ...nuevaMascota, nombre: e.target.value })}
-                className="border border-(--outline-variant) rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 placeholder-gray-400" />
-              <input required placeholder="Tipo (Perro, Gato...)" value={nuevaMascota.tipo}
-                onChange={e => setNuevaMascota({ ...nuevaMascota, tipo: e.target.value })}
-                className="border border-(--outline-variant) rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 placeholder-gray-400" />
-              <input placeholder="Raza" value={nuevaMascota.raza}
-                onChange={e => setNuevaMascota({ ...nuevaMascota, raza: e.target.value })}
-                className="border border-(--outline-variant) rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 placeholder-gray-400" />
-              <input required placeholder="Edad" type="number" value={nuevaMascota.edad}
-                onChange={e => setNuevaMascota({ ...nuevaMascota, edad: e.target.value })}
-                className="border border-(--outline-variant) rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 placeholder-gray-400" />
-              <button type="submit"
-                className="col-span-2 bg-(--primary) hover:bg-(--primary-container) text-white py-2 rounded-lg font-medium transition">
-                Guardar Mascota
+          <section
+            aria-label="Nueva mascota"
+            className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-2xl p-6 sm:p-8 mb-10"
+          >
+            <h2 className="text-lg font-semibold text-(--on-surface) mb-1">Nueva mascota</h2>
+            <p
+              className="text-sm text-(--on-surface-variant) mb-6"
+              style={{ fontFamily: 'var(--font-newsreader)' }}
+            >
+              Completa los datos de tu mascota. Podrás editarlos más tarde.
+            </p>
+
+            {errorMascota && (
+              <div
+                role="alert"
+                className="bg-(--error-container) text-(--on-surface) text-sm p-3 rounded-lg mb-5"
+              >
+                {errorMascota}
+              </div>
+            )}
+
+            <form onSubmit={crearMascota} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="mascota-nombre"
+                  className="block text-sm font-medium text-(--on-surface-variant) mb-1.5"
+                >
+                  Nombre
+                </label>
+                <input
+                  id="mascota-nombre"
+                  required
+                  autoFocus
+                  placeholder="Ej. Lola"
+                  value={nuevaMascota.nombre}
+                  onChange={(e) => setNuevaMascota({ ...nuevaMascota, nombre: e.target.value })}
+                  className="sv-input"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="mascota-tipo"
+                  className="block text-sm font-medium text-(--on-surface-variant) mb-1.5"
+                >
+                  Tipo
+                </label>
+                <input
+                  id="mascota-tipo"
+                  required
+                  placeholder="Perro, gato, conejo…"
+                  value={nuevaMascota.tipo}
+                  onChange={(e) => setNuevaMascota({ ...nuevaMascota, tipo: e.target.value })}
+                  className="sv-input"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="mascota-raza"
+                  className="block text-sm font-medium text-(--on-surface-variant) mb-1.5"
+                >
+                  Raza{' '}
+                  <span className="text-(--on-surface-muted) font-normal">(opcional)</span>
+                </label>
+                <input
+                  id="mascota-raza"
+                  placeholder="Ej. Beagle"
+                  value={nuevaMascota.raza}
+                  onChange={(e) => setNuevaMascota({ ...nuevaMascota, raza: e.target.value })}
+                  className="sv-input"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="mascota-edad"
+                  className="block text-sm font-medium text-(--on-surface-variant) mb-1.5"
+                >
+                  Edad{' '}
+                  <span className="text-(--on-surface-muted) font-normal">(años)</span>
+                </label>
+                <input
+                  id="mascota-edad"
+                  type="number"
+                  min={0}
+                  max={40}
+                  inputMode="numeric"
+                  placeholder="3"
+                  value={nuevaMascota.edad}
+                  onChange={(e) => setNuevaMascota({ ...nuevaMascota, edad: e.target.value })}
+                  className="sv-input"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={enviandoMascota}
+                className="sm:col-span-2 bg-(--primary) hover:bg-(--primary-container) text-white py-3 rounded-lg font-semibold transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              >
+                {enviandoMascota ? 'Guardando…' : 'Guardar mascota'}
               </button>
             </form>
-          </div>
+          </section>
         )}
 
-        {mascotas.length === 0 ? (
-          <div className="text-center py-16 text-(--on-surface-variant)">
-            <p className="text-lg">No tienes mascotas registradas aún</p>
-            <p className="text-sm mt-1">Agrega tu primera mascota para comenzar</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {mascotas.map(mascota => (
-              <div key={mascota.id}
-                onClick={() => router.push(`/dashboard/mascotas/${mascota.id}`)}
-                className="bg-(--surface-container-lowest) rounded-xl shadow p-6 cursor-pointer hover:shadow-md transition-shadow">
+        {cargando ? (
+          <div aria-busy="true" aria-label="Cargando mascotas" className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-(--outline-variant) bg-(--surface-container-lowest) p-6 animate-pulse"
+              >
                 <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-lg font-bold text-(--on-surface)">{mascota.nombre}</h2>
-                    <p className="text-(--on-surface-variant) text-sm">
-                      {mascota.tipo}{mascota.raza ? ` · ${mascota.raza}` : ''}{mascota.edad != null ? ` · ${mascota.edad} años` : ''}
-                    </p>
+                  <div className="space-y-2">
+                    <div className="h-5 w-32 rounded bg-(--surface-container-high)" />
+                    <div className="h-4 w-48 rounded bg-(--surface-container-low)" />
                   </div>
-                  <p className="text-(--on-surface-variant) text-sm">
-                    {mascota.examenes.length === 1 ? '1 examen' : `${mascota.examenes.length} exámenes`}
-                  </p>
+                  <div className="h-6 w-20 rounded-full bg-(--surface-container-low)" />
                 </div>
               </div>
             ))}
           </div>
+        ) : mascotas.length === 0 ? (
+          <section
+            className="rounded-2xl border border-(--outline-variant) bg-(--surface-container-lowest) p-10 sm:p-14 text-center"
+            aria-label="Sin mascotas registradas"
+          >
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-(--primary) mb-3 justify-center">
+              <span className="w-8 h-px bg-(--primary)" aria-hidden />
+              Empecemos
+            </span>
+            <h2
+              className="text-2xl sm:text-3xl font-bold text-(--on-surface) leading-tight mb-3"
+              style={{ letterSpacing: '-0.015em' }}
+            >
+              Aún no tienes una{' '}
+              <span
+                className="font-light italic text-(--primary)"
+                style={{ fontFamily: 'var(--font-newsreader)' }}
+              >
+                mascota registrada
+              </span>
+            </h2>
+            <p
+              className="text-(--on-surface-variant) max-w-md mx-auto mb-6"
+              style={{ fontFamily: 'var(--font-newsreader)', fontSize: '1.0625rem', lineHeight: 1.55 }}
+            >
+              Agrega su nombre, tipo y edad para empezar a llevar su ficha clínica
+              y agendar visitas a domicilio.
+            </p>
+            <button
+              onClick={() => {
+                setErrorMascota(null);
+                setMostrarForm(true);
+              }}
+              className="bg-(--primary) hover:bg-(--primary-container) text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-150"
+            >
+              + Agregar mi primera mascota
+            </button>
+          </section>
+        ) : (
+          <ul className="space-y-3">
+            {mascotas.map((mascota) => {
+              const detalles = [
+                mascota.tipo,
+                mascota.raza,
+                mascota.edad != null
+                  ? `${mascota.edad} ${mascota.edad === 1 ? 'año' : 'años'}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ');
+              const totalExamenes = mascota.examenes.length;
+              const disponibles = mascota.examenes.filter((e) => e.estado === 'DISPONIBLE').length;
+              return (
+                <li key={mascota.id}>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/dashboard/mascotas/${mascota.id}`)}
+                    className="w-full text-left bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-6 transition-all duration-150 hover:border-(--primary) hover:-translate-y-px focus:outline-none focus-visible:border-(--primary) focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-2 focus-visible:ring-offset-(--surface)"
+                    aria-label={`Ver ficha de ${mascota.nombre}`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold text-(--on-surface) truncate">
+                          {mascota.nombre}
+                        </h3>
+                        {detalles && (
+                          <p className="text-(--on-surface-variant) text-sm mt-0.5 truncate">
+                            {detalles}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {disponibles > 0 ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-full bg-(--tertiary-fixed) text-(--on-tertiary-fixed) text-xs font-bold px-2.5 py-1"
+                            style={{ letterSpacing: '0.05em' }}
+                          >
+                            {disponibles} disponible{disponibles === 1 ? '' : 's'}
+                          </span>
+                        ) : null}
+                        <span className="text-(--on-surface-muted) text-sm hidden sm:inline">
+                          {totalExamenes === 0
+                            ? 'Sin exámenes'
+                            : totalExamenes === 1
+                            ? '1 examen'
+                            : `${totalExamenes} exámenes`}
+                        </span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden
+                          className="text-(--on-surface-muted)"
+                        >
+                          <path
+                            d="M6 4l4 4-4 4"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </main>
