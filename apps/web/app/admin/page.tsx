@@ -1,17 +1,17 @@
 'use client';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import ExamStatusBadge from '@/components/ExamStatusBadge';
 import CitaStatusBadge from '@/components/CitaStatusBadge';
 import Logo from '@/components/Logo';
 
-interface Tutor {
+interface Usuario {
   id: string;
   nombre: string;
-  email: string;
-  telefono: string;
-  creadoEn: string;
+  email?: string;
+  rol?: string;
+  telefono?: string;
 }
 
 interface Mascota {
@@ -59,6 +59,14 @@ const SERVICIOS_EXAMEN = new Set([
 const fechaCorta = (s?: string) =>
   s ? new Date(s).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
+const mensajeError = (err: unknown, fallback: string) => {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const resp = (err as { response?: { data?: { message?: string } } }).response;
+    if (resp?.data?.message) return resp.data.message;
+  }
+  return fallback;
+};
+
 const ultimoExamen = (m: Mascota) =>
   m.examenes.length
     ? [...m.examenes].sort((a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime())[0]
@@ -73,11 +81,10 @@ const fueAtendida = (m: Mascota) => m.examenes.some(e => e.estado === 'DISPONIBL
 
 export default function Admin() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<any>(null);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [vista, setVista] = useState<Vista>('dashboard');
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [examenes, setExamenes] = useState<Examen[]>([]);
-  const [tutores, setTutores] = useState<Tutor[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
@@ -94,24 +101,11 @@ export default function Admin() {
   const [examenEstado, setExamenEstado] = useState<'TODOS' | 'PENDIENTE' | 'EN_PROCESO' | 'DISPONIBLE'>('TODOS');
   const [examenBusqueda, setExamenBusqueda] = useState('');
 
-  const [modalNuevaMascota, setModalNuevaMascota] = useState(false);
-  const [nuevaMascota, setNuevaMascota] = useState({ tutorId: '', nombre: '', tipo: '', raza: '', edad: '' });
-
   const [citas, setCitas] = useState<Cita[]>([]);
   const [mesActual, setMesActual] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
 
-  useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) { router.push('/login'); return; }
-    const parsed = JSON.parse(u);
-    if (parsed.rol !== 'ADMIN') { router.push('/dashboard'); return; }
-    setUsuario(parsed);
-    cargarDatos();
-  }, []);
-
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
       const [mascRes, examRes, citasRes] = await Promise.all([
         api.get('/mascotas'),
@@ -121,27 +115,30 @@ export default function Admin() {
       setMascotas(mascRes.data);
       setExamenes(examRes.data);
       setCitas(citasRes.data);
-    } catch (err) {
-      console.error(err);
     } finally {
       setCargando(false);
     }
-    try {
-      const tutoresRes = await api.get('/usuarios/tutores');
-      setTutores(tutoresRes.data);
-    } catch {
-      // el endpoint de tutores puede no estar disponible aún
-    }
-  };
+  }, []);
+
+  useEffect(() => {
+    const u = localStorage.getItem('usuario');
+    const token = localStorage.getItem('token');
+    if (!u || !token) { router.push('/login'); return; }
+    const parsed = JSON.parse(u) as Usuario;
+    if (parsed.rol !== 'ADMIN') { router.push('/dashboard'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuario(parsed);
+    cargarDatos();
+  }, [router, cargarDatos]);
 
   const actualizarEstadoCita = async (id: string, estado: EstadoCita) => {
     try {
       await api.patch(`/citas/${id}/estado`, { estado });
-      mostrarMensaje('ok', `✅ Cita marcada como ${estado.toLowerCase()}`);
+      mostrarMensaje('ok', `Cita marcada como ${estado.toLowerCase()}`);
       cargarDatos();
       setCitaSeleccionada(prev => (prev && prev.id === id ? { ...prev, estado } : prev));
-    } catch (err: any) {
-      mostrarMensaje('error', `❌ ${err.response?.data?.message || 'Error al actualizar la cita'}`);
+    } catch (err) {
+      mostrarMensaje('error', mensajeError(err, 'Error al actualizar la cita'));
     }
   };
 
@@ -171,19 +168,19 @@ export default function Admin() {
         await api.post(`/examenes/${examen.id}/subir`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        mostrarMensaje('ok', '✅ Resultado subido — el tutor fue notificado por correo');
+        mostrarMensaje('ok', 'Resultado subido. El tutor fue notificado por correo.');
       } else {
         // Servicio sin PDF: crear registro de examen como marca de "atendido"
         // (no aparecerá en la vista Exámenes porque se filtra por SERVICIOS_EXAMEN)
         await api.post('/examenes', { tipo: uploadTipo, mascotaId: uploadMascotaId });
-        mostrarMensaje('ok', '✅ Servicio registrado correctamente');
+        mostrarMensaje('ok', 'Servicio registrado correctamente.');
       }
       setUploadMascotaId('');
       setUploadTipo('');
       setUploadArchivo(null);
       cargarDatos();
-    } catch (err: any) {
-      mostrarMensaje('error', `❌ ${err.response?.data?.message || 'Error al registrar el servicio'}`);
+    } catch (err) {
+      mostrarMensaje('error', mensajeError(err, 'Error al registrar el servicio'));
     } finally {
       setSubiendo(false);
     }
@@ -201,30 +198,10 @@ export default function Admin() {
   const borrarPdf = async (id: string) => {
     try {
       await api.patch(`/examenes/${id}/estado`, { estado: 'PENDIENTE', archivoUrl: null });
-      mostrarMensaje('ok', '🗑️ PDF eliminado — el examen volvió a estado pendiente');
+      mostrarMensaje('ok', 'PDF eliminado. El examen volvió a estado pendiente.');
       cargarDatos();
-    } catch (err: any) {
-      mostrarMensaje('error', `❌ ${err.response?.data?.message || 'Error al eliminar el PDF'}`);
-    }
-  };
-
-  const crearMascota = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevaMascota.tutorId || !nuevaMascota.nombre || !nuevaMascota.tipo) return;
-    try {
-      await api.post('/mascotas', {
-        nombre: nuevaMascota.nombre,
-        tipo: nuevaMascota.tipo,
-        raza: nuevaMascota.raza || undefined,
-        edad: nuevaMascota.edad ? Number(nuevaMascota.edad) : undefined,
-        tutorId: nuevaMascota.tutorId,
-      });
-      mostrarMensaje('ok', '✅ Mascota registrada correctamente');
-      setNuevaMascota({ tutorId: '', nombre: '', tipo: '', raza: '', edad: '' });
-      setModalNuevaMascota(false);
-      cargarDatos();
-    } catch (err: any) {
-      mostrarMensaje('error', `❌ ${err.response?.data?.message || 'Error al crear la mascota'}`);
+    } catch (err) {
+      mostrarMensaje('error', mensajeError(err, 'Error al eliminar el PDF'));
     }
   };
 
@@ -321,15 +298,14 @@ export default function Admin() {
     <div className="flex min-h-screen">
 
       {/* ── Sidebar ── */}
-      <aside className="w-60 bg-(--primary) flex flex-col fixed top-0 left-0 h-full z-10">
+      <aside className="w-64 bg-(--primary) flex flex-col fixed top-0 left-0 h-full z-10 font-[family-name:var(--font-manrope)]">
 
         <div className="px-6 py-5">
-          <Logo size="md" variant="dark" />
+          <Logo size="sm" variant="dark" />
         </div>
 
         <div className="px-6 py-4 border-t border-b border-white/10">
-          <p className="text-white font-semibold text-sm">{usuario?.nombre || 'Dra. Silvestra'}</p>
-          <p className="text-white/50 text-xs mt-0.5">Clinical Excellence</p>
+          <p className="text-white font-semibold text-base">Panel de gestión</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -348,20 +324,34 @@ export default function Admin() {
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 ml-60 bg-(--surface) min-h-screen">
+      <main className="flex-1 ml-64 bg-(--surface) min-h-screen font-[family-name:var(--font-manrope)]">
 
         {/* Mensaje global */}
         {mensaje && (
           <div className="px-8 pt-6">
-            <div className={`p-3 rounded-lg text-sm ${mensaje.tipo === 'ok' ? 'bg-(--tertiary-fixed) text-(--on-surface)' : 'bg-(--error-container) text-(--on-surface)'}`}>
-              {mensaje.texto}
+            <div
+              role={mensaje.tipo === 'error' ? 'alert' : 'status'}
+              aria-live={mensaje.tipo === 'error' ? 'assertive' : 'polite'}
+              className={`flex items-start gap-3 p-3 rounded-lg text-sm ${
+                mensaje.tipo === 'ok'
+                  ? 'bg-(--tertiary-fixed) text-(--on-surface)'
+                  : 'bg-(--error-container) text-(--on-surface)'
+              }`}
+            >
+              <span className="flex-1">{mensaje.texto}</span>
+              <button
+                onClick={() => setMensaje(null)}
+                aria-label="Cerrar mensaje"
+                className="flex-shrink-0 text-(--on-surface-variant) hover:text-(--on-surface) leading-none"
+              >
+                ×
+              </button>
             </div>
           </div>
         )}
 
         {vista === 'dashboard' && (
           <DashboardView
-            usuario={usuario}
             mascotas={mascotas}
             citas={citas}
             recentMascotas={recentMascotas}
@@ -382,7 +372,6 @@ export default function Admin() {
             subiendo={subiendo}
             fileInputRef={fileInputRef}
             subirResultado={subirResultado}
-            actualizarEstado={actualizarEstado}
             actualizarEstadoCita={actualizarEstadoCita}
           />
         )}
@@ -395,7 +384,6 @@ export default function Admin() {
             setOrden={setMascotaOrden}
             busqueda={mascotaBusqueda}
             setBusqueda={setMascotaBusqueda}
-            onNueva={() => setModalNuevaMascota(true)}
           />
         )}
 
@@ -424,73 +412,44 @@ export default function Admin() {
           />
         )}
 
-        {vista === 'configuracion' && <ConfiguracionView usuario={usuario} cerrarSesion={cerrarSesion} />}
+        {vista === 'configuracion' && <ConfiguracionView usuario={usuario} cerrarSesion={cerrarSesion} mostrarMensaje={mostrarMensaje} />}
         {vista === 'ayuda' && <AyudaView />}
       </main>
-
-      {/* Modal Nueva Mascota */}
-      {modalNuevaMascota && (
-        <div className="fixed inset-0 bg-black/40 z-20 flex items-center justify-center p-4" onClick={() => setModalNuevaMascota(false)}>
-          <div className="bg-(--surface-container-lowest) rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <h2 className="font-bold text-xl text-(--on-surface) mb-1 font-[family-name:var(--font-manrope)]">Nueva Mascota</h2>
-            <p className="text-sm text-(--on-surface-variant) mb-5">Registra una mascota asociada a un tutor existente.</p>
-            <form onSubmit={crearMascota} className="space-y-4">
-              <Field label="Tutor">
-                <select required value={nuevaMascota.tutorId}
-                  onChange={e => setNuevaMascota({ ...nuevaMascota, tutorId: e.target.value })}
-                  className="w-full border border-(--outline-variant) rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 bg-white">
-                  <option value="">Seleccionar tutor...</option>
-                  {tutores.map(t => (
-                    <option key={t.id} value={t.id}>{t.nombre} — {t.email}</option>
-                  ))}
-                </select>
-                {tutores.length === 0 && (
-                  <p className="text-xs text-(--on-surface-variant) mt-1">No hay tutores registrados aún.</p>
-                )}
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Nombre">
-                  <Input required value={nuevaMascota.nombre} onChange={e => setNuevaMascota({ ...nuevaMascota, nombre: e.target.value })} placeholder="Max" />
-                </Field>
-                <Field label="Tipo de animal">
-                  <Input required value={nuevaMascota.tipo} onChange={e => setNuevaMascota({ ...nuevaMascota, tipo: e.target.value })} placeholder="Perro" />
-                </Field>
-                <Field label="Raza (opcional)">
-                  <Input value={nuevaMascota.raza} onChange={e => setNuevaMascota({ ...nuevaMascota, raza: e.target.value })} placeholder="Labrador" />
-                </Field>
-                <Field label="Edad (opcional)">
-                  <Input type="number" value={nuevaMascota.edad} onChange={e => setNuevaMascota({ ...nuevaMascota, edad: e.target.value })} placeholder="3" />
-                </Field>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModalNuevaMascota(false)}
-                  className="flex-1 border border-(--outline-variant) text-(--on-surface) py-2.5 rounded-lg font-medium text-sm">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={!nuevaMascota.tutorId || !nuevaMascota.nombre || !nuevaMascota.tipo}
-                  className="flex-1 bg-(--primary) hover:bg-(--primary-container) text-white py-2.5 rounded-lg font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                  Registrar mascota
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
+
 
 /* ──────────────────────────────────────────────────────────── */
 /*  Vistas                                                      */
 /* ──────────────────────────────────────────────────────────── */
 
+interface DashboardViewProps {
+  mascotas: Mascota[];
+  citas: Cita[];
+  recentMascotas: Mascota[];
+  pendientes: number;
+  citasHoy: number;
+  uploadMascotaId: string;
+  setUploadMascotaId: (v: string) => void;
+  uploadTipo: string;
+  setUploadTipo: (v: string) => void;
+  uploadArchivo: File | null;
+  setUploadArchivo: (f: File | null) => void;
+  dragging: boolean;
+  setDragging: (v: boolean) => void;
+  subiendo: boolean;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  subirResultado: (e: React.FormEvent) => void;
+  actualizarEstadoCita: (id: string, estado: EstadoCita) => void;
+}
+
 function DashboardView({
-  usuario, mascotas, citas, recentMascotas, pendientes, citasHoy,
+  mascotas, citas, recentMascotas, pendientes, citasHoy,
   uploadMascotaId, setUploadMascotaId, uploadTipo, setUploadTipo,
   uploadArchivo, setUploadArchivo, dragging, setDragging,
-  subiendo, fileInputRef, subirResultado, actualizarEstado, actualizarEstadoCita,
-}: any) {
+  subiendo, fileInputRef, subirResultado, actualizarEstadoCita,
+}: DashboardViewProps) {
   const SERVICIOS_CON_PDF = new Set([
     'Examen Hemograma', 'Examen T4', 'Examen TSH',
     'Perfil Bioquímico',
@@ -508,24 +467,23 @@ function DashboardView({
         const pendientes: string[] = [];
         for (const c of citasActivas) {
           for (const s of c.servicios) {
-            // Para servicios sin PDF: si ya hay un Examen del mismo tipo creado después de la cita, ya fue registrado
-            // Para servicios con PDF: si ya hay un Examen del mismo tipo con archivoUrl creado después de la cita, ya fue subido
-            const yaRegistrado = mascota?.examenes.some(ex => {
-              if (ex.tipo !== s) return false;
-              if (new Date(ex.creadoEn) < new Date(c.creadoEn)) return false;
-              if (SERVICIOS_CON_PDF.has(s)) return ex.estado === 'DISPONIBLE';
-              return true;
-            });
-            if (!yaRegistrado) pendientes.push(s);
+            if (SERVICIOS_CON_PDF.has(s)) {
+              // Examen con PDF: solo mostrar si aún no tiene PDF subido
+              const yaSubido = mascota?.examenes.some(ex =>
+                ex.tipo === s && ex.estado === 'DISPONIBLE'
+              );
+              if (!yaSubido) pendientes.push(s);
+            }
+            // Servicios sin PDF (ej. Colocación de chips) no se registran desde aquí
           }
         }
         return Array.from(new Set(pendientes)).sort();
       })()
     : [];
   return (
-    <>
+    <div className="font-[family-name:var(--font-manrope)]">
       <div className="px-8 pt-8 pb-6">
-        <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Panel de Control</h1>
+        <h1 className="text-2xl font-bold text-(--on-surface)">Panel de control</h1>
         <p className="text-(--on-surface-variant) text-sm mt-1">Resumen de actividad y pacientes recientes.</p>
       </div>
 
@@ -535,11 +493,11 @@ function DashboardView({
         <StatCard title="CITAS HOY"           value={citasHoy ?? 0}   sub={citasHoy === 1 ? 'Visita programada para hoy' : 'Visitas programadas para hoy'} primary />
       </div>
 
-      <div className="px-8 pb-8 grid grid-cols-[320px_1fr] gap-6 items-start">
+      <div className="px-8 pb-8 grid grid-cols-[300px_1fr] gap-6 items-start">
 
         {/* Quick Upload */}
         <div className="bg-(--surface-container-lowest) rounded-xl p-6">
-          <h2 className="font-bold text-(--on-surface) mb-5 font-[family-name:var(--font-manrope)]">↑ Subida Rápida</h2>
+          <h2 className="font-bold text-(--on-surface) mb-5 font-[family-name:var(--font-manrope)]">Subida Rápida</h2>
           <form onSubmit={subirResultado} className="space-y-4">
 
             <Field label="Seleccionar paciente">
@@ -548,8 +506,8 @@ function DashboardView({
                   setUploadMascotaId(e.target.value);
                   setUploadTipo('');
                 }}
-                className="w-full border border-(--outline-variant) rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 bg-white">
-                <option value="">Buscar mascota o tutor...</option>
+                className="sv-input text-sm py-2">
+                <option value="">Seleccionar paciente…</option>
                 {mascotas.map((m: Mascota) => (
                   <option key={m.id} value={m.id}>{m.nombre} ({m.tutor?.nombre})</option>
                 ))}
@@ -558,15 +516,15 @@ function DashboardView({
 
             <Field label="Tipo de servicio / Examen">
               <select required value={uploadTipo}
-                onChange={(e: any) => setUploadTipo(e.target.value)}
+                onChange={e => setUploadTipo(e.target.value)}
                 disabled={!uploadMascotaId || serviciosSolicitados.length === 0}
-                className="w-full border border-(--outline-variant) rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary) text-(--on-surface) bg-white disabled:bg-(--surface) disabled:cursor-not-allowed">
+                className="sv-input text-sm py-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 <option value="">
                   {!uploadMascotaId
-                    ? 'Selecciona un paciente primero...'
+                    ? 'Primero selecciona paciente'
                     : serviciosSolicitados.length === 0
                       ? 'Sin servicios solicitados'
-                      : 'Seleccionar servicio...'}
+                      : 'Seleccionar servicio…'}
                 </option>
                 {serviciosSolicitados.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -574,7 +532,7 @@ function DashboardView({
               </select>
               {uploadMascotaId && serviciosSolicitados.length === 0 && (
                 <p className="text-xs text-(--on-surface-variant) mt-1.5">
-                  Esta mascota no tiene servicios solicitados en citas activas.
+                  No hay exámenes con PDF pendientes para esta mascota.
                 </p>
               )}
               {uploadMascotaId && serviciosSolicitados.length > 0 && (
@@ -601,9 +559,12 @@ function DashboardView({
                     : 'border-(--outline-variant) hover:border-(--primary) hover:bg-(--surface)'
                 }`}>
                 {uploadArchivo ? (
-                  <div>
-                    <p className="text-sm font-medium text-(--on-surface)">📄 {uploadArchivo.name}</p>
-                    <p className="text-xs text-(--on-surface-variant) mt-1">{(uploadArchivo.size / 1024).toFixed(0)} KB · listo para subir</p>
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="inline-flex items-center gap-2 text-sm font-medium text-(--on-surface)">
+                      <IconDoc />
+                      {uploadArchivo.name}
+                    </span>
+                    <p className="text-xs text-(--on-surface-variant)">{(uploadArchivo.size / 1024).toFixed(0)} KB · listo para subir</p>
                   </div>
                 ) : (
                   <div>
@@ -630,10 +591,10 @@ function DashboardView({
         {/* Pacientes Recientes */}
         <div className="bg-(--surface-container-lowest) rounded-xl overflow-hidden">
           <div className="px-6 py-5 border-b border-(--outline-variant)">
-            <h2 className="font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Pacientes Recientes</h2>
+            <h2 className="font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Pacientes recientes</h2>
             <p className="text-xs text-(--on-surface-variant) mt-1">Mascotas ordenadas por última actividad.</p>
           </div>
-          <table className="w-full">
+          <table className="w-full font-[family-name:var(--font-manrope)]">
             <thead>
               <tr className="bg-(--surface) border-b border-(--outline-variant)">
                 <Th>Mascota / Tutor</Th>
@@ -680,14 +641,15 @@ function DashboardView({
                       {citaMasReciente && examenesDeCita.length > 0 && (
                         <ul className="space-y-1">
                           {examenesDeCita.map(tipoEx => {
-                            const exsMismotipo = m.examenes.filter(e => e.tipo === tipoEx && new Date(e.creadoEn) >= new Date(citaMasReciente.creadoEn));
-                            const subido = exsMismotipo.some(e => e.estado === 'DISPONIBLE');
+                            const exsMismotipo = m.examenes.filter(e => e.tipo === tipoEx);
                             const cancelado = citaMasReciente.estado === 'CANCELADA';
-                            const icono = cancelado ? '❌' : subido ? '✅' : '⏸️';
+                            const prioridad = (s: string) => s === 'DISPONIBLE' ? 2 : s === 'EN_PROCESO' ? 1 : 0;
+                            const mejor = exsMismotipo.sort((a, b) => prioridad(b.estado) - prioridad(a.estado))[0];
+                            const estadoChip = cancelado ? 'cancelado' : (mejor?.estado ?? 'PENDIENTE');
                             return (
                               <li key={tipoEx} className="flex items-center justify-between gap-2 text-xs text-(--on-surface)">
-                                <span>{tipoEx}</span>
-                                <span className="flex-shrink-0 text-sm leading-none">{icono}</span>
+                                <span className="truncate">{tipoEx}</span>
+                                <EstadoServicioChip estado={estadoChip} />
                               </li>
                             );
                           })}
@@ -697,26 +659,19 @@ function DashboardView({
                     </td>
                     <td className="px-4 py-4">
                       {citaMasReciente ? (
-                        <div className="flex flex-col gap-1.5">
-                          <button
-                            onClick={() => actualizarEstadoCita(citaMasReciente.id, 'COMPLETADA')}
-                            disabled={citaMasReciente.estado === 'COMPLETADA'}
-                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
-                            Atendido
-                          </button>
-                          <button
-                            onClick={() => actualizarEstadoCita(citaMasReciente.id, 'PENDIENTE')}
-                            disabled={citaMasReciente.estado === 'PENDIENTE'}
-                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
-                            Pospuesto
-                          </button>
-                          <button
-                            onClick={() => actualizarEstadoCita(citaMasReciente.id, 'CANCELADA')}
-                            disabled={citaMasReciente.estado === 'CANCELADA'}
-                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition">
-                            Cancelado
-                          </button>
-                        </div>
+                        <>
+                          <span className="sr-only">Cambiar estado de la cita de {m.nombre}</span>
+                          <select
+                            value={citaMasReciente.estado}
+                            onChange={e => actualizarEstadoCita(citaMasReciente.id, e.target.value as EstadoCita)}
+                            className="sv-input sv-select-compact"
+                          >
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="CONFIRMADA">Confirmada</option>
+                            <option value="COMPLETADA">Atendida</option>
+                            <option value="CANCELADA">Cancelada</option>
+                          </select>
+                        </>
                       ) : <span className="text-xs text-(--on-surface-variant)">—</span>}
                     </td>
                   </tr>
@@ -729,29 +684,42 @@ function DashboardView({
           </table>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-function MascotasView({ mascotas, total, orden, setOrden, busqueda, setBusqueda, onNueva }: any) {
+type MascotaOrden = 'fecha' | 'tipo' | 'atendido' | 'sin-atender';
+
+interface MascotasViewProps {
+  mascotas: Mascota[];
+  total: number;
+  orden: MascotaOrden;
+  setOrden: (o: MascotaOrden) => void;
+  busqueda: string;
+  setBusqueda: (s: string) => void;
+}
+
+function MascotasView({ mascotas, total, orden, setOrden, busqueda, setBusqueda }: MascotasViewProps) {
   return (
-    <div className="px-8 py-8">
+    <div className="px-8 py-8 font-[family-name:var(--font-manrope)]">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Mascotas</h1>
-        <p className="text-(--on-surface-variant) text-sm mt-1">{total} registradas — {mascotas.filter((m: Mascota) => fueAtendida(m)).length} atendidas</p>
+        <p className="text-(--on-surface-variant) text-sm mt-1">{total} registradas · {mascotas.filter((m: Mascota) => fueAtendida(m)).length} atendidas</p>
       </div>
 
       {/* Filtros */}
       <div className="bg-(--surface-container-lowest) rounded-xl p-4 mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[240px]">
+        <div className="w-full sm:w-72">
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, raza, tutor..."
-            className="w-full border border-(--outline-variant) rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 bg-white" />
+            placeholder="Buscar por nombre, raza, tutor…"
+            className="sv-input text-sm py-2" />
         </div>
-        <FilterChip active={orden === 'fecha'}        onClick={() => setOrden('fecha')}>Por fecha</FilterChip>
-        <FilterChip active={orden === 'tipo'}         onClick={() => setOrden('tipo')}>Por tipo de animal</FilterChip>
-        <FilterChip active={orden === 'atendido'}     onClick={() => setOrden('atendido')}>Atendidas primero</FilterChip>
-        <FilterChip active={orden === 'sin-atender'}  onClick={() => setOrden('sin-atender')}>Sin atender primero</FilterChip>
+        <div className="flex flex-wrap gap-2">
+          <FilterChip active={orden === 'fecha'}        onClick={() => setOrden('fecha')}>Por fecha</FilterChip>
+          <FilterChip active={orden === 'tipo'}         onClick={() => setOrden('tipo')}>Por tipo de animal</FilterChip>
+          <FilterChip active={orden === 'atendido'}     onClick={() => setOrden('atendido')}>Atendidas primero</FilterChip>
+          <FilterChip active={orden === 'sin-atender'}  onClick={() => setOrden('sin-atender')}>Sin atender primero</FilterChip>
+        </div>
       </div>
 
       {/* Grid de mascotas */}
@@ -760,7 +728,7 @@ function MascotasView({ mascotas, total, orden, setOrden, busqueda, setBusqueda,
           <p className="text-sm">No se encontraron mascotas con esos criterios.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 font-[family-name:var(--font-manrope)]">
           {mascotas.map((m: Mascota) => {
             const ue = ultimoExamen(m);
             const atendida = fueAtendida(m);
@@ -810,20 +778,32 @@ function MascotasView({ mascotas, total, orden, setOrden, busqueda, setBusqueda,
   );
 }
 
-function ExamenesView({ examenes, total, estado, setEstado, busqueda, setBusqueda, actualizarEstado, borrarPdf }: any) {
-  const conteo = (e: string) => total > 0 ? examenes.filter((x: Examen) => estado === 'TODOS' ? true : x.estado === e).length : 0;
+type ExamenEstado = 'TODOS' | 'PENDIENTE' | 'EN_PROCESO' | 'DISPONIBLE';
+
+interface ExamenesViewProps {
+  examenes: Examen[];
+  total: number;
+  estado: ExamenEstado;
+  setEstado: (e: ExamenEstado) => void;
+  busqueda: string;
+  setBusqueda: (s: string) => void;
+  actualizarEstado: (id: string, estado: string) => void;
+  borrarPdf: (id: string) => void;
+}
+
+function ExamenesView({ examenes, total, estado, setEstado, busqueda, setBusqueda, actualizarEstado, borrarPdf }: ExamenesViewProps) {
   return (
-    <div className="px-8 py-8">
+    <div className="px-8 py-8 font-[family-name:var(--font-manrope)]">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Exámenes</h1>
         <p className="text-(--on-surface-variant) text-sm mt-1">{total} exámenes en total</p>
       </div>
 
       <div className="bg-(--surface-container-lowest) rounded-xl p-4 mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[240px]">
+        <div className="flex-1 min-w-[200px]">
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por mascota, tutor o tipo de examen..."
-            className="w-full border border-(--outline-variant) rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 bg-white" />
+            placeholder="Buscar por mascota, tutor o tipo de examen…"
+            className="sv-input text-sm py-2" />
         </div>
         <FilterChip active={estado === 'TODOS'}      onClick={() => setEstado('TODOS')}>Todos</FilterChip>
         <FilterChip active={estado === 'PENDIENTE'}  onClick={() => setEstado('PENDIENTE')}>Pendientes</FilterChip>
@@ -832,7 +812,7 @@ function ExamenesView({ examenes, total, estado, setEstado, busqueda, setBusqued
       </div>
 
       <div className="bg-(--surface-container-lowest) rounded-xl overflow-hidden">
-        <table className="w-full">
+        <table className="w-full font-[family-name:var(--font-manrope)]">
           <thead>
             <tr className="bg-(--surface) border-b border-(--outline-variant)">
               <Th>Mascota / Tutor</Th>
@@ -858,23 +838,26 @@ function ExamenesView({ examenes, total, estado, setEstado, busqueda, setBusqued
                 <td className="px-4 py-4 text-sm text-(--on-surface-variant)">{fechaCorta(ex.creadoEn)}</td>
                 <td className="px-4 py-4"><ExamStatusBadge estado={ex.estado} /></td>
                 <td className="px-4 py-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="sr-only">Estado del examen</span>
                     <select value={ex.estado}
                       onChange={e => actualizarEstado(ex.id, e.target.value)}
-                      className="border border-(--outline-variant) rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-(--primary) text-gray-900 bg-white">
+                      className="sv-input sv-select-compact">
                       <option value="PENDIENTE">Pendiente</option>
-                      <option value="EN_PROCESO">En Proceso</option>
+                      <option value="EN_PROCESO">En proceso</option>
                       <option value="DISPONIBLE">Disponible</option>
                     </select>
                     {ex.archivoUrl && (
                       <>
                         <a href={ex.archivoUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-xs bg-(--primary) hover:bg-(--primary-container) text-white px-3 py-1 rounded-lg transition">
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem', lineHeight: '1.5' }}
+                          className="bg-(--primary) hover:bg-(--primary-container) text-white border border-(--primary) rounded-md font-semibold transition-colors duration-150 font-[family-name:var(--font-manrope)]">
                           Ver PDF
                         </a>
                         <button
                           onClick={() => { if (confirm('¿Eliminar el PDF y volver a estado pendiente?')) borrarPdf(ex.id); }}
-                          className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition">
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem', lineHeight: '1.5' }}
+                          className="border border-(--outline-variant) text-(--on-surface-variant) hover:text-(--primary) hover:border-(--primary) rounded-md font-semibold transition-colors duration-150 font-[family-name:var(--font-manrope)]">
                           Borrar PDF
                         </button>
                       </>
@@ -893,30 +876,367 @@ function ExamenesView({ examenes, total, estado, setEstado, busqueda, setBusqued
   );
 }
 
-function ConfiguracionView({ usuario, cerrarSesion }: { usuario: any; cerrarSesion: () => void }) {
+interface ConfiguracionViewProps {
+  usuario: Usuario | null;
+  cerrarSesion: () => void;
+  mostrarMensaje: (tipo: 'ok' | 'error', texto: string) => void;
+}
+
+function ConfiguracionView({ usuario, cerrarSesion, mostrarMensaje }: ConfiguracionViewProps) {
+  const inicial = usuario?.nombre?.[0]?.toUpperCase() ?? '?';
+
+  const [nombre, setNombre] = useState(usuario?.nombre ?? '');
+  const [telefono, setTelefono] = useState(usuario?.telefono ?? '');
+  const [foto, setFoto] = useState<string | null>(null);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  const [pwdActual, setPwdActual] = useState('');
+  const [pwdNueva, setPwdNueva] = useState('');
+  const [pwdConfirma, setPwdConfirma] = useState('');
+  const [verActual, setVerActual] = useState(false);
+  const [verNueva, setVerNueva] = useState(false);
+  const [verConfirma, setVerConfirma] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNombre(usuario?.nombre ?? '');
+    setTelefono(usuario?.telefono ?? '');
+  }, [usuario]);
+
+  const reqLargo = pwdNueva.length >= 8;
+  const reqMayusMinus = /[A-Z]/.test(pwdNueva) && /[a-z]/.test(pwdNueva);
+  const reqNumEspecial = /\d/.test(pwdNueva) && /[^A-Za-z0-9]/.test(pwdNueva);
+  const pwdCoincide = pwdNueva.length > 0 && pwdNueva === pwdConfirma;
+  const cambiandoPwd = pwdActual.length > 0 || pwdNueva.length > 0 || pwdConfirma.length > 0;
+  const pwdValida = !cambiandoPwd || (pwdActual.length > 0 && reqLargo && reqMayusMinus && reqNumEspecial && pwdCoincide);
+
+  const cambiosDetectados =
+    nombre.trim() !== (usuario?.nombre ?? '').trim() ||
+    telefono.trim() !== (usuario?.telefono ?? '').trim() ||
+    foto !== null ||
+    cambiandoPwd;
+
+  const onSeleccionarFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      mostrarMensaje('error', 'La imagen supera 1 MB. Usa una más liviana.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => setFoto(typeof ev.target?.result === 'string' ? ev.target.result : null);
+    reader.readAsDataURL(file);
+  };
+
+  const onCancelar = () => {
+    setNombre(usuario?.nombre ?? '');
+    setTelefono(usuario?.telefono ?? '');
+    setFoto(null);
+    setPwdActual('');
+    setPwdNueva('');
+    setPwdConfirma('');
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cambiandoPwd && !pwdValida) {
+      mostrarMensaje('error', 'Revisa los requisitos de la contraseña antes de guardar.');
+      return;
+    }
+    mostrarMensaje('ok', 'Cambios listos. La sincronización con servidor llegará en próximas versiones.');
+  };
+
   return (
-    <div className="px-8 py-8 max-w-3xl">
-      <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)] mb-1">Configuración</h1>
-      <p className="text-(--on-surface-variant) text-sm mb-6">Información de tu cuenta y preferencias.</p>
+    <form onSubmit={onSubmit} className="px-8 py-8 max-w-3xl mx-auto">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)] mb-1">Configuración del perfil</h1>
+        <p
+          className="text-(--on-surface-variant)"
+          style={{ fontFamily: 'var(--font-newsreader)', fontSize: '1rem', lineHeight: 1.55 }}
+        >
+          Administra tu información personal y la seguridad de tu cuenta para mantener tu perfil actualizado.
+        </p>
+      </header>
 
-      <div className="bg-(--surface-container-lowest) rounded-xl p-6 mb-4">
-        <h2 className="font-bold text-(--on-surface) mb-4">Mi cuenta</h2>
-        <div className="space-y-3 text-sm">
-          <Row label="Nombre" value={usuario?.nombre} />
-          <Row label="Correo" value={usuario?.email} />
-          <Row label="Rol" value={usuario?.rol} />
+      {/* Información personal */}
+      <section className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-8 mb-6">
+        <div className="flex items-center gap-3 pb-4 mb-6 border-b border-(--outline-variant)">
+          <IconBadge />
+          <h2 className="text-lg font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Información personal</h2>
         </div>
-      </div>
 
-      <div className="bg-(--surface-container-lowest) rounded-xl p-6">
-        <h2 className="font-bold text-(--on-surface) mb-2">Sesión</h2>
-        <p className="text-sm text-(--on-surface-variant) mb-4">Cierra tu sesión para proteger tu cuenta cuando termines de trabajar.</p>
-        <button onClick={cerrarSesion}
-          className="border border-(--outline-variant) text-(--on-surface) hover:bg-(--surface) px-4 py-2 rounded-lg text-sm font-medium transition">
+        {/* Avatar + acciones */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 mb-8">
+          <div
+            className="w-24 h-24 rounded-full bg-(--primary) text-white flex items-center justify-center font-bold text-3xl flex-shrink-0 font-[family-name:var(--font-manrope)] overflow-hidden border-4 border-(--surface)"
+            aria-hidden
+          >
+            {foto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={foto} alt="" className="w-full h-full object-cover" />
+            ) : (
+              inicial
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => fotoInputRef.current?.click()}
+                className="bg-(--primary) hover:bg-(--primary-container) text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 font-[family-name:var(--font-manrope)]"
+              >
+                Cambiar foto
+              </button>
+              <button
+                type="button"
+                onClick={() => setFoto(null)}
+                disabled={!foto}
+                className="border border-(--outline-variant) text-(--on-surface) hover:bg-(--surface-container-low) px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-[family-name:var(--font-manrope)]"
+              >
+                Eliminar
+              </button>
+            </div>
+            <p className="text-xs text-(--on-surface-variant)">JPG, GIF o PNG. Máximo 1 MB.</p>
+            <input
+              ref={fotoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/gif"
+              className="hidden"
+              onChange={onSeleccionarFoto}
+            />
+          </div>
+        </div>
+
+        {/* Campos */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+          <div>
+            <label
+              htmlFor="config-nombre"
+              className="block text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]"
+            >
+              Nombre
+            </label>
+            <input
+              id="config-nombre"
+              type="text"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              className="sv-input"
+              placeholder="Tu nombre"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="config-rol"
+              className="block text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]"
+            >
+              Rol
+            </label>
+            <input
+              id="config-rol"
+              type="text"
+              value={usuario?.rol === 'ADMIN' ? 'Administradora' : usuario?.rol ?? ''}
+              disabled
+              className="sv-input cursor-not-allowed opacity-70"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="config-email"
+              className="block text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]"
+            >
+              Correo electrónico
+            </label>
+            <input
+              id="config-email"
+              type="email"
+              value={usuario?.email ?? ''}
+              disabled
+              className="sv-input cursor-not-allowed opacity-70"
+            />
+            <p className="text-xs text-(--on-surface-variant) mt-1.5">El correo electrónico no se puede cambiar aquí. Contacta a soporte.</p>
+          </div>
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="config-telefono"
+              className="block text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]"
+            >
+              Teléfono <span className="font-normal normal-case tracking-normal">(opcional)</span>
+            </label>
+            <input
+              id="config-telefono"
+              type="tel"
+              inputMode="tel"
+              value={telefono}
+              onChange={e => setTelefono(e.target.value)}
+              className="sv-input"
+              placeholder="+56 9 1234 5678"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Seguridad de la cuenta */}
+      <section className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-8 mb-6">
+        <div className="flex items-center gap-3 pb-4 mb-6 border-b border-(--outline-variant)">
+          <IconLock />
+          <h2 className="text-lg font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Seguridad de la cuenta</h2>
+        </div>
+
+        <div className="space-y-5">
+          <PasswordField
+            id="config-pwd-actual"
+            label="Contraseña actual"
+            value={pwdActual}
+            onChange={setPwdActual}
+            visible={verActual}
+            toggleVisible={() => setVerActual(v => !v)}
+            autoComplete="current-password"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 pt-1">
+            <PasswordField
+              id="config-pwd-nueva"
+              label="Nueva contraseña"
+              value={pwdNueva}
+              onChange={setPwdNueva}
+              visible={verNueva}
+              toggleVisible={() => setVerNueva(v => !v)}
+              autoComplete="new-password"
+            />
+            <PasswordField
+              id="config-pwd-confirma"
+              label="Confirmar contraseña"
+              value={pwdConfirma}
+              onChange={setPwdConfirma}
+              visible={verConfirma}
+              toggleVisible={() => setVerConfirma(v => !v)}
+              autoComplete="new-password"
+              error={pwdConfirma.length > 0 && !pwdCoincide ? 'Las contraseñas no coinciden.' : undefined}
+            />
+          </div>
+
+          <div className="bg-(--surface-container-low) border border-(--outline-variant) rounded-lg p-4 flex items-start gap-3 mt-2">
+            <IconInfo />
+            <div className="flex-1">
+              <p className="font-semibold text-(--on-surface) text-sm mb-1.5 font-[family-name:var(--font-manrope)]">Requisitos de la contraseña</p>
+              <ul className="space-y-1 text-sm text-(--on-surface-variant)">
+                <ReqItem ok={reqLargo}>Mínimo 8 caracteres</ReqItem>
+                <ReqItem ok={reqMayusMinus}>Al menos una letra mayúscula y una minúscula</ReqItem>
+                <ReqItem ok={reqNumEspecial}>Al menos un número y un carácter especial</ReqItem>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sesión */}
+      <section className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-8 mb-6">
+        <div className="flex items-center gap-3 pb-4 mb-5 border-b border-(--outline-variant)">
+          <span className="w-8 h-px bg-(--primary)" aria-hidden />
+          <h2 className="text-[11px] font-bold tracking-[0.15em] uppercase text-(--primary) font-[family-name:var(--font-manrope)]">
+            Sesión
+          </h2>
+        </div>
+        <p
+          className="text-(--on-surface-variant) mb-5"
+          style={{ fontFamily: 'var(--font-newsreader)', fontSize: '1rem', lineHeight: 1.55 }}
+        >
+          Cierra tu sesión para proteger tu cuenta cuando termines de trabajar.
+        </p>
+        <button
+          type="button"
+          onClick={cerrarSesion}
+          className="border border-(--outline-variant) text-(--on-surface) hover:bg-(--surface-container-low) hover:border-(--primary) hover:text-(--primary) px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-150 font-[family-name:var(--font-manrope)]"
+        >
           Cerrar sesión
         </button>
+      </section>
+
+      {/* Footer de acciones */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-(--outline-variant)">
+        <button
+          type="button"
+          onClick={onCancelar}
+          disabled={!cambiosDetectados}
+          className="px-6 py-2.5 rounded-lg text-sm font-semibold text-(--on-surface) hover:bg-(--surface-container-low) transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-[family-name:var(--font-manrope)]"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={!cambiosDetectados || (cambiandoPwd && !pwdValida)}
+          className="bg-(--primary) hover:bg-(--primary-container) text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-[family-name:var(--font-manrope)]"
+        >
+          Guardar cambios
+        </button>
       </div>
+    </form>
+  );
+}
+
+function PasswordField({
+  id, label, value, onChange, visible, toggleVisible, autoComplete, error,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  visible: boolean;
+  toggleVisible: () => void;
+  autoComplete: string;
+  error?: string;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="block text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]"
+      >
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          className="sv-input pr-10"
+        />
+        <button
+          type="button"
+          onClick={toggleVisible}
+          aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          aria-pressed={visible}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-(--on-surface-muted) hover:text-(--primary) p-1.5 rounded transition-colors duration-150"
+        >
+          {visible ? <IconEyeOff /> : <IconEye />}
+        </button>
+      </div>
+      {error && <p className="text-xs text-(--error) mt-1.5">{error}</p>}
     </div>
+  );
+}
+
+function ReqItem({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2">
+      <span
+        className={`mt-0.5 flex-shrink-0 ${ok ? 'text-(--primary)' : 'text-(--on-surface-muted)'}`}
+        aria-hidden
+      >
+        {ok ? (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="3" fill="currentColor" />
+          </svg>
+        )}
+      </span>
+      <span className={ok ? 'text-(--on-surface)' : ''}>{children}</span>
+    </li>
   );
 }
 
@@ -964,7 +1284,8 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
     completadas: citasMes.filter(c => c.estado === 'COMPLETADA').length,
   };
 
-  const nombreMes = mesActual.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  const nombreMes = mesActual.toLocaleDateString('es-CL', { month: 'long' });
+  const fechaHoyLarga = hoy.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const mesAnterior = () => setMesActual(new Date(año, mes - 1, 1));
   const mesSiguiente = () => setMesActual(new Date(año, mes + 1, 1));
@@ -975,16 +1296,38 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
   for (let d = 1; d <= diasMes; d++) cells.push({ dia: d });
 
   return (
-    <div className="px-8 py-8">
-      <div className="flex justify-between items-end mb-6">
+    <div className="px-8 py-8 font-[family-name:var(--font-manrope)]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Agenda de Visitas</h1>
-          <p className="text-(--on-surface-variant) text-sm mt-1 capitalize">Gestión de consultas domiciliarias — {nombreMes}.</p>
+          <h1 className="text-2xl font-bold text-(--on-surface)">Agenda de visitas</h1>
+          <p className="text-(--on-surface-variant) text-sm mt-1">
+            Gestión de consultas domiciliarias · Hoy es {fechaHoyLarga}.
+          </p>
         </div>
-        <div className="flex bg-(--surface-container-lowest) rounded-lg border border-(--outline-variant) p-1 items-center">
-          <button onClick={mesAnterior} className="px-2 py-1 text-(--on-surface-variant) hover:text-(--primary)">‹</button>
-          <button onClick={irHoy} className="px-3 py-1 text-xs font-bold text-(--on-surface) hover:bg-(--surface) rounded">Hoy</button>
-          <button onClick={mesSiguiente} className="px-2 py-1 text-(--on-surface-variant) hover:text-(--primary)">›</button>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-(--surface-container-lowest) rounded-lg border border-(--outline-variant) p-1 items-center gap-1">
+            <button
+              onClick={mesAnterior}
+              aria-label="Mes anterior"
+              className="px-2 py-1 text-(--on-surface-variant) hover:text-(--primary) leading-none"
+            >
+              ‹
+            </button>
+            <button
+              onClick={irHoy}
+              aria-live="polite"
+              className="px-4 py-1.5 text-sm font-semibold text-(--on-surface) hover:bg-(--surface) rounded capitalize"
+            >
+              {nombreMes}
+            </button>
+            <button
+              onClick={mesSiguiente}
+              aria-label="Mes siguiente"
+              className="px-2 py-1 text-(--on-surface-variant) hover:text-(--primary) leading-none"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1011,9 +1354,9 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
                   <div className="flex flex-col gap-1 overflow-y-auto">
                     {citasDia.slice(0, 3).map(c => (
                       <button key={c.id} onClick={() => setCitaSeleccionada(c)}
-                        className={`text-left p-1.5 rounded text-[10px] border-l-2 cursor-pointer hover:brightness-95 transition truncate ${estiloCitaCalendario(c.servicios, c.estado)} ${citaSeleccionada?.id === c.id ? 'ring-1 ring-offset-1 ring-black/20' : ''}`}>
+                        className={`text-left p-1.5 rounded text-[10px] cursor-pointer hover:brightness-95 transition truncate ${estiloCitaCalendario(c.estado)} ${citaSeleccionada?.id === c.id ? 'ring-2 ring-offset-1 ring-(--primary)' : ''}`}>
                         <p className="font-bold truncate">{horaCorta(c.fecha)} · {c.mascota.nombre}</p>
-                        <p className="opacity-70 truncate">{c.servicios.length > 1 ? `${c.servicios.length} servicios` : c.servicios[0]}</p>
+                        <p className="opacity-80 truncate">{c.servicios.length > 1 ? `${c.servicios.length} servicios` : c.servicios[0]}</p>
                       </button>
                     ))}
                     {citasDia.length > 3 && (
@@ -1029,7 +1372,7 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
         {/* Side Panel */}
         <aside className="w-80 bg-(--surface-container-lowest) rounded-xl border border-(--outline-variant) p-6 flex flex-col gap-4 sticky top-6">
           <div className="flex justify-between items-start">
-            <h3 className="font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Detalles de la Cita</h3>
+            <h3 className="font-bold text-(--on-surface) font-[family-name:var(--font-manrope)]">Detalles de la cita</h3>
             {citaSeleccionada && (
               <button onClick={() => setCitaSeleccionada(null)} className="text-(--on-surface-variant) hover:text-(--on-surface) text-lg leading-none">×</button>
             )}
@@ -1059,14 +1402,13 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
                   />
                   <div>
                     <p className="text-(--on-surface-variant) text-xs mb-1.5">Servicios solicitados:</p>
-                    <ul className="space-y-1">
+                    <ul className="space-y-1.5">
                       {citaSeleccionada.servicios.map(s => {
                         const estado = estadoServicio(s, citaSeleccionada, mascotas);
-                        const icono = estado === 'atendido' ? '✅' : estado === 'cancelado' ? '❌' : '⏸️';
                         return (
                           <li key={s} className="flex items-center justify-between gap-2 text-sm text-(--on-surface)">
-                            <span>{s}</span>
-                            <span className="text-base leading-none flex-shrink-0">{icono}</span>
+                            <span className="truncate">{s}</span>
+                            <EstadoServicioChip estado={estado} />
                           </li>
                         );
                       })}
@@ -1076,9 +1418,18 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
               </div>
 
               {/* Tutor + Dirección */}
-              <div className="space-y-2 text-xs text-(--on-surface-variant) border-t border-(--outline-variant) pt-3">
-                <p>👤 <span className="font-medium text-(--on-surface)">{citaSeleccionada.mascota.tutor.nombre}</span> · {citaSeleccionada.mascota.tutor.telefono}</p>
-                <p>📍 {citaSeleccionada.direccion}</p>
+              <div className="space-y-2 text-xs border-t border-(--outline-variant) pt-3">
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-(--on-surface-variant)">Tutor</span>
+                  <p className="text-(--on-surface) mt-0.5">
+                    <span className="font-medium">{citaSeleccionada.mascota.tutor.nombre}</span>
+                    <span className="text-(--on-surface-variant)"> · {citaSeleccionada.mascota.tutor.telefono}</span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest uppercase text-(--on-surface-variant)">Dirección</span>
+                  <p className="text-(--on-surface) mt-0.5">{citaSeleccionada.direccion}</p>
+                </div>
               </div>
 
               {/* Acciones */}
@@ -1121,49 +1472,34 @@ function AgendaView({ citas, mascotas, mesActual, setMesActual, citaSeleccionada
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mt-8">
-        <StatMini label="CONFIRMADAS"  value={stats.confirmadas}  color="emerald" />
-        <StatMini label="PENDIENTES"   value={stats.pendientes}   color="amber" />
-        <StatMini label="VISITAS HOY"  value={stats.hoy}          color="blue" />
-        <StatMini label="COMPLETADAS"  value={stats.completadas}  color="primary" />
+        <StatMini label="CONFIRMADAS"  value={stats.confirmadas}  tone="confirmada" />
+        <StatMini label="PENDIENTES"   value={stats.pendientes}   tone="pendiente" />
+        <StatMini label="VISITAS HOY"  value={stats.hoy}          tone="hoy" />
+        <StatMini label="COMPLETADAS"  value={stats.completadas}  tone="completada" />
       </div>
 
-      {/* Leyenda de colores */}
+      {/* Leyenda de estados */}
       <div className="bg-(--surface-container-lowest) rounded-xl border border-(--outline-variant) px-6 py-5 mt-4">
-        <p className="text-[10px] font-bold tracking-widest uppercase text-(--on-surface-variant) mb-4">Servicios agendados</p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-          {[
-            { label: 'Colocación de chips',    dot: 'bg-indigo-400',  chip: 'bg-indigo-50 text-indigo-700 ring-indigo-200' },
-            { label: 'Control Médico',         dot: 'bg-sky-400',     chip: 'bg-sky-50 text-sky-700 ring-sky-200' },
-            { label: 'Curación de heridas',    dot: 'bg-emerald-400', chip: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-            { label: 'Examen Hemograma',       dot: 'bg-amber-400',   chip: 'bg-amber-50 text-amber-700 ring-amber-200' },
-            { label: 'Examen T4',              dot: 'bg-yellow-400',  chip: 'bg-yellow-50 text-yellow-700 ring-yellow-200' },
-            { label: 'Examen TSH',             dot: 'bg-orange-400',  chip: 'bg-orange-50 text-orange-700 ring-orange-200' },
-            { label: 'Perfil Bioquímico',      dot: 'bg-pink-400',    chip: 'bg-pink-50 text-pink-700 ring-pink-200' },
-            { label: 'Test de Distemper',      dot: 'bg-violet-400',  chip: 'bg-violet-50 text-violet-700 ring-violet-200' },
-            { label: 'Test de leucemia',       dot: 'bg-purple-400',  chip: 'bg-purple-50 text-purple-700 ring-purple-200' },
-            { label: 'Test de Parvovirus',     dot: 'bg-fuchsia-400', chip: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200' },
-            { label: 'Test de SIDA Felino',    dot: 'bg-rose-400',    chip: 'bg-rose-50 text-rose-700 ring-rose-200' },
-            { label: 'Múltiples servicios',    dot: 'bg-red-500',     chip: 'bg-red-50 text-red-700 ring-red-200' },
-          ].map(({ label, dot, chip }) => (
-            <div key={label} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg ring-1 ${chip}`}>
-              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dot}`} />
-              <span className="text-[11px] font-semibold leading-tight">{label}</span>
-            </div>
-          ))}
+        <p className="text-[10px] font-bold tracking-widest uppercase text-(--on-surface-variant) mb-4">Estados de cita</p>
+        <div className="flex flex-wrap gap-3">
+          <LegendItem tone="pendiente"   label="Pendiente"   hint="Aún sin confirmar" />
+          <LegendItem tone="confirmada"  label="Confirmada"  hint="Lista para visitar" />
+          <LegendItem tone="completada"  label="Completada"  hint="Atención registrada" />
+          <LegendItem tone="cancelada"   label="Cancelada"   hint="No se realizará" />
         </div>
       </div>
     </div>
   );
 }
 
-function DetalleRow({ icon, label, value, sub }: { icon: string; label: string; value: React.ReactNode; sub?: string }) {
+function LegendItem({ tone, label, hint }: { tone: EstadoTone; label: string; hint: string }) {
+  const styles = TONE_STYLES[tone];
   return (
-    <div className="flex items-start gap-3">
-      <span className="text-base mt-0.5">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold tracking-wider uppercase text-(--on-surface-variant) mb-0.5">{label}</p>
-        <div className="text-sm text-(--on-surface) font-medium">{value}</div>
-        {sub && <p className="text-xs text-(--on-surface-variant) mt-0.5">{sub}</p>}
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-(--outline-variant)">
+      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${styles.dot}`} aria-hidden />
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs font-bold text-(--on-surface)">{label}</span>
+        <span className="text-[10px] text-(--on-surface-variant)">{hint}</span>
       </div>
     </div>
   );
@@ -1183,97 +1519,141 @@ function fechaCortaCita(iso: string) {
   return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function estadoServicio(servicio: string, cita: Cita, mascotas: Mascota[]): 'atendido' | 'pendiente' | 'cancelado' {
+function estadoServicio(servicio: string, cita: Cita, mascotas: Mascota[]): 'DISPONIBLE' | 'PENDIENTE' | 'EN_PROCESO' | 'cancelado' {
   if (cita.estado === 'CANCELADA') return 'cancelado';
   if (SERVICIOS_EXAMEN.has(servicio)) {
     const mascota = mascotas.find(m => m.id === cita.mascotaId);
-    const tieneDisponible = mascota?.examenes.some(e => e.tipo === servicio && new Date(e.creadoEn) >= new Date(cita.creadoEn) && e.estado === 'DISPONIBLE');
-    return tieneDisponible ? 'atendido' : 'pendiente';
+    const examenes = mascota?.examenes.filter(e => e.tipo === servicio) ?? [];
+    const prioridad = (s: string) => s === 'DISPONIBLE' ? 2 : s === 'EN_PROCESO' ? 1 : 0;
+    const mejor = examenes.sort((a, b) => prioridad(b.estado) - prioridad(a.estado))[0];
+    return (mejor?.estado ?? 'PENDIENTE') as 'DISPONIBLE' | 'PENDIENTE' | 'EN_PROCESO';
   }
-  if (cita.estado !== 'COMPLETADA') return 'pendiente';
-  return 'atendido';
+  if (cita.estado !== 'COMPLETADA') return 'PENDIENTE';
+  return 'DISPONIBLE';
 }
 
-function StatMini({ label, value, color }: { label: string; value: number; color: 'emerald' | 'amber' | 'blue' | 'primary' }) {
-  const styles = {
-    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    amber: { bg: 'bg-amber-50', text: 'text-amber-600' },
-    blue: { bg: 'bg-blue-50', text: 'text-blue-600' },
-    primary: { bg: 'bg-(--primary)', text: 'text-white' },
-  } as const;
-  const isPrimary = color === 'primary';
+type EstadoTone = 'pendiente' | 'confirmada' | 'completada' | 'cancelada' | 'hoy';
+
+const TONE_STYLES: Record<EstadoTone, { dot: string; cell: string; statBg: string; statText: string; statLabel: string; isInverted?: boolean }> = {
+  pendiente: {
+    dot: 'bg-(--secondary-container)',
+    cell: 'bg-(--secondary-container)/35 text-(--on-surface) ring-1 ring-(--secondary-container)',
+    statBg: 'bg-(--surface-container-lowest) border-(--outline-variant)',
+    statText: 'text-(--on-surface)',
+    statLabel: 'text-(--on-surface-variant)',
+  },
+  confirmada: {
+    dot: 'bg-(--tertiary-fixed)',
+    cell: 'bg-(--tertiary-fixed)/45 text-(--on-surface) ring-1 ring-(--tertiary-fixed)',
+    statBg: 'bg-(--surface-container-lowest) border-(--outline-variant)',
+    statText: 'text-(--on-surface)',
+    statLabel: 'text-(--on-surface-variant)',
+  },
+  completada: {
+    dot: 'bg-(--primary)',
+    cell: 'bg-(--primary)/10 text-(--on-surface) ring-1 ring-(--primary)/30',
+    statBg: 'bg-(--primary) border-(--primary)',
+    statText: 'text-white',
+    statLabel: 'text-white/70',
+    isInverted: true,
+  },
+  cancelada: {
+    dot: 'bg-(--on-surface-muted)',
+    cell: 'bg-(--surface-container-high) text-(--on-surface-muted) ring-1 ring-(--outline-variant) line-through opacity-70',
+    statBg: 'bg-(--surface-container-lowest) border-(--outline-variant)',
+    statText: 'text-(--on-surface)',
+    statLabel: 'text-(--on-surface-variant)',
+  },
+  hoy: {
+    dot: 'bg-(--primary)',
+    cell: '',
+    statBg: 'bg-(--surface-container-lowest) border-(--primary)',
+    statText: 'text-(--primary)',
+    statLabel: 'text-(--primary)',
+  },
+};
+
+function StatMini({ label, value, tone }: { label: string; value: number; tone: EstadoTone }) {
+  const styles = TONE_STYLES[tone];
   return (
-    <div className={`p-5 rounded-xl border ${isPrimary ? 'bg-(--primary) border-(--primary)' : 'bg-(--surface-container-lowest) border-(--outline-variant)'}`}>
-      <p className={`text-[10px] font-bold tracking-widest mb-2 ${isPrimary ? 'text-white/70' : 'text-(--on-surface-variant)'}`}>{label}</p>
-      <p className={`text-3xl font-bold font-[family-name:var(--font-manrope)] ${isPrimary ? 'text-white' : 'text-(--on-surface)'}`}>{String(value).padStart(2, '0')}</p>
+    <div className={`p-5 rounded-xl border ${styles.statBg}`}>
+      <p className={`text-[10px] font-bold tracking-widest mb-2 ${styles.statLabel}`}>{label}</p>
+      <p className={`text-3xl font-bold font-[family-name:var(--font-manrope)] ${styles.statText}`}>{String(value).padStart(2, '0')}</p>
     </div>
   );
 }
 
-const COLOR_SERVICIO: Record<string, { bg: string; text: string; border: string }> = {
-  'Colocación de chips':     { bg: 'bg-indigo-100',  text: 'text-indigo-800',  border: 'border-indigo-400' },
-  'Control Médico':          { bg: 'bg-sky-100',     text: 'text-sky-800',     border: 'border-sky-400' },
-  'Curación de heridas':     { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-400' },
-  'Examen Hemograma':        { bg: 'bg-amber-100',   text: 'text-amber-800',   border: 'border-amber-400' },
-  'Examen T4':               { bg: 'bg-yellow-100',  text: 'text-yellow-800',  border: 'border-yellow-400' },
-  'Examen TSH':              { bg: 'bg-orange-100',  text: 'text-orange-800',  border: 'border-orange-400' },
-  'Perfil Bioquímico':       { bg: 'bg-pink-100',    text: 'text-pink-800',    border: 'border-pink-400' },
-  'Test de Distemper':       { bg: 'bg-violet-100',  text: 'text-violet-800',  border: 'border-violet-400' },
-  'Test de leucemia':        { bg: 'bg-purple-100',  text: 'text-purple-800',  border: 'border-purple-400' },
-  'Test de Parvovirus':      { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', border: 'border-fuchsia-400' },
-  'Test de SIDA Felino':     { bg: 'bg-rose-100',    text: 'text-rose-800',    border: 'border-rose-400' },
-};
-const COLOR_MULTIPLE = { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-400' };
-const COLOR_DEFAULT  = { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' };
-
-function colorCita(servicios: string[]) {
-  if (servicios.length > 1) return COLOR_MULTIPLE;
-  return COLOR_SERVICIO[servicios[0]] ?? COLOR_DEFAULT;
-}
-
-function estiloCitaCalendario(servicios: string[], estado: EstadoCita) {
-  if (estado === 'CANCELADA') return 'bg-gray-100 text-gray-400 border-gray-300 line-through opacity-60';
-  if (estado === 'COMPLETADA') return 'bg-gray-100 text-gray-500 border-gray-300 opacity-80';
-  const { bg, text, border } = colorCita(servicios);
-  return `${bg} ${text} ${border}`;
+function estiloCitaCalendario(estado: EstadoCita): string {
+  const tone: EstadoTone =
+    estado === 'CANCELADA' ? 'cancelada' :
+    estado === 'COMPLETADA' ? 'completada' :
+    estado === 'CONFIRMADA' ? 'confirmada' :
+    'pendiente';
+  return TONE_STYLES[tone].cell;
 }
 
 function horaCorta(iso: string) {
   return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 }
 
-function fechaLarga(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + horaCorta(iso);
-}
-
 function AyudaView() {
   return (
-    <div className="px-8 py-8 max-w-3xl">
-      <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)] mb-1">Centro de ayuda</h1>
-      <p className="text-(--on-surface-variant) text-sm mb-6">Soporte y respuestas rápidas para Silvestra Vet.</p>
+    <div className="px-8 py-8 max-w-3xl mx-auto">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold text-(--on-surface) font-[family-name:var(--font-manrope)] mb-1">Centro de ayuda</h1>
+        <p className="text-(--on-surface-variant) text-sm">Soporte y respuestas rápidas para Silvestra Vet.</p>
+      </header>
 
-      <div className="bg-(--surface-container-lowest) rounded-xl p-6 mb-4">
-        <h2 className="font-bold text-(--on-surface) mb-4">Preguntas frecuentes</h2>
-        <div className="space-y-4 text-sm">
+      {/* FAQ */}
+      <section className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-8 mb-6">
+        <div className="flex items-center gap-3 pb-4 mb-6 border-b border-(--outline-variant)">
+          <span className="w-8 h-px bg-(--primary)" aria-hidden />
+          <h2 className="text-[11px] font-bold tracking-[0.15em] uppercase text-(--primary) font-[family-name:var(--font-manrope)]">
+            Preguntas frecuentes
+          </h2>
+        </div>
+        <div className="divide-y divide-(--outline-variant)">
           <Faq q="¿Cómo subo un examen?"
-               a="Desde el Dashboard, en la sección «Subida Rápida», selecciona el paciente, escribe el tipo de examen y arrastra el PDF. Al hacer clic en «Subir y publicar» el tutor recibe un correo automático." />
-          <Faq q="¿Cómo registro una mascota nueva?"
-               a="Haz clic en «+ Nueva Mascota» en la barra lateral. Selecciona un tutor ya registrado y completa los datos del animal. La raza y la edad son opcionales." />
+               a="Desde el Dashboard, en la sección «Subida Rápida», selecciona el paciente, elige el tipo de examen y arrastra el PDF. Al hacer clic en «Subir y publicar» el tutor recibe un correo automático." />
           <Faq q="¿Qué significan los estados de un examen?"
-               a="Pendiente: aún no se ha procesado. En Proceso: en análisis. Disponible: el resultado está listo y el tutor ya fue notificado." />
+               a="Pendiente: aún no se ha procesado. En proceso: en análisis. Disponible: el resultado está listo y el tutor ya fue notificado." />
+          <Faq q="¿Cómo cambio el estado de una cita?"
+               a="En la Agenda, selecciona la cita en el calendario y usa los botones del panel lateral. En el Dashboard puedes hacerlo directamente desde la tabla de pacientes recientes." />
           <Faq q="¿Puedo eliminar o editar un examen?"
                a="Por ahora solo puedes cambiar su estado desde la tabla de exámenes. La edición y eliminación llegarán en próximas versiones." />
         </div>
-      </div>
+      </section>
 
-      <div className="bg-(--surface-container-lowest) rounded-xl p-6">
-        <h2 className="font-bold text-(--on-surface) mb-3">Contacto</h2>
-        <div className="space-y-2 text-sm text-(--on-surface-variant)">
-          <p>Soporte: <span className="text-(--on-surface) font-medium">soporte@silvestravet.cl</span></p>
-          <p>Horario: lunes a viernes, 9:00 a 18:00 hrs</p>
+      {/* Contacto */}
+      <section className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-8">
+        <div className="flex items-center gap-3 pb-4 mb-5 border-b border-(--outline-variant)">
+          <span className="w-8 h-px bg-(--primary)" aria-hidden />
+          <h2 className="text-[11px] font-bold tracking-[0.15em] uppercase text-(--primary) font-[family-name:var(--font-manrope)]">
+            Contacto de soporte
+          </h2>
         </div>
-      </div>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+          <div className="min-w-0">
+            <dt className="text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]">
+              Correo
+            </dt>
+            <dd>
+              <a
+                href="mailto:gabriel.munoz.r99@gmail.com"
+                className="text-(--primary) font-semibold hover:underline underline-offset-4 break-all font-[family-name:var(--font-manrope)]"
+              >
+                gabriel.munoz.r99@gmail.com
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-bold tracking-[0.15em] uppercase text-(--on-surface-variant) mb-1.5 font-[family-name:var(--font-manrope)]">
+              Horario
+            </dt>
+            <dd className="text-(--on-surface) font-medium">Lunes a viernes, 9:00 a 18:00 hrs</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   );
 }
@@ -1294,9 +1674,9 @@ function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNo
 
 function StatCard({ title, value, sub, primary = false }: { title: string; value: string | number; sub: string; primary?: boolean }) {
   return (
-    <div className={`rounded-xl p-5 ${primary ? 'bg-(--primary)' : 'bg-(--surface-container-lowest)'}`}>
+    <div className={`rounded-xl p-5 font-[family-name:var(--font-manrope)] ${primary ? 'bg-(--primary)' : 'bg-(--surface-container-lowest)'}`}>
       <p className={`text-xs font-semibold tracking-widest mb-3 ${primary ? 'text-white/70' : 'text-(--on-surface-variant)'}`}>{title}</p>
-      <p className={`text-4xl font-bold mb-1 font-[family-name:var(--font-manrope)] ${primary ? 'text-white' : 'text-(--on-surface)'}`}>{value}</p>
+      <p className={`text-4xl font-bold mb-1 ${primary ? 'text-white' : 'text-(--on-surface)'}`}>{value}</p>
       <p className={`text-xs ${primary ? 'text-white/70' : 'text-(--on-surface-variant)'}`}>{sub}</p>
     </div>
   );
@@ -1305,7 +1685,7 @@ function StatCard({ title, value, sub, primary = false }: { title: string; value
 function Avatar({ nombre, large = false }: { nombre: string; large?: boolean }) {
   const size = large ? 'w-12 h-12 text-base' : 'w-9 h-9 text-sm';
   return (
-    <div className={`${size} rounded-full bg-(--surface-container-high) flex items-center justify-center font-bold text-(--on-surface-variant) flex-shrink-0`}>
+    <div className={`${size} rounded-full bg-(--surface-container-high) flex items-center justify-center font-bold text-(--on-surface-variant) flex-shrink-0 font-[family-name:var(--font-manrope)]`}>
       {nombre?.[0]?.toUpperCase() ?? '?'}
     </div>
   );
@@ -1337,27 +1717,45 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function EstadoServicioChip({ estado }: { estado: 'DISPONIBLE' | 'PENDIENTE' | 'EN_PROCESO' | 'cancelado' }) {
+  if (estado === 'DISPONIBLE') {
+    return (
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-(--tertiary-fixed) text-(--on-tertiary-fixed)" style={{ letterSpacing: '0.05em' }}>
+        Disponible
+      </span>
+    );
+  }
+  if (estado === 'EN_PROCESO') {
+    return (
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800" style={{ letterSpacing: '0.05em' }}>
+        En proceso
+      </span>
+    );
+  }
+  if (estado === 'cancelado') {
+    return (
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-(--surface-container-high) text-(--on-surface-muted)" style={{ letterSpacing: '0.05em' }}>
+        Cancelado
+      </span>
+    );
+  }
   return (
-    <input {...props}
-      className="w-full border border-(--outline-variant) rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-(--primary) text-gray-900 placeholder-gray-400 bg-white" />
-  );
-}
-
-function Row({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="flex justify-between border-b border-(--outline-variant) pb-2 last:border-0 last:pb-0">
-      <span className="text-(--on-surface-variant)">{label}</span>
-      <span className="text-(--on-surface) font-medium">{value || '—'}</span>
-    </div>
+    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-(--secondary-container) text-(--on-secondary-container)" style={{ letterSpacing: '0.05em' }}>
+      Pendiente
+    </span>
   );
 }
 
 function Faq({ q, a }: { q: string; a: string }) {
   return (
-    <div className="border-b border-(--outline-variant) pb-4 last:border-0 last:pb-0">
-      <p className="font-semibold text-(--on-surface) mb-1">{q}</p>
-      <p className="text-(--on-surface-variant)">{a}</p>
+    <div className="py-5 first:pt-0 last:pb-0">
+      <p className="font-semibold text-(--on-surface) mb-1.5 font-[family-name:var(--font-manrope)]">{q}</p>
+      <p
+        className="text-(--on-surface-variant)"
+        style={{ fontFamily: 'var(--font-newsreader)', fontSize: '1rem', lineHeight: 1.55 }}
+      >
+        {a}
+      </p>
     </div>
   );
 }
@@ -1374,3 +1772,9 @@ function IconSettings() { return <svg className="w-5 h-5 flex-shrink-0" fill="no
 function IconHelp()     { return <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>; }
 function IconLogout()   { return <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>; }
 function IconUpload()   { return <svg className="w-5 h-5 text-(--on-surface-variant)" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>; }
+function IconDoc()      { return <svg className="w-4 h-4 text-(--primary)" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>; }
+function IconBadge()    { return <svg className="w-6 h-6 text-(--primary)" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0M9 14a3 3 0 116 0M9 14h6"/></svg>; }
+function IconLock()     { return <svg className="w-6 h-6 text-(--primary)" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3v3h-6v-3zm0 0V7a4 4 0 10-8 0v4M5 14h14a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6a1 1 0 011-1z"/></svg>; }
+function IconInfo()     { return <svg className="w-5 h-5 flex-shrink-0 text-(--primary) mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="9"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 8h.01M11 12h1v4h1"/></svg>; }
+function IconEye()      { return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>; }
+function IconEyeOff()   { return <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88"/></svg>; }
