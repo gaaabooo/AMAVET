@@ -19,6 +19,7 @@ model User {
 
 model Mascota {
   id        String   @id @default(uuid())
+  numero    Int      @unique @default(autoincrement())
   nombre    String
   tipo      String
   raza      String?
