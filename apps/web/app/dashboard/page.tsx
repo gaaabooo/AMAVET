@@ -28,11 +28,23 @@ interface Mascota {
   examenes: Examen[];
 }
 
+const ANIMAL_ICON: Record<string, string> = {
+  perro: '🐶', gato: '🐱', conejo: '🐰', ave: '🐦', pájaro: '🐦',
+  pajaro: '🐦', hamster: '🐹', hámster: '🐹', tortuga: '🐢',
+  pez: '🐟', hurón: '🦔', huron: '🦔',
+};
+
+function getAnimalIcon(tipo: string): string {
+  const key = tipo.toLowerCase().trim();
+  return ANIMAL_ICON[key] ?? '🐾';
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [enviandoMascota, setEnviandoMascota] = useState(false);
   const [errorMascota, setErrorMascota] = useState<string | null>(null);
@@ -42,6 +54,9 @@ export default function Dashboard() {
     try {
       const res = await api.get(`/mascotas/tutor/${tutorId}`);
       setMascotas(res.data);
+      setErrorCarga(false);
+    } catch {
+      setErrorCarga(true);
     } finally {
       setCargando(false);
     }
@@ -55,7 +70,6 @@ export default function Dashboard() {
       return;
     }
     const parsed = JSON.parse(u) as Usuario;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUsuario(parsed);
     cargarMascotas(parsed.id);
   }, [router, cargarMascotas]);
@@ -73,7 +87,7 @@ export default function Dashboard() {
       });
       setMostrarForm(false);
       setNuevaMascota({ nombre: '', tipo: '', raza: '', edad: '' });
-      cargarMascotas(usuario.id);
+      await cargarMascotas(usuario.id);
     } catch (err) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -92,7 +106,7 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-(--surface)">
+    <main className="min-h-screen bg-(--surface) font-[family-name:var(--font-manrope)]">
       <nav className="bg-(--surface-container-lowest) border-b border-(--outline-variant) px-6 py-4 flex justify-between items-center">
         <Logo size="sm" variant="light" />
         <div className="flex items-center gap-4">
@@ -101,7 +115,7 @@ export default function Dashboard() {
           </span>
           <button
             onClick={cerrarSesion}
-            className="text-sm font-medium text-(--on-surface-muted) hover:text-(--primary) transition-colors duration-150"
+            className="text-sm font-medium text-(--on-surface-muted) hover:text-(--primary) transition-colors duration-150 py-2 px-1"
           >
             Cerrar sesión
           </button>
@@ -111,7 +125,7 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto px-6 py-10">
         <header className="mb-10">
           <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-(--primary) mb-3">
-            <span className="w-8 h-px bg-(--primary)" aria-hidden />
+            <span className="w-8 h-px bg-(--primary)" aria-hidden="true" />
             Tu panel
           </span>
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -120,10 +134,7 @@ export default function Dashboard() {
               style={{ letterSpacing: '-0.015em' }}
             >
               Mis{' '}
-              <span
-                className="font-light italic text-(--primary)"
-                style={{ fontFamily: 'var(--font-newsreader)' }}
-              >
+              <span className="font-light italic" style={{ fontFamily: 'var(--font-newsreader)', color: 'var(--primary)' }}>
                 mascotas
               </span>
             </h1>
@@ -140,7 +151,7 @@ export default function Dashboard() {
                   setMostrarForm((v) => !v);
                 }}
                 aria-expanded={mostrarForm}
-                className="bg-(--primary) hover:bg-(--primary-container) text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150"
+                className="bg-(--primary) hover:bg-[#1b4332] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150"
               >
                 {mostrarForm ? 'Cancelar' : '+ Agregar mascota'}
               </button>
@@ -154,17 +165,14 @@ export default function Dashboard() {
             className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-2xl p-6 sm:p-8 mb-10"
           >
             <h2 className="text-lg font-semibold text-(--on-surface) mb-1">Nueva mascota</h2>
-            <p
-              className="text-sm text-(--on-surface-variant) mb-6"
-              style={{ fontFamily: 'var(--font-newsreader)' }}
-            >
+            <p className="text-sm text-(--on-surface-variant) mb-6">
               Completa los datos de tu mascota. Podrás editarlos más tarde.
             </p>
 
             {errorMascota && (
               <div
                 role="alert"
-                className="bg-(--error-container) text-(--on-surface) text-sm p-3 rounded-lg mb-5"
+                className="bg-(--error-container) text-(--on-error-container) text-sm p-3 rounded-lg mb-5"
               >
                 {errorMascota}
               </div>
@@ -243,7 +251,7 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={enviandoMascota}
-                className="sm:col-span-2 bg-(--primary) hover:bg-(--primary-container) text-white py-3 rounded-lg font-semibold transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                className="sm:col-span-2 bg-(--primary) hover:bg-[#1b4332] text-white py-3 rounded-lg font-semibold transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               >
                 {enviandoMascota ? 'Guardando…' : 'Guardar mascota'}
               </button>
@@ -259,22 +267,42 @@ export default function Dashboard() {
                 className="rounded-xl border border-(--outline-variant) bg-(--surface-container-lowest) p-6 animate-pulse"
               >
                 <div className="flex justify-between items-center">
-                  <div className="space-y-2">
-                    <div className="h-5 w-32 rounded bg-(--surface-container-high)" />
-                    <div className="h-4 w-48 rounded bg-(--surface-container-low)" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-(--surface-container-high)" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-32 rounded bg-(--surface-container-high)" />
+                      <div className="h-4 w-48 rounded bg-(--surface-container-low)" />
+                    </div>
                   </div>
                   <div className="h-6 w-20 rounded-full bg-(--surface-container-low)" />
                 </div>
               </div>
             ))}
           </div>
+        ) : errorCarga ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-(--outline-variant) bg-(--error-container) text-(--on-error-container) p-8 text-center"
+          >
+            <p className="font-semibold mb-2">No pudimos cargar tus mascotas</p>
+            <p className="text-sm mb-4">Revisa tu conexión e intenta nuevamente.</p>
+            <button
+              onClick={() => usuario && cargarMascotas(usuario.id)}
+              className="bg-(--primary) hover:bg-[#1b4332] text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150"
+            >
+              Reintentar
+            </button>
+          </div>
         ) : mascotas.length === 0 ? (
           <section
             className="rounded-2xl border border-(--outline-variant) bg-(--surface-container-lowest) p-10 sm:p-14 text-center"
             aria-label="Sin mascotas registradas"
           >
+            <div className="w-16 h-16 rounded-2xl bg-(--surface-container-low) flex items-center justify-center mx-auto mb-5 text-3xl">
+              🐾
+            </div>
             <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-(--primary) mb-3 justify-center">
-              <span className="w-8 h-px bg-(--primary)" aria-hidden />
+              <span className="w-8 h-px bg-(--primary)" aria-hidden="true" />
               Empecemos
             </span>
             <h2
@@ -282,17 +310,11 @@ export default function Dashboard() {
               style={{ letterSpacing: '-0.015em' }}
             >
               Aún no tienes una{' '}
-              <span
-                className="font-light italic text-(--primary)"
-                style={{ fontFamily: 'var(--font-newsreader)' }}
-              >
+              <span className="font-light italic" style={{ fontFamily: 'var(--font-newsreader)', color: 'var(--primary)' }}>
                 mascota registrada
               </span>
             </h2>
-            <p
-              className="text-(--on-surface-variant) max-w-md mx-auto mb-6"
-              style={{ fontFamily: 'var(--font-newsreader)', fontSize: '1.0625rem', lineHeight: 1.55 }}
-            >
+            <p className="text-(--on-surface-variant) text-sm max-w-md mx-auto mb-6">
               Agrega su nombre, tipo y edad para empezar a llevar su ficha clínica
               y agendar visitas a domicilio.
             </p>
@@ -301,7 +323,7 @@ export default function Dashboard() {
                 setErrorMascota(null);
                 setMostrarForm(true);
               }}
-              className="bg-(--primary) hover:bg-(--primary-container) text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-150"
+              className="bg-(--primary) hover:bg-[#1b4332] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-150"
             >
               + Agregar mi primera mascota
             </button>
@@ -310,7 +332,6 @@ export default function Dashboard() {
           <ul className="space-y-3">
             {mascotas.map((mascota) => {
               const detalles = [
-                mascota.tipo,
                 mascota.raza,
                 mascota.edad != null
                   ? `${mascota.edad} ${mascota.edad === 1 ? 'año' : 'años'}`
@@ -320,21 +341,30 @@ export default function Dashboard() {
                 .join(' · ');
               const totalExamenes = mascota.examenes.length;
               const disponibles = mascota.examenes.filter((e) => e.estado === 'DISPONIBLE').length;
+              const icon = getAnimalIcon(mascota.tipo);
               return (
                 <li key={mascota.id}>
                   <button
                     type="button"
                     onClick={() => router.push(`/dashboard/mascotas/${mascota.id}`)}
-                    className="w-full text-left bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-6 transition-all duration-150 hover:border-(--primary) hover:-translate-y-px focus:outline-none focus-visible:border-(--primary) focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-2 focus-visible:ring-offset-(--surface)"
+                    className="w-full text-left bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl p-5 transition-all duration-150 hover:border-(--primary) hover:-translate-y-px focus:outline-none focus-visible:border-(--primary) focus-visible:ring-2 focus-visible:ring-(--primary) focus-visible:ring-offset-2 focus-visible:ring-offset-(--surface)"
                     aria-label={`Ver ficha de ${mascota.nombre}`}
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <h3 className="text-lg font-semibold text-(--on-surface) truncate">
-                          {mascota.nombre}
-                        </h3>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-(--surface-container-low) flex items-center justify-center text-2xl flex-shrink-0">
+                        {icon}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-semibold text-(--on-surface) truncate">
+                            {mascota.nombre}
+                          </h3>
+                          <span className="text-xs font-medium text-(--on-surface-muted) bg-(--surface-container-low) px-2 py-0.5 rounded-full">
+                            {mascota.tipo}
+                          </span>
+                        </div>
                         {detalles && (
-                          <p className="text-(--on-surface-variant) text-sm mt-0.5 truncate">
+                          <p className="text-(--on-surface-muted) text-sm mt-0.5 truncate">
                             {detalles}
                           </p>
                         )}
@@ -360,7 +390,7 @@ export default function Dashboard() {
                           height="16"
                           viewBox="0 0 16 16"
                           fill="none"
-                          aria-hidden
+                          aria-hidden="true"
                           className="text-(--on-surface-muted)"
                         >
                           <path

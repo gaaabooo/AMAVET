@@ -169,28 +169,55 @@ export default function AgendarVisita() {
   };
 
   if (cargando) {
-    return <div className="min-h-screen flex items-center justify-center text-(--on-surface)">Cargando...</div>;
+    return (
+      <div className="min-h-screen bg-(--surface) font-[family-name:var(--font-manrope)]">
+        <nav className="bg-(--surface-container-lowest) border-b border-(--outline-variant) px-6 py-4">
+          <Logo size="sm" variant="light" />
+        </nav>
+        <div className="max-w-[1200px] mx-auto px-8 py-12 animate-pulse space-y-8">
+          <div className="h-16 w-80 rounded-xl bg-(--surface-container-lowest)" />
+          <div className="grid grid-cols-12 gap-8">
+            <div className="col-span-8 h-96 rounded-2xl bg-(--surface-container-lowest)" />
+            <div className="col-span-4 h-96 rounded-2xl bg-(--surface-container-lowest)" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (exito) {
     return (
-      <main className="min-h-screen bg-(--surface) flex items-center justify-center p-6">
-        <div className="bg-(--surface-container-lowest) rounded-2xl border border-(--outline-variant) p-10 max-w-md w-full text-center shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-(--primary) flex items-center justify-center mx-auto mb-5">
-            <span className="text-(--on-primary) text-3xl leading-none">✓</span>
+      <main className="min-h-screen bg-(--surface) font-[family-name:var(--font-manrope)] flex items-center justify-center p-6">
+        <div className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-2xl p-10 max-w-md w-full text-center">
+          <div className="w-14 h-14 rounded-2xl bg-(--tertiary-fixed) flex items-center justify-center mx-auto mb-5 text-2xl">
+            ✓
           </div>
-          <h1 className="text-2xl font-bold text-(--on-surface) mb-2">¡Visita agendada!</h1>
+          <h1 className="text-2xl font-bold text-(--on-surface) mb-2" style={{ letterSpacing: '-0.01em' }}>
+            Visita{' '}
+            <span className="font-light italic" style={{ fontFamily: 'var(--font-newsreader)', color: 'var(--primary)' }}>
+              agendada
+            </span>
+          </h1>
           <p className="text-(--on-surface-variant) text-sm mb-6">
-            Hemos recibido tu solicitud. La clínica confirmará tu cita pronto y te avisará por correo.
+            Recibimos tu solicitud. Te confirmaremos la cita por correo pronto.
           </p>
-          <div className="bg-(--surface) rounded-xl p-4 text-left text-sm space-y-1.5 mb-6">
-            <p><span className="text-(--on-surface-variant)">Mascota:</span> <span className="font-medium text-(--on-surface)">{mascotas.find(m => m.id === mascotaSeleccionada)?.nombre}</span></p>
-            <p><span className="text-(--on-surface-variant)">Cita:</span> <span className="font-medium text-(--on-surface)">{fechaResumen}, {horaResumen}</span></p>
-            <p><span className="text-(--on-surface-variant)">Dirección:</span> <span className="font-medium text-(--on-surface)">{direccion}</span></p>
+          <div className="bg-(--surface) rounded-xl p-4 text-left text-sm space-y-2 mb-6 border border-(--outline-variant)">
+            <div className="flex justify-between">
+              <span className="text-(--on-surface-muted)">Mascota</span>
+              <span className="font-semibold text-(--on-surface)">{mascotas.find(m => m.id === mascotaSeleccionada)?.nombre}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-(--on-surface-muted)">Cita</span>
+              <span className="font-semibold text-(--on-surface)">{fechaResumen}, {horaResumen}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-(--on-surface-muted)">Dirección</span>
+              <span className="font-semibold text-(--on-surface) text-right max-w-[60%]">{direccion}</span>
+            </div>
           </div>
           <button onClick={() => router.push('/dashboard')}
-            className="w-full bg-(--primary) hover:bg-(--primary-container) text-(--on-primary) py-3 rounded-xl font-semibold text-sm transition">
-            Volver al dashboard
+            className="w-full bg-(--primary) hover:bg-[#1b4332] text-white py-3 rounded-xl font-semibold text-sm transition-colors duration-150">
+            Volver al inicio
           </button>
         </div>
       </main>
@@ -198,61 +225,73 @@ export default function AgendarVisita() {
   }
 
   return (
-    <main className="min-h-screen bg-(--surface)">
+    <main className="min-h-screen bg-(--surface) font-[family-name:var(--font-manrope)]">
       <nav className="bg-(--surface-container-lowest) border-b border-(--outline-variant) px-6 py-4 flex justify-between items-center">
         <button onClick={() => router.push('/dashboard')} aria-label="Ir al dashboard">
           <Logo size="sm" variant="light" />
         </button>
         <div className="flex items-center gap-4">
-          <span className="text-(--on-surface-variant) text-sm">Hola, {usuario?.nombre}</span>
-          <button onClick={cerrarSesion} className="text-sm text-(--error) hover:underline">Cerrar sesión</button>
+          <span className="text-(--on-surface-variant) text-sm hidden sm:inline">
+            Hola, <span className="font-semibold text-(--on-surface)">{usuario?.nombre}</span>
+          </span>
+          <button onClick={cerrarSesion} className="text-sm font-medium text-(--on-surface-muted) hover:text-(--primary) transition-colors duration-150 py-2 px-1">
+            Cerrar sesión
+          </button>
         </div>
       </nav>
 
-      <div className="max-w-[1400px] mx-auto p-10">
-        <header className="mb-10">
+      <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-10">
+        <header className="mb-8">
           <button onClick={() => router.push('/dashboard')}
-            className="text-sm text-(--on-surface-variant) hover:text-(--primary) mb-3 inline-flex items-center gap-1">
-            ← Volver al dashboard
+            className="text-sm font-medium text-(--on-surface-muted) hover:text-(--primary) mb-4 inline-flex items-center gap-1 transition-colors duration-150">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Mis mascotas
           </button>
-          <h1 className="text-4xl font-bold text-(--primary) mb-2 font-[family-name:var(--font-manrope)] tracking-tight">
-            Agendar Nueva Visita
+          <span className="block text-[11px] font-bold uppercase tracking-[0.15em] text-(--primary) mb-2">
+            Nueva visita
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-bold text-(--on-surface) leading-tight" style={{ letterSpacing: '-0.015em' }}>
+            Agenda una{' '}
+            <span className="font-light italic" style={{ fontFamily: 'var(--font-newsreader)', color: 'var(--primary)' }}>
+              visita a domicilio
+            </span>
           </h1>
-          <p className="text-lg text-(--on-surface-variant)">
-            Complete los pasos a continuación para coordinar la atención médica domiciliaria de su mascota.
-          </p>
         </header>
 
         {mascotas.length === 0 ? (
-          <div className="bg-(--surface-container-lowest) rounded-xl border border-(--outline-variant) p-10 text-center">
+          <div className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-2xl p-10 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-(--surface-container-low) flex items-center justify-center mx-auto mb-4 text-2xl">🐾</div>
             <p className="text-(--on-surface) font-semibold mb-2">Aún no tienes mascotas registradas</p>
-            <p className="text-(--on-surface-variant) text-sm mb-5">Necesitas registrar al menos una mascota antes de agendar una visita.</p>
+            <p className="text-(--on-surface-variant) text-sm mb-5">Registra una mascota antes de agendar una visita.</p>
             <button onClick={() => router.push('/dashboard')}
-              className="bg-(--primary) hover:bg-(--primary-container) text-(--on-primary) px-5 py-2.5 rounded-lg font-semibold text-sm transition">
-              Ir al dashboard
+              className="bg-(--primary) hover:bg-[#1b4332] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors duration-150">
+              Ir al inicio
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-12 gap-8">
             {/* ── Formulario ── */}
-            <div className="col-span-12 lg:col-span-8 space-y-12">
+            <div className="col-span-12 lg:col-span-8 space-y-10">
+
               {/* Paso 1 */}
-              <section className={paso === 1 ? '' : 'opacity-60'}>
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="w-8 h-8 rounded-full bg-(--primary) text-(--on-primary) flex items-center justify-center font-bold">1</span>
-                  <h2 className="text-2xl font-semibold text-(--primary) font-[family-name:var(--font-manrope)]">Seleccionar Servicios</h2>
+              <section className={paso === 1 ? '' : 'opacity-50 pointer-events-none'}>
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="w-7 h-7 rounded-full bg-(--primary) text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+                  <h2 className="text-lg font-bold text-(--on-surface)">Elige los servicios</h2>
                 </div>
 
-                <div className="space-y-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                   <div>
-                    <label className="block text-xs font-bold tracking-widest uppercase text-(--on-surface-variant) mb-2">
+                    <label className="block text-xs font-semibold text-(--on-surface-muted) uppercase tracking-widest mb-1.5">
                       Mascota
                     </label>
                     <select
                       value={mascotaSeleccionada}
                       onChange={e => setMascotaSeleccionada(e.target.value)}
                       disabled={paso !== 1}
-                      className="w-full bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl px-4 py-3 text-sm text-(--on-surface) focus:outline-none focus:ring-2 focus:ring-(--primary)">
+                      className="sv-input">
                       {mascotas.map(m => (
                         <option key={m.id} value={m.id}>
                           {m.nombre} — {m.tipo}{m.raza ? ` · ${m.raza}` : ''}
@@ -260,9 +299,8 @@ export default function AgendarVisita() {
                       ))}
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold tracking-widest uppercase text-(--on-surface-variant) mb-2">
+                    <label className="block text-xs font-semibold text-(--on-surface-muted) uppercase tracking-widest mb-1.5">
                       Dirección de la visita
                     </label>
                     <input
@@ -271,32 +309,44 @@ export default function AgendarVisita() {
                       onChange={e => setDireccion(e.target.value)}
                       disabled={paso !== 1}
                       placeholder="Calle, número, comuna"
-                      className="w-full bg-(--surface-container-lowest) border border-(--outline-variant) rounded-xl px-4 py-3 text-sm text-(--on-surface) placeholder-(--on-surface-variant) focus:outline-none focus:ring-2 focus:ring-(--primary)" />
+                      className="sv-input" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {SERVICIOS.map(servicio => {
-                    const seleccionado = serviciosSeleccionados.includes(servicio);
-                    return (
-                      <label
-                        key={servicio}
-                        className={`p-5 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
-                          seleccionado
-                            ? 'border-(--primary) bg-(--primary)/5'
-                            : 'border-(--outline-variant) bg-(--surface-container-lowest) hover:border-(--primary)'
-                        } ${paso !== 1 ? 'pointer-events-none' : ''}`}>
-                        <input
-                          type="checkbox"
-                          checked={seleccionado}
-                          onChange={() => toggleServicio(servicio)}
-                          className="w-5 h-5 mt-0.5 accent-(--primary) cursor-pointer" />
-                        <div className="flex-1">
-                          <h4 className="font-bold text-(--primary) text-sm">{servicio}</h4>
-                        </div>
-                      </label>
-                    );
-                  })}
+                <div>
+                  <p className="text-xs font-semibold text-(--on-surface-muted) uppercase tracking-widest mb-3">Servicios</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {SERVICIOS.map(servicio => {
+                      const seleccionado = serviciosSeleccionados.includes(servicio);
+                      return (
+                        <label
+                          key={servicio}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-150 ${
+                            seleccionado
+                              ? 'border-(--primary) bg-(--surface-container-low)'
+                              : 'border-(--outline-variant) bg-(--surface-container-lowest) hover:border-(--primary)'
+                          } ${paso !== 1 ? 'pointer-events-none' : ''}`}>
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors duration-150 ${
+                            seleccionado ? 'bg-(--primary) border-(--primary)' : 'border-(--outline-variant)'
+                          }`}>
+                            {seleccionado && (
+                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                                <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={seleccionado}
+                            onChange={() => toggleServicio(servicio)}
+                            className="sr-only" />
+                          <span className={`text-sm font-medium ${seleccionado ? 'text-(--on-surface)' : 'text-(--on-surface-variant)'}`}>
+                            {servicio}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {paso === 1 && (
@@ -304,47 +354,56 @@ export default function AgendarVisita() {
                     <button
                       onClick={() => setPaso(2)}
                       disabled={!puedeAvanzar}
-                      className="bg-(--primary) hover:bg-(--primary-container) text-(--on-primary) px-6 py-3 rounded-xl font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
-                      Siguiente →
+                      className="bg-(--primary) hover:bg-[#1b4332] text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed">
+                      Siguiente
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="inline ml-1.5 -mt-px">
+                        <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </button>
                   </div>
                 )}
               </section>
 
               {/* Paso 2 */}
-              <section className={paso === 2 ? '' : 'opacity-60 pointer-events-none'}>
-                <div className="flex items-center gap-4 mb-6">
-                  <span className="w-8 h-8 rounded-full bg-(--primary) text-(--on-primary) flex items-center justify-center font-bold">2</span>
-                  <h2 className="text-2xl font-semibold text-(--primary) font-[family-name:var(--font-manrope)]">Fecha y Hora</h2>
+              <section className={paso === 2 ? '' : 'opacity-50 pointer-events-none'}>
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="w-7 h-7 rounded-full bg-(--primary) text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+                  <h2 className="text-lg font-bold text-(--on-surface)">Elige fecha y hora</h2>
                 </div>
 
-                <div className="bg-(--surface-container-lowest) rounded-xl border border-(--outline-variant) overflow-hidden">
+                <div className="bg-(--surface-container-lowest) border border-(--outline-variant) rounded-2xl overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-2">
                     {/* Calendario */}
-                    <div className="p-8 border-b md:border-b-0 md:border-r border-(--outline-variant)">
-                      <div className="flex items-center justify-between mb-6">
-                        <h4 className="font-bold text-(--primary)">
+                    <div className="p-6 border-b md:border-b-0 md:border-r border-(--outline-variant)">
+                      <div className="flex items-center justify-between mb-5">
+                        <span className="text-sm font-bold text-(--on-surface)">
                           {NOMBRES_MES[mesActual.getMonth()]} {mesActual.getFullYear()}
-                        </h4>
+                        </span>
                         <div className="flex gap-1">
                           <button onClick={mesAnterior}
-                            className="p-2 hover:bg-(--surface-container-low) rounded-full transition text-(--on-surface)">
-                            ‹
+                            className="w-8 h-8 flex items-center justify-center hover:bg-(--surface-container-low) rounded-lg transition-colors duration-150 text-(--on-surface-variant)">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                              <path d="M9 3L5 7l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
                           </button>
                           <button onClick={mesSiguiente}
-                            className="p-2 hover:bg-(--surface-container-low) rounded-full transition text-(--on-surface)">
-                            ›
+                            className="w-8 h-8 flex items-center justify-center hover:bg-(--surface-container-low) rounded-lg transition-colors duration-150 text-(--on-surface-variant)">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                              <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
                           </button>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-(--on-surface-variant) uppercase tracking-widest mb-3">
-                        {DIAS_SEMANA_CORTO.map(d => <div key={d}>{d}</div>)}
+                      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                        {DIAS_SEMANA_CORTO.map(d => (
+                          <div key={d} className="text-[10px] font-bold text-(--on-surface-muted) uppercase tracking-wider py-1">{d}</div>
+                        ))}
                       </div>
 
-                      <div className="grid grid-cols-7 gap-2 text-center">
+                      <div className="grid grid-cols-7 gap-1 text-center">
                         {celdasCalendario.map((cell, idx) => {
-                          if (!cell) return <div key={idx} className="p-2"></div>;
+                          if (!cell) return <div key={idx} />;
                           const seleccionado =
                             fechaSeleccionada &&
                             fechaSeleccionada.getFullYear() === cell.fecha.getFullYear() &&
@@ -352,7 +411,7 @@ export default function AgendarVisita() {
                             fechaSeleccionada.getDate() === cell.fecha.getDate();
                           if (cell.pasado) {
                             return (
-                              <div key={idx} className="p-2 text-(--outline-variant) text-sm">
+                              <div key={idx} className="aspect-square flex items-center justify-center text-xs text-(--surface-container-highest) rounded-lg">
                                 {cell.dia}
                               </div>
                             );
@@ -361,10 +420,10 @@ export default function AgendarVisita() {
                             <button
                               key={idx}
                               onClick={() => seleccionarFecha(cell.fecha)}
-                              className={`p-2 text-sm font-semibold rounded-lg cursor-pointer transition ${
+                              className={`aspect-square flex items-center justify-center text-xs font-semibold rounded-lg transition-colors duration-150 ${
                                 seleccionado
-                                  ? 'bg-(--primary) text-(--on-primary)'
-                                  : 'text-(--on-surface) hover:bg-(--primary-fixed) hover:text-(--primary)'
+                                  ? 'bg-(--primary) text-white'
+                                  : 'text-(--on-surface) hover:bg-(--surface-container-low)'
                               }`}>
                               {cell.dia}
                             </button>
@@ -374,24 +433,25 @@ export default function AgendarVisita() {
                     </div>
 
                     {/* Bloques horarios */}
-                    <div className="p-8 bg-(--surface-container-lowest)">
-                      <h4 className="font-bold text-(--primary) mb-5">Bloques Disponibles</h4>
+                    <div className="p-6">
+                      <p className="text-sm font-bold text-(--on-surface) mb-4">Bloques disponibles</p>
                       {!fechaSeleccionada ? (
-                        <p className="text-sm text-(--on-surface-variant)">
-                          Selecciona una fecha para ver los bloques horarios disponibles.
-                        </p>
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <div className="w-10 h-10 rounded-xl bg-(--surface-container-low) flex items-center justify-center text-xl mb-3">📅</div>
+                          <p className="text-sm text-(--on-surface-muted)">Selecciona una fecha primero</p>
+                        </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                           {HORAS.map(hora => {
                             const seleccionada = horaSeleccionada === hora;
                             return (
                               <button
                                 key={hora}
                                 onClick={() => setHoraSeleccionada(hora)}
-                                className={`px-4 py-3 rounded-xl font-semibold text-sm transition border ${
+                                className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors duration-150 ${
                                   seleccionada
-                                    ? 'bg-(--primary-container) text-(--on-primary) border-(--primary-container) shadow-md'
-                                    : 'border-(--outline-variant) text-(--primary) hover:border-(--primary) hover:bg-(--primary-fixed)'
+                                    ? 'bg-(--primary) text-white border-(--primary)'
+                                    : 'border-(--outline-variant) text-(--on-surface) hover:border-(--primary) hover:bg-(--surface-container-low)'
                                 }`}>
                                 {hora}
                               </button>
@@ -400,27 +460,33 @@ export default function AgendarVisita() {
                         </div>
                       )}
 
-                      <div className="mt-6 flex items-start gap-3 p-4 bg-(--primary)/5 rounded-xl border border-(--primary)/10">
-                        <span className="text-(--primary) text-base leading-none mt-0.5">ℹ</span>
-                        <p className="text-xs text-(--primary)">
-                          La visita tiene una duración estimada de 45 a 60 minutos según el servicio seleccionado.
+                      <div className="mt-5 flex items-start gap-2.5 p-3.5 bg-(--surface-container-low) rounded-xl border border-(--outline-variant)">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" className="text-(--on-surface-muted) mt-0.5 flex-shrink-0">
+                          <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                          <path d="M7 6v4M7 4.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                        </svg>
+                        <p className="text-xs text-(--on-surface-muted) leading-relaxed">
+                          Duración estimada de 45 a 60 minutos según los servicios.
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-6">
+                <div className="flex justify-between items-center mt-5">
                   <button
                     onClick={() => setPaso(1)}
-                    className="text-sm font-semibold text-(--on-surface-variant) hover:text-(--primary) transition">
-                    ← Volver
+                    className="text-sm font-semibold text-(--on-surface-muted) hover:text-(--primary) transition-colors duration-150 inline-flex items-center gap-1">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Volver
                   </button>
                   <button
                     onClick={confirmar}
                     disabled={!puedeConfirmar || enviando}
-                    className="bg-(--primary) hover:bg-(--primary-container) text-(--on-primary) px-6 py-3 rounded-xl font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    {enviando ? 'Agendando...' : 'Confirmar'}
+                    className="bg-(--primary) hover:bg-[#1b4332] text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed">
+                    {enviando ? 'Agendando…' : 'Confirmar cita'}
                   </button>
                 </div>
               </section>
@@ -429,66 +495,72 @@ export default function AgendarVisita() {
             {/* ── Sidebar Resumen ── */}
             <aside className="col-span-12 lg:col-span-4">
               <div className="sticky top-10">
-                <section className="bg-(--primary) text-(--on-primary) rounded-2xl p-8 shadow-xl">
-                  <h3 className="text-2xl font-semibold mb-6 font-[family-name:var(--font-manrope)]">
+                <section className="bg-(--primary) text-white rounded-2xl p-7">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/60 mb-1">
+                    Tu solicitud
+                  </p>
+                  <h3 className="text-xl font-bold mb-6">
                     Resumen
                   </h3>
 
-                  <div className="space-y-5 mb-8">
+                  <div className="space-y-5">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-(--on-primary)/70 mb-1">Mascota</p>
-                      <p className="font-medium">
-                        {mascotas.find(m => m.id === mascotaSeleccionada)?.nombre || '—'}
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Mascota</p>
+                      <p className="text-sm font-semibold">
+                        {mascotas.find(m => m.id === mascotaSeleccionada)?.nombre || <span className="text-white/50 font-normal italic">Sin seleccionar</span>}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-(--on-primary)/70 mb-1">Servicios</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1.5">Servicios</p>
                       {serviciosSeleccionados.length === 0 ? (
-                        <p className="text-(--on-primary)/70 text-sm italic">Ninguno seleccionado</p>
+                        <p className="text-sm text-white/50 italic font-normal">Ninguno seleccionado</p>
                       ) : (
-                        <ul className="space-y-0.5">
+                        <ul className="space-y-1">
                           {serviciosSeleccionados.map(s => (
-                            <li key={s} className="font-medium text-sm">{s}</li>
+                            <li key={s} className="text-sm flex items-start gap-2">
+                              <span className="mt-1.5 w-1 h-1 rounded-full bg-white/50 flex-shrink-0" aria-hidden="true" />
+                              {s}
+                            </li>
                           ))}
                         </ul>
                       )}
                     </div>
 
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-(--on-primary)/70 mb-1">Cita</p>
-                      <p className="font-medium">
-                        {fechaResumen && horaResumen
-                          ? `${fechaResumen}, ${horaResumen}`
-                          : <span className="text-(--on-primary)/70 italic font-normal">Sin programar</span>}
-                      </p>
-                    </div>
+                    {direccion.trim() && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Dirección</p>
+                        <p className="text-sm">{direccion.trim()}</p>
+                      </div>
+                    )}
 
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-(--on-primary)/70 mb-1">Dirección</p>
-                      <p className="font-medium text-sm">
-                        {direccion.trim() || <span className="text-(--on-primary)/70 italic font-normal">No especificada</span>}
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Cita</p>
+                      <p className="text-sm font-semibold">
+                        {fechaResumen && horaResumen
+                          ? `${fechaResumen}, ${horaResumen}`
+                          : <span className="text-white/50 font-normal italic">Sin programar</span>}
                       </p>
                     </div>
                   </div>
 
                   {error && (
-                    <div className="bg-(--error-container) text-(--on-error-container) text-xs p-3 rounded-lg mb-4">
+                    <div className="bg-(--error-container) text-(--on-error-container) text-xs p-3 rounded-lg mt-5">
                       {error}
                     </div>
                   )}
 
-                  <button
-                    onClick={confirmar}
-                    disabled={!puedeAvanzar || !puedeConfirmar || enviando}
-                    className="w-full bg-(--secondary-container) text-(--on-surface) py-4 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition shadow-lg font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
-                    <span>{enviando ? 'Agendando...' : 'Confirmar Agendamiento'}</span>
-                    <span className="text-xs font-normal opacity-80">Sin pago previo requerido</span>
-                  </button>
-
-                  <p className="text-center text-xs text-(--on-primary)/70 mt-4">
-                    Al confirmar, aceptas nuestras políticas de cancelación y términos de servicio.
-                  </p>
+                  <div className="mt-6 pt-5 border-t border-white/15">
+                    <button
+                      onClick={confirmar}
+                      disabled={!puedeAvanzar || !puedeConfirmar || enviando}
+                      className="w-full bg-(--secondary-container) hover:brightness-95 text-(--on-surface) py-3.5 rounded-xl font-semibold text-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed">
+                      {enviando ? 'Agendando…' : 'Confirmar agendamiento'}
+                    </button>
+                    <p className="text-center text-[10px] text-white/40 mt-3">
+                      Sin pago previo requerido.
+                    </p>
+                  </div>
                 </section>
               </div>
             </aside>
