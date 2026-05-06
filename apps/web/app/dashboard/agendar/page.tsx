@@ -255,7 +255,7 @@ export default function AgendarVisita() {
   }
 
   return (
-    <main className="dash-bg min-h-screen relative overflow-hidden">
+    <main className="dash-bg min-h-screen relative">
       <AgendarStyles />
 
       {/* Hojas decorativas */}
