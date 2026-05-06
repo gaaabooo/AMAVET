@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import Logo from '@/components/Logo';
+import DashboardNav from '@/components/DashboardNav';
 
 interface Mascota {
   id: string;
@@ -192,24 +192,13 @@ export default function AgendarVisita() {
     }
   };
 
-  const cerrarSesion = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    router.push('/login');
-  };
-
   const mascotaActual = mascotas.find(m => m.id === mascotaSeleccionada);
 
   if (cargando) {
     return (
       <main className="dash-bg min-h-screen relative">
         <AgendarStyles />
-        <nav
-          className="relative z-10 px-6 sm:px-10 py-5 border-b"
-          style={{ borderColor: 'var(--d-rule-soft)' }}
-        >
-          <Logo size="sm" variant="light" />
-        </nav>
+        <DashboardNav active="agendar" />
         <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 py-12 space-y-6 animate-pulse">
           <div className="h-16 w-80 rounded-xl" style={{ background: 'var(--d-bg-card)' }} />
           <div className="grid grid-cols-12 gap-8">
@@ -281,42 +270,9 @@ export default function AgendarVisita() {
         </svg>
       </div>
 
-      {/* Nav */}
-      <nav
-        className="relative z-10 flex justify-between items-center px-6 sm:px-10 py-5 border-b"
-        style={{ borderColor: 'var(--d-rule-soft)' }}
-      >
-        <button onClick={() => router.push('/dashboard')} aria-label="Ir al dashboard">
-          <Logo size="sm" variant="light" />
-        </button>
-        <div className="flex items-center gap-5 text-sm">
-          <span className="hidden sm:inline" style={{ color: 'var(--d-ink-mute)' }}>
-            Hola, <strong style={{ color: 'var(--d-ink)', fontWeight: 600 }}>{usuario?.nombre}</strong>
-          </span>
-          <button
-            onClick={cerrarSesion}
-            className="font-medium transition-colors"
-            style={{ color: 'var(--d-ink-mute)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--d-green-mid)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--d-ink-mute)')}
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </nav>
+      <DashboardNav active="agendar" usuarioNombre={usuario?.nombre} />
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-10 py-12">
-        {/* Breadcrumb */}
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="breadcrumb"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Mis mascotas
-        </button>
-
         {/* Header */}
         <div
           className="header-block"
@@ -691,19 +647,6 @@ function AgendarStyles() {
         to   { opacity: 1; transform: translateY(0); }
       }
 
-      /* Breadcrumb */
-      .dash-bg .breadcrumb {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 13px;
-        color: var(--d-ink-mute);
-        font-weight: 500;
-        margin-bottom: 24px;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        transition: color .2s;
-      }
-      .dash-bg .breadcrumb:hover { color: var(--d-green-mid); }
 
       /* Header */
       .dash-bg .header-block {

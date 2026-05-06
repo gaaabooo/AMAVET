@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
-import Logo from '@/components/Logo';
+import DashboardNav from '@/components/DashboardNav';
 
 interface Examen {
   id: string;
@@ -70,12 +70,14 @@ export default function PerfilMascota() {
   const [citas, setCitas] = useState<Cita[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usuarioNombre, setUsuarioNombre] = useState<string | undefined>();
 
   useEffect(() => {
     const u = localStorage.getItem('usuario');
     const token = localStorage.getItem('token');
     if (!u || !token) { router.push('/login'); return; }
     const usuario = JSON.parse(u);
+    setUsuarioNombre(usuario.nombre);
     cargarDatos(usuario.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -225,27 +227,7 @@ export default function PerfilMascota() {
         </svg>
       </div>
 
-      {/* Nav */}
-      <nav
-        className="relative z-10 flex justify-between items-center px-6 sm:px-10 py-5 border-b"
-        style={{ borderColor: 'var(--d-rule-soft)' }}
-      >
-        <button onClick={() => router.push('/dashboard')} aria-label="Ir al dashboard">
-          <Logo size="sm" variant="light" />
-        </button>
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="text-sm font-medium inline-flex items-center gap-1.5 transition-colors"
-          style={{ color: 'var(--d-ink-mute)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--d-green-mid)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--d-ink-mute)')}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Mis mascotas
-        </button>
-      </nav>
+      <DashboardNav active="mascotas" usuarioNombre={usuarioNombre} />
 
       <div className="relative z-10 max-w-[1180px] mx-auto px-6 sm:px-8 py-12">
 
@@ -482,12 +464,7 @@ function SkeletonView() {
   return (
     <main className="dash-bg min-h-screen relative">
       <DashStyles />
-      <nav
-        className="relative z-10 px-6 sm:px-10 py-5 border-b"
-        style={{ borderColor: 'var(--d-rule-soft)' }}
-      >
-        <Logo size="sm" variant="light" />
-      </nav>
+      <DashboardNav active="mascotas" />
       <div className="relative z-10 max-w-[1180px] mx-auto px-6 sm:px-8 py-12 space-y-6 animate-pulse">
         <div className="h-32 rounded-3xl" style={{ background: 'var(--d-bg-card)' }} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

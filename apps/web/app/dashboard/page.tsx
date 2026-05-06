@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import Logo from '@/components/Logo';
+import DashboardNav from '@/components/DashboardNav';
 
 interface Usuario {
   id: string;
@@ -99,12 +99,6 @@ export default function Dashboard() {
     }
   };
 
-  const cerrarSesion = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    router.push('/login');
-  };
-
   const totalMascotas = mascotas.length;
   const resultadosNuevos = mascotas.reduce(
     (acc, m) => acc + m.examenes.filter((e) => e.estado === 'DISPONIBLE').length,
@@ -170,30 +164,7 @@ export default function Dashboard() {
         </svg>
       </div>
 
-      {/* Nav */}
-      <nav
-        className="relative z-10 flex justify-between items-center px-6 sm:px-10 py-5 border-b"
-        style={{ borderColor: 'var(--d-rule-soft)' }}
-      >
-        <Logo size="sm" variant="light" />
-        <div className="flex items-center gap-5">
-          <span className="text-sm hidden sm:inline" style={{ color: 'var(--d-ink-soft)' }}>
-            Hola,{' '}
-            <span className="font-semibold" style={{ color: 'var(--d-ink)' }}>
-              {usuario?.nombre ?? '…'}
-            </span>
-          </span>
-          <button
-            onClick={cerrarSesion}
-            className="text-sm font-medium transition-colors"
-            style={{ color: 'var(--d-ink-mute)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--d-green-mid)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--d-ink-mute)')}
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </nav>
+      <DashboardNav active="mascotas" usuarioNombre={usuario?.nombre} />
 
       <div className="relative z-10 max-w-[1100px] mx-auto px-6 sm:px-8 py-12 sm:py-14">
 
