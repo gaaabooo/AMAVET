@@ -1,479 +1,1102 @@
+'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Logo from '../components/Logo';
 
 export default function Home() {
-  return (
-    <main className="w-full relative" style={{ fontFamily: 'var(--font-manrope)' }}>
+  const [navOpaque, setNavOpaque] = useState(false);
 
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center"
-        style={{ background: 'rgba(248,249,250,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e1e3e4' }}>
-        <Logo size="sm" variant="light" />
-        <div className="flex gap-3">
-          <Link href="/login"
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 hover:bg-(--surface)"
-            style={{ border: '1px solid #012d1d', color: '#012d1d' }}>
-            Iniciar sesión
-          </Link>
-          <Link href="/registro"
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
-            style={{ background: '#012d1d', color: '#ffffff' }}>
+  useEffect(() => {
+    const onScroll = () => setNavOpaque(window.scrollY > 80);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const toggleAcc = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.parentElement?.classList.toggle('open');
+  };
+
+  return (
+    <main className="land-bg">
+      <LandingStyles />
+
+      <nav className={`land-nav ${navOpaque ? 'opaque' : 'transparent'}`}>
+        <Link href="/" className="brand">
+          <Logo size="sm" variant={navOpaque ? 'light' : 'dark'} />
+          <small>Veterinario a domicilio</small>
+        </Link>
+        <div className="nav-actions">
+          <Link href="/login" className="btn btn-ghost">Iniciar sesión</Link>
+          <Link href="/registro" className="btn btn-primary">
             Registrarse
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </Link>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative w-full min-h-screen flex items-center pt-24 pb-32 overflow-hidden"
-        style={{ background: '#f8f9fa' }}>
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/close-up-veterinarian-taking-care-dog.jpg"
-            alt="Veterinario con mascota"
-            className="w-full h-full object-cover opacity-30"
-            style={{ objectPosition: 'center 60%' }}
-          />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, #f8f9fa 50%, transparent)' }} />
-        </div>
-
-        <div className="max-w-6xl mx-auto px-6 w-full relative z-10 grid md:grid-cols-2 gap-8 items-center">
-          <div className="flex flex-col gap-4 max-w-xl">
-            <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2"
-              style={{ color: '#012d1d' }}>
-              <span className="w-8 h-px" style={{ background: '#012d1d', display: 'inline-block' }}></span>
-              Atención clínica en tu hogar
-            </span>
-
-            <h1 className="text-5xl font-bold leading-tight" style={{ color: '#191c1d', letterSpacing: '-0.02em' }}>
-              Veterinario a domicilio,{' '}
-              <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300 }}>
-                sin estrés para tu mascota
-              </span>
-            </h1>
-
-            <p className="text-xl mt-2" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)' }}>
-              Atención profesional en tu hogar, rápida y confiable.
+      {/* HERO CINEMÁTICO */}
+      <section className="hero">
+        <div className="hero-bg" />
+        <div className="hero-content">
+          <div className="hero-eyebrow hero-anim ha1">SILVESTRA VET — VALPARAÍSO, CHILE</div>
+          <h1 className="hero-title hero-anim ha2">
+            Su casa, <em>su consulta.</em>
+          </h1>
+          <div className="hero-bottom">
+            <p className="hero-lead hero-anim ha3">
+              Atención veterinaria clínica donde tu mascota ya se siente segura. Sin jaulas, sin traslados, sin sala de espera.
             </p>
-
-            <div className="inline-flex items-center gap-3 py-2 px-4 rounded-full w-max mt-2"
-              style={{ background: '#e7e8e9', border: '1px solid #c1c8c2' }}>
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                  style={{ background: '#fed65b' }}></span>
-                <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#735c00' }}></span>
-              </span>
-              <span className="text-sm font-medium" style={{ color: '#191c1d' }}>
-                Próxima hora disponible: Mañana, 09:00 AM
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 mt-6">
-              <a href="https://wa.me/56912345678?text=Hola,%20quiero%20agendar%20una%20visita%20veterinaria"
-                target="_blank"
-                className="flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-semibold transition-all hover:opacity-90"
-                style={{ background: '#012d1d', color: '#ffffff', boxShadow: '0 4px 14px rgba(1,45,29,0.39)' }}>
-                💬 Agendar por WhatsApp
-              </a>
-              <Link href="/registro"
-                className="flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-semibold transition-colors duration-150 hover:bg-(--surface)"
-                style={{ border: '2px solid #012d1d', color: '#012d1d', background: 'transparent' }}>
-                Solicitar visita
+            <div className="hero-actions hero-anim ha4">
+              <Link href="/registro" className="btn btn-cream">
+                Agendar visita
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </Link>
+              <a href="#beneficios" className="btn btn-outline">Cómo funciona</a>
             </div>
+          </div>
+        </div>
+        <div className="hero-scroll hero-anim ha4">
+          <span>SCROLL</span>
+          <div className="hero-scroll-line" />
+        </div>
+      </section>
+
+      {/* SOCIAL PROOF */}
+      <section className="social">
+        <div className="social-grid">
+          <div className="social-stat">
+            <div className="num">+100</div>
+            <div className="label">MASCOTAS ATENDIDAS</div>
+          </div>
+          <div className="social-stat">
+            <div className="num">5.0<em>★</em></div>
+            <div className="label">CALIFICACIÓN PROMEDIO</div>
+          </div>
+          <div className="social-stat">
+            <div className="num">06</div>
+            <div className="label">PROCEDIMIENTOS CLÍNICOS</div>
+          </div>
+          <div className="social-stat">
+            <div className="num">0</div>
+            <div className="label">SALAS DE ESPERA</div>
           </div>
         </div>
       </section>
 
-      {/* Social Proof */}
-      <section className="py-16 border-y" style={{ background: '#ffffff', borderColor: '#c1c8c2' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <div className="flex" style={{ color: '#735c00' }}>
-                {'★★★★★'.split('').map((s, i) => <span key={i} className="text-xl">{s}</span>)}
+      {/* BENEFICIOS — 2x2 con números enormes */}
+      <section className="beneficios" id="beneficios">
+        <div className="beneficios-shell">
+          <div className="ben-head">
+            <span className="eyebrow">POR QUÉ A DOMICILIO</span>
+            <h2 className="section-title">El bienestar empieza <em>en un entorno tranquilo</em></h2>
+            <p className="section-lead">Cuatro razones por las que cientos de tutores eligieron Silvestra Vet en lugar de la clínica tradicional.</p>
+          </div>
+          <div className="ben-grid">
+            <div className="ben-card">
+              <div className="ben-num">01</div>
+              <div>
+                <div className="ben-tag">EN CASA</div>
+                <h3 className="ben-title">Sin jaula, sin traslado, <em>sin sala de espera</em></h3>
               </div>
-              <span className="text-2xl font-bold" style={{ color: '#191c1d' }}>+100 mascotas atendidas</span>
-              <span className="text-sm" style={{ color: '#717973' }}>Con calificación perfecta</span>
+              <p className="ben-text">Evita el pánico de la jaula de transporte. Tu mascota se queda en su sillón, su cama o su rincón favorito.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full md:w-2/3">
-              {[
-                { texto: '"El doctor fue súper amable, mi perro ni se enteró de la vacuna."', nombre: 'María S.', mascota: 'Dueña de Max', inicial: 'M' },
-                { texto: '"Excelente servicio. Revisaron a mi gato en su cama, cero estrés."', nombre: 'Pablo V.', mascota: 'Dueño de Luna', inicial: 'P' },
-              ].map((t) => (
-                <div key={t.nombre} className="p-6 rounded-xl border" style={{ background: '#f8f9fa', borderColor: '#e1e3e4' }}>
-                  <p className="text-sm mb-4 italic" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)' }}>{t.texto}</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
-                      style={{ background: '#1b4332', color: '#86af99' }}>{t.inicial}</div>
-                    <div>
-                      <p className="font-semibold text-sm" style={{ color: '#191c1d' }}>{t.nombre}</p>
-                      <p className="text-xs" style={{ color: '#717973' }}>{t.mascota}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="ben-card dark">
+              <div className="ben-num">02</div>
+              <div>
+                <div className="ben-tag">DEDICACIÓN</div>
+                <h3 className="ben-title">Atención dedicada, <em>sin reloj</em></h3>
+              </div>
+              <p className="ben-text">Una sola visita, una sola paciente. El tiempo es el que tu mascota necesite.</p>
+            </div>
+            <div className="ben-card dark">
+              <div className="ben-num">03</div>
+              <div>
+                <div className="ben-tag">COMODIDAD</div>
+                <h3 className="ben-title">Nosotros vamos <em>hasta ti</em></h3>
+              </div>
+              <p className="ben-text">Cero traslados, cero salas de espera, cero estacionamiento. Tu día sigue como siempre.</p>
+            </div>
+            <div className="ben-card">
+              <div className="ben-num">04</div>
+              <div>
+                <div className="ben-tag">RESPALDO CLÍNICO</div>
+                <h3 className="ben-title">Médica titulada, <em>con formación científica</em></h3>
+              </div>
+              <p className="ben-text">Titulada de la Universidad Santo Tomás, bajo el enfoque de una salud: animal, humana y del medio ambiente.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Beneficios Bento Grid */}
-      <section className="py-32" style={{ background: '#f8f9fa' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-16 max-w-2xl">
-            <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-4"
-              style={{ color: '#012d1d' }}>
-              <span className="w-8 h-px" style={{ background: '#012d1d', display: 'inline-block' }}></span>
-              Por qué a domicilio
-            </span>
-            <h2 className="text-5xl font-bold leading-[1.05] mb-5" style={{ color: '#191c1d', letterSpacing: '-0.02em' }}>
-              El bienestar de tu mascota empieza{' '}
-              <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
-                en un entorno tranquilo
-              </span>
-            </h2>
-            <p className="text-lg" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
-              Cuatro razones por las que cientos de tutores eligieron Silvestra Vet en lugar de la clínica tradicional.
+      {/* SERVICIOS — acordeón */}
+      <section className="servicios">
+        <div className="serv-shell">
+          <div className="serv-head">
+            <span className="eyebrow">SERVICIOS MÉDICOS</span>
+            <h2 className="section-title">Procedimientos clínicos, <em>con el rigor de una clínica</em></h2>
+            <p className="section-lead">
+              Cada visita sigue protocolos clínicos verificables. Los exámenes se procesan en laboratorio externo certificado y los resultados llegan a tu cuenta en PDF. Haz clic para conocer más.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-5" style={{ gridAutoRows: 'minmax(320px, auto)' }}>
-
-            {/* Card 1 — Sin traslados (grande, claro) */}
-            <article className="md:col-span-4 md:row-span-1 p-10 rounded-2xl flex flex-col justify-between relative overflow-hidden group"
-              style={{ background: '#ffffff', border: '1px solid #e1e3e4' }}>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: '#012d1d' }}>01 — En casa</span>
-                <h3 className="text-3xl font-semibold mt-4 mb-3 max-w-sm" style={{ color: '#191c1d', letterSpacing: '-0.015em', lineHeight: 1.15 }}>
-                  Sin jaula, sin traslado,{' '}
-                  <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
-                    sin sala de espera
-                  </span>
-                </h3>
-                <p className="text-base max-w-sm" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
-                  Evita el pánico de la jaula de transporte. Tu mascota se queda en su sillón, su cama o su rincón favorito.
-                </p>
+          <ul className="acc-list">
+            <li className="acc-item open">
+              <button className="acc-trigger" onClick={toggleAcc}>
+                <span className="acc-num">01</span>
+                <span className="acc-name">Vacunación</span>
+                <span className="acc-toggle">+</span>
+              </button>
+              <div className="acc-content">
+                <p className="acc-body">Esquemas completos para cachorros y adultos. Cumplimos calendario nacional y aplicamos refuerzos según especie, raza y edad.</p>
               </div>
-              {/* Ilustración: home-care (mascota con veterinario) — silueta verde forestal */}
-              <div
-                className="absolute top-1/2 right-2 -translate-y-1/2 w-[22rem] h-72 transition-transform duration-500 group-hover:scale-105 pointer-events-none"
-                style={{
-                  WebkitMaskImage: 'url(/logo/home-care.svg)',
-                  maskImage: 'url(/logo/home-care.svg)',
-                  WebkitMaskSize: 'contain',
-                  maskSize: 'contain',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskPosition: 'center',
-                  maskPosition: 'center',
-                  backgroundColor: '#012d1d',
-                }}
-                aria-hidden
-              />
-            </article>
+            </li>
+            <li className="acc-item">
+              <button className="acc-trigger" onClick={toggleAcc}>
+                <span className="acc-num">02</span>
+                <span className="acc-name">Desparasitación interna</span>
+                <span className="acc-toggle">+</span>
+              </button>
+              <div className="acc-content">
+                <p className="acc-body">Antiparasitarios de amplio espectro contra giardia, anquilostomas, áscaris y tenias. Pauta personalizada según peso y estilo de vida.</p>
+              </div>
+            </li>
+            <li className="acc-item">
+              <button className="acc-trigger" onClick={toggleAcc}>
+                <span className="acc-num">03</span>
+                <span className="acc-name">Control clínico</span>
+                <span className="acc-toggle">+</span>
+              </button>
+              <div className="acc-content">
+                <p className="acc-body">Examen físico completo: auscultación cardíaca y pulmonar, palpación abdominal, evaluación de mucosas, peso, temperatura y dentición.</p>
+              </div>
+            </li>
+            <li className="acc-item">
+              <button className="acc-trigger" onClick={toggleAcc}>
+                <span className="acc-num">04</span>
+                <span className="acc-name">Curación de heridas</span>
+                <span className="acc-toggle">+</span>
+              </button>
+              <div className="acc-content">
+                <p className="acc-body">Limpieza, desinfección, sutura simple si corresponde y vendaje profesional. Tratamos lesiones menores sin necesidad de traslado.</p>
+              </div>
+            </li>
+            <li className="acc-item">
+              <button className="acc-trigger" onClick={toggleAcc}>
+                <span className="acc-num">05</span>
+                <span className="acc-name">Microchip</span>
+                <span className="acc-toggle">+</span>
+              </button>
+              <div className="acc-content">
+                <p className="acc-body">Identificación permanente bajo norma ISO 11784/11785, con registro inmediato en la base nacional.</p>
+              </div>
+            </li>
+            <li className="acc-item">
+              <button className="acc-trigger" onClick={toggleAcc}>
+                <span className="acc-num">06</span>
+                <span className="acc-name">Toma de muestras para laboratorio</span>
+                <span className="acc-toggle">+</span>
+              </button>
+              <div className="acc-content">
+                <p className="acc-body">Sangre y orina para análisis clínicos. Trabajamos con laboratorio veterinario certificado.</p>
+                <ul className="acc-panel">
+                  <li>Hemograma completo</li>
+                  <li>Perfil bioquímico</li>
+                  <li>TSH</li>
+                  <li>T4 total y libre</li>
+                </ul>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
 
-            {/* Card 2 — Atención personalizada (chico, oscuro) */}
-            <article className="md:col-span-2 md:row-span-1 p-8 rounded-2xl flex flex-col justify-between relative overflow-hidden"
-              style={{ background: '#012d1d' }}>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: '#fed65b' }}>02 — Una mascota a la vez</span>
-                <h3 className="text-2xl font-semibold mt-4 mb-3" style={{ color: '#ffffff', letterSpacing: '-0.015em', lineHeight: 1.2 }}>
-                  Atención dedicada,{' '}
-                  <span style={{ color: '#b1f0ce', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
-                    sin reloj
-                  </span>
-                </h3>
-              </div>
-              {/* Ilustración: reloj con corazón en lugar de manillas */}
-              <div className="self-end -mr-2 -mb-2">
-                <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden>
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#1b4332" strokeWidth="2" />
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#86af99" strokeWidth="1.5" strokeDasharray="2 6" />
-                  {/* Corazón en el centro */}
-                  <path d="M 60 75 C 50 65, 42 60, 42 50 C 42 44, 47 40, 53 42 C 56 43, 60 47, 60 47 C 60 47, 64 43, 67 42 C 73 40, 78 44, 78 50 C 78 60, 70 65, 60 75 Z"
-                    fill="#fed65b" />
-                </svg>
-              </div>
-              <p className="text-sm relative z-10" style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'var(--font-newsreader)', lineHeight: 1.5 }}>
-                Una sola visita, una sola paciente. El tiempo es el que tu mascota necesite.
-              </p>
-            </article>
-
-            {/* Card 3 — Ahorro de tiempo (chico, ámbar) */}
-            <article className="md:col-span-2 md:row-span-1 p-8 rounded-2xl flex flex-col justify-between relative overflow-hidden"
-              style={{ background: '#fed65b' }}>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: '#735c00' }}>03 — Tu día completo</span>
-                <h3 className="text-2xl font-semibold mt-4 mb-3" style={{ color: '#191c1d', letterSpacing: '-0.015em', lineHeight: 1.2 }}>
-                  Nosotros vamos{' '}
-                  <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
-                    hasta ti
-                  </span>
-                </h3>
-              </div>
-              {/* Ilustración: pin de mapa con ruta */}
-              <div className="self-end -mr-2 -mb-2">
-                <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden>
-                  {/* Ruta punteada */}
-                  <path d="M 15 100 Q 35 80 50 75 T 90 40" stroke="#012d1d" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 5" fill="none" />
-                  {/* Punto inicio */}
-                  <circle cx="15" cy="100" r="4" fill="#012d1d" />
-                  {/* Pin destino */}
-                  <path d="M 90 30 C 80 30, 75 38, 75 47 C 75 58, 90 75, 90 75 C 90 75, 105 58, 105 47 C 105 38, 100 30, 90 30 Z"
-                    fill="#012d1d" />
-                  <circle cx="90" cy="46" r="5" fill="#fed65b" />
-                </svg>
-              </div>
-              <p className="text-sm" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.5 }}>
-                Cero traslados, cero salas de espera, cero estacionamiento.
-              </p>
-            </article>
-
-            {/* Card 4 — Respaldo clínico (grande, claro) */}
-            <article className="md:col-span-4 md:row-span-1 p-10 rounded-2xl flex flex-col justify-between relative overflow-hidden"
-              style={{ background: '#ffffff', border: '1px solid #e1e3e4' }}>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: '#012d1d' }}>04 — Respaldo clínico</span>
-                <h3 className="text-3xl font-semibold mt-4 mb-3 max-w-md" style={{ color: '#191c1d', letterSpacing: '-0.015em', lineHeight: 1.15 }}>
-                  Médica veterinaria titulada,{' '}
-                  <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
-                    con formación científica
-                  </span>
-                </h3>
-                <p className="text-base max-w-md" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
-                  Titulada de la Universidad Santo Tomás, capacitada para prevenir, diagnosticar y tratar enfermedades bajo el enfoque de <em>una salud</em>: animal, humana y del medio ambiente. Atención con ética y responsabilidad clínica.
-                </p>
-              </div>
-
-              {/* Sello credencial flotante con logo UST */}
-              <div className="self-end mt-6 flex items-center gap-4">
-                <div className="flex flex-col items-end">
-                  <span className="text-xs font-medium" style={{ color: '#717973', fontFamily: 'var(--font-manrope)' }}>Titulada de</span>
-                  <span className="text-sm font-semibold" style={{ color: '#012d1d', fontFamily: 'var(--font-manrope)' }}>Universidad Santo Tomás</span>
-                </div>
-                {/* Logo UST como mask, tematizado en verde forestal */}
-                <div
-                  className="w-[72px] h-[72px] flex-shrink-0"
-                  style={{
-                    WebkitMaskImage: 'url(/logo/ust-mark.svg)',
-                    maskImage: 'url(/logo/ust-mark.svg)',
-                    WebkitMaskSize: 'contain',
-                    maskSize: 'contain',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskPosition: 'center',
-                    maskPosition: 'center',
-                    backgroundColor: '#012d1d',
-                  }}
-                  aria-label="Universidad Santo Tomás"
-                  role="img"
-                />
-              </div>
-            </article>
-
+      {/* CTA */}
+      <section className="cta">
+        <div className="cta-inner">
+          <span className="eyebrow">AGENDA TU VISITA HOY</span>
+          <h2 className="cta-title">Tu mascota merece <em>atención en casa</em></h2>
+          <p className="cta-lead">Asegura tranquilidad clínica con la calma que tu mascota necesita. Sin esperas, sin traslados, sin estrés.</p>
+          <div className="cta-actions">
+            <Link href="/registro" className="btn btn-primary">
+              Crear cuenta
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <Link href="/login" className="btn btn-ghost">Iniciar sesión</Link>
           </div>
         </div>
       </section>
 
-      {/* Servicios — registro editorial */}
-      <section className="py-32" style={{ background: '#ffffff' }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-12 gap-12 md:gap-8">
-
-            {/* Columna izquierda: encabezado, sticky en desktop */}
-            <div className="md:col-span-5 md:sticky md:top-32 self-start">
-              <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-4"
-                style={{ color: '#012d1d' }}>
-                <span className="w-8 h-px" style={{ background: '#012d1d', display: 'inline-block' }}></span>
-                Servicios médicos
-              </span>
-              <h2 className="text-5xl font-bold leading-[1.05] mb-6" style={{ color: '#191c1d', letterSpacing: '-0.02em' }}>
-                Procedimientos clínicos,{' '}
-                <span style={{ color: '#012d1d', fontStyle: 'italic', fontWeight: 300, fontFamily: 'var(--font-newsreader)' }}>
-                  con el rigor de una clínica
-                </span>
-              </h2>
-              <p className="text-lg max-w-md" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
-                Cada visita sigue protocolos clínicos verificables. Los exámenes de laboratorio se procesan en laboratorio externo certificado y los resultados llegan a tu cuenta en PDF.
-              </p>
-            </div>
-
-            {/* Columna derecha: lista editorial numerada */}
-            <ol className="md:col-span-7 flex flex-col">
-              {[
-                { num: '01', nombre: 'Vacunación', desc: 'Esquemas completos para cachorros y adultos. Cumplimos calendario nacional y aplicamos refuerzos según especie, raza y edad.' },
-                { num: '02', nombre: 'Desparasitación interna', desc: 'Antiparasitarios de amplio espectro contra giardia, anquilostomas, áscaris y tenias. Pauta personalizada según peso y estilo de vida.' },
-                { num: '03', nombre: 'Control clínico', desc: 'Examen físico completo: auscultación cardíaca y pulmonar, palpación abdominal, evaluación de mucosas, peso, temperatura y dentición.' },
-                { num: '04', nombre: 'Curación de heridas', desc: 'Limpieza, desinfección, sutura simple si corresponde y vendaje profesional. Tratamos lesiones menores sin necesidad de traslado.' },
-                { num: '05', nombre: 'Colocación de microchips', desc: 'Identificación permanente bajo norma ISO 11784/11785, con registro inmediato en la base nacional.' },
-                {
-                  num: '06',
-                  nombre: 'Toma de muestras para laboratorio',
-                  desc: 'Sangre y orina para análisis clínicos. Trabajamos con laboratorio veterinario certificado.',
-                  panel: ['Hemograma completo', 'Perfil bioquímico', 'TSH', 'T4 total y libre'],
-                },
-              ].map((s, i) => (
-                <li
-                  key={s.num}
-                  className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 py-8"
-                  style={{ borderTop: i === 0 ? '1px solid #012d1d' : 'none', borderBottom: '1px solid #c1c8c2' }}
-                >
-                  <span
-                    className="text-sm font-bold tabular-nums pt-1"
-                    style={{ color: '#012d1d', letterSpacing: '0.05em' }}
-                  >
-                    {s.num}
-                  </span>
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-2xl font-semibold" style={{ color: '#191c1d', letterSpacing: '-0.01em' }}>
-                      {s.nombre}
-                    </h3>
-                    <p className="text-base" style={{ color: '#414844', fontFamily: 'var(--font-newsreader)', lineHeight: 1.6 }}>
-                      {s.desc}
-                    </p>
-                    {s.panel && (
-                      <ul className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm" style={{ color: '#717973' }}>
-                        {s.panel.map((p) => (
-                          <li key={p} className="inline-flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full" style={{ background: '#735c00' }} aria-hidden />
-                            {p}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+      {/* FOOTER */}
+      <footer className="land-foot">
+        {/* Hojas decorativas */}
+        <div className="foot-leaves" aria-hidden="true">
+          <svg className="fl1" viewBox="0 0 200 200" fill="currentColor">
+            <path d="M100 20c-30 0-55 25-55 55 0 35 25 55 55 80 30-25 55-45 55-80 0-30-25-55-55-55zm0 30c14 0 25 11 25 25s-11 25-25 25-25-11-25-25 11-25 25-25z" />
+          </svg>
+          <svg className="fl2" viewBox="0 0 200 200" fill="currentColor">
+            <path d="M100 20c-30 0-55 25-55 55 0 35 25 55 55 80 30-25 55-45 55-80 0-30-25-55-55-55zm0 30c14 0 25 11 25 25s-11 25-25 25-25-11-25-25 11-25 25-25z" />
+          </svg>
         </div>
-      </section>
 
-      {/* CTA Final */}
-      <section className="py-32 relative overflow-hidden" style={{ background: '#012d1d' }}>
-        <div className="absolute inset-0 opacity-10"
-          style={{ background: 'radial-gradient(circle at center, white, transparent)' }} />
-        <div className="max-w-6xl mx-auto px-6 relative z-10 text-center flex flex-col items-center">
-          <h2 className="text-5xl font-bold mb-6" style={{ color: '#ffffff' }}>Agenda tu visita hoy</h2>
-          <p className="text-xl mb-8 max-w-xl" style={{ color: 'rgba(255,255,255,0.8)', fontFamily: 'var(--font-newsreader)' }}>
-            Asegura la tranquilidad de tu mascota con nuestra atención clínica de excelencia en casa.
+        {/* Sello editorial */}
+        <div className="foot-mast">
+          <div className="foot-mast-mark">
+            <Logo size="md" variant="dark" />
+          </div>
+          <div className="foot-mast-author">
+            <span className="foot-mast-author-label">MÉDICO VETERINARIA</span>
+            <span className="foot-mast-author-name">Amanda Castañeda Urbina</span>
+          </div>
+          <p className="foot-mast-line">
+            Veterinaria a domicilio en Valparaíso.<br />
+            Cuidado clínico <em>en el lugar más conocido</em> por tu mascota.
           </p>
-          <a href="https://wa.me/56912345678?text=Hola,%20quiero%20agendar%20una%20visita%20veterinaria"
-            target="_blank"
-            className="flex items-center gap-3 px-10 py-5 rounded-xl font-bold text-lg transition-transform hover:scale-105"
-            style={{ background: '#fed65b', color: '#191c1d' }}>
-            💬 Agendar por WhatsApp
-          </a>
         </div>
-      </section>
 
-      {/* Footer */}
-      <footer style={{ background: '#012d1d', color: '#ffffff' }}>
-        <div className="max-w-6xl mx-auto px-6 pt-20 pb-10">
+        <div className="foot-divider" aria-hidden="true" />
 
-          {/* Bloque superior: 4 columnas */}
-          <div className="grid grid-cols-2 md:grid-cols-12 gap-10 md:gap-8">
+        {/* Grid principal */}
+        <div className="foot-grid">
+          {/* Columna marca */}
+          <div className="foot-brand-col">
+            <p className="foot-blurb">
+              Atención veterinaria clínica en tu casa. Sin estrés para tu mascota, sin traslados para ti.
+            </p>
+            <div className="foot-cta">
+              <Link href="/registro" className="foot-cta-btn">
+                Agendar visita
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+              <span className="foot-cta-meta">Sin compromisos · Cuenta gratuita</span>
+            </div>
+          </div>
 
-            {/* Columna marca */}
-            <div className="col-span-2 md:col-span-5 flex flex-col gap-5">
-              <Logo size="md" variant="dark" />
-              <p
-                className="max-w-xs"
-                style={{
-                  color: 'rgba(255,255,255,0.75)',
-                  fontFamily: 'var(--font-newsreader)',
-                  fontSize: '1.0625rem',
-                  lineHeight: 1.6,
-                }}
-              >
-                Atención veterinaria clínica en tu casa. Sin estrés para tu mascota, sin traslados para ti.
-              </p>
-              <a
-                href="https://wa.me/56912345678?text=Hola,%20quiero%20agendar%20una%20visita%20veterinaria"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-transform hover:scale-105 self-start"
-                style={{ background: '#fed65b', color: '#191c1d', fontFamily: 'var(--font-manrope)' }}
-              >
-                Agendar por WhatsApp
+          {/* Columnas de links */}
+          <div className="foot-cols">
+            <div className="foot-col">
+              <div className="foot-tag"><span className="dot" /> SERVICIO</div>
+              <Link href="/cobertura" className="foot-link">
+                <span>Área de cobertura</span>
+                <span className="arrow">→</span>
+              </Link>
+              <Link href="/registro" className="foot-link">
+                <span>Crear cuenta</span>
+                <span className="arrow">→</span>
+              </Link>
+              <Link href="/login" className="foot-link">
+                <span>Acceder</span>
+                <span className="arrow">→</span>
+              </Link>
+              <Link href="/contacto" className="foot-link">
+                <span>Contacto</span>
+                <span className="arrow">→</span>
+              </Link>
+            </div>
+
+            <div className="foot-col">
+              <div className="foot-tag"><span className="dot" /> LEGAL</div>
+              <Link href="/legal/privacidad" className="foot-link">
+                <span>Política de privacidad</span>
+                <span className="arrow">→</span>
+              </Link>
+              <Link href="/legal/terminos" className="foot-link">
+                <span>Términos de servicio</span>
+                <span className="arrow">→</span>
+              </Link>
+              <a href="mailto:privacidad@silvestravet.cl" className="foot-link">
+                <span>Datos personales</span>
+                <span className="arrow">→</span>
               </a>
             </div>
 
-            {/* Espacio */}
-            <div className="hidden md:block md:col-span-1" aria-hidden />
-
-            {/* Columna navegación */}
-            <nav className="md:col-span-3 flex flex-col gap-3">
-              <span
-                className="text-xs font-bold uppercase tracking-[0.18em] mb-2"
-                style={{ color: '#fed65b' }}
-              >
-                Servicio
-              </span>
-              <Link href="/cobertura" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Área de cobertura
-              </Link>
-              <Link href="/registro" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Crear cuenta
-              </Link>
-              <Link href="/login" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Acceder a mi cuenta
-              </Link>
-              <Link href="/contacto" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Contacto
-              </Link>
-            </nav>
-
-            {/* Columna legal */}
-            <nav className="md:col-span-3 flex flex-col gap-3">
-              <span
-                className="text-xs font-bold uppercase tracking-[0.18em] mb-2"
-                style={{ color: '#fed65b' }}
-              >
-                Legal
-              </span>
-              <Link href="/legal/privacidad" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Política de privacidad
-              </Link>
-              <Link href="/legal/terminos" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Términos de servicio
-              </Link>
-              <a href="mailto:privacidad@silvestravet.cl" className="text-sm hover:underline underline-offset-4" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--font-manrope)' }}>
-                Datos personales
+            <div className="foot-col">
+              <div className="foot-tag"><span className="dot" /> CONTACTO</div>
+              <a href="tel:+56912345678" className="foot-link contact-link">
+                <span className="contact-label">TELÉFONO</span>
+                <span className="contact-value">+56 9 1234 5678</span>
               </a>
-            </nav>
-
+              <a href="mailto:hola@silvestravet.cl" className="foot-link contact-link">
+                <span className="contact-label">CORREO</span>
+                <span className="contact-value">hola@silvestravet.cl</span>
+              </a>
+              <div className="foot-link contact-link static">
+                <span className="contact-label">HORARIO</span>
+                <span className="contact-value">Lun a Vie · 09:00 — 19:00</span>
+              </div>
+            </div>
           </div>
+        </div>
 
-          {/* Línea inferior: copyright + ubicación */}
-          <div
-            className="mt-16 pt-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.12)' }}
-          >
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-manrope)' }}>
-              © 2025 Silvestra Vet. Todos los derechos reservados.
-            </p>
-            <p
-              className="text-xs"
-              style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-newsreader)', fontStyle: 'italic' }}
-            >
-              Hecho con cuidado clínico en Santiago de Chile.
-            </p>
+        {/* Footer bar */}
+        <div className="foot-bar">
+          <div className="foot-bar-inner">
+            <div className="foot-bar-meta">
+              <span>© 2026 — SILVESTRA VET SPA</span>
+              <span className="foot-bar-sep">·</span>
+              <span>Todos los derechos reservados</span>
+            </div>
+            <div className="foot-bar-place">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+                <circle cx="8" cy="8" r="2" fill="currentColor" />
+              </svg>
+              <span>VALPARAÍSO · CHILE</span>
+              <span className="foot-bar-sep">·</span>
+              <span className="foot-bar-italic">Hecho con cuidado clínico.</span>
+            </div>
           </div>
         </div>
       </footer>
-
-      {/* Sticky Mobile CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 md:hidden z-50"
-        style={{ background: 'rgba(248,249,250,0.9)', backdropFilter: 'blur(8px)', borderTop: '1px solid #c1c8c2' }}>
-        <a href="https://wa.me/56912345678?text=Hola,%20quiero%20agendar%20una%20visita%20veterinaria"
-          target="_blank"
-          className="w-full flex items-center justify-center gap-2 py-4 px-8 rounded-lg font-semibold"
-          style={{ background: '#012d1d', color: '#ffffff' }}>
-          💬 Agendar visita
-        </a>
-      </div>
-
     </main>
+  );
+}
+
+function LandingStyles() {
+  return (
+    <style jsx global>{`
+      .land-bg {
+        --cream: #f5f1e8;
+        --paper: #ede7d8;
+        --green-deep: #0d2818;
+        --green-mid: #1e4030;
+        --green-leaf: #2d5040;
+        --ink: #1a2418;
+        --ink-soft: #4a5042;
+        --ink-mute: #8a8e80;
+        --rule: rgba(13, 40, 24, 0.12);
+        background: var(--cream);
+        color: var(--ink);
+        font-family: var(--font-manrope), system-ui, sans-serif;
+        line-height: 1.5;
+      }
+
+      /* NAV transparente que se vuelve opaca */
+      .land-nav {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+        padding: 20px 40px;
+        display: flex; justify-content: space-between; align-items: center;
+        transition: all .35s;
+      }
+      .land-nav.transparent {
+        color: var(--cream);
+        background: transparent;
+        border-bottom: 1px solid transparent;
+      }
+      .land-nav.opaque {
+        background: rgba(245, 241, 232, 0.92);
+        backdrop-filter: blur(16px);
+        color: var(--ink);
+        border-bottom: 1px solid var(--rule);
+        padding: 14px 40px;
+      }
+      .land-nav .brand {
+        display: inline-flex; align-items: center; gap: 14px;
+        text-decoration: none; color: inherit;
+      }
+      .land-nav .brand small {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 400;
+        font-size: 13px; opacity: 0.75;
+        padding-left: 14px;
+        border-left: 1px solid currentColor;
+        line-height: 1.3;
+      }
+      .land-nav.transparent .brand small {
+        border-left-color: rgba(245, 241, 232, 0.3);
+      }
+      .land-nav.opaque .brand small {
+        border-left-color: var(--rule);
+      }
+      .nav-actions { display: flex; gap: 8px; }
+
+      .btn {
+        padding: 10px 20px; border-radius: 999px;
+        font-size: 13.5px; font-weight: 600;
+        text-decoration: none;
+        transition: all .25s;
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid transparent;
+        font-family: var(--font-manrope), system-ui, sans-serif;
+        cursor: pointer;
+      }
+      .land-nav.transparent .btn-ghost {
+        color: var(--cream);
+        border-color: rgba(245, 241, 232, 0.4);
+      }
+      .land-nav.transparent .btn-ghost:hover {
+        background: rgba(245, 241, 232, 0.1);
+      }
+      .land-nav.transparent .btn-primary {
+        background: var(--cream);
+        color: var(--green-deep);
+      }
+      .land-nav.transparent .btn-primary:hover {
+        background: #e8e2d0;
+      }
+      .land-nav.opaque .btn-ghost {
+        color: var(--green-deep);
+        border-color: var(--rule);
+      }
+      .land-nav.opaque .btn-ghost:hover {
+        background: rgba(13, 40, 24, 0.06);
+      }
+      .land-nav.opaque .btn-primary {
+        background: var(--green-deep);
+        color: var(--cream);
+      }
+      .land-nav.opaque .btn-primary:hover {
+        background: var(--green-mid);
+      }
+
+      /* HERO CINEMÁTICO */
+      .hero {
+        position: relative; height: 100vh; min-height: 700px;
+        overflow: hidden;
+        display: flex; align-items: flex-end;
+        color: var(--cream);
+        padding: 80px 40px;
+      }
+      .hero-bg {
+        position: absolute; inset: 0; z-index: 0;
+        background:
+          linear-gradient(180deg, rgba(13, 40, 24, 0.4) 0%, rgba(13, 40, 24, 0.85) 100%),
+          url('/close-up-veterinarian-taking-care-dog.jpg') center/cover no-repeat;
+        filter: hue-rotate(-5deg) saturate(0.85);
+        transform: scale(1.05);
+        animation: heroParallax 20s ease-in-out infinite alternate;
+      }
+      @keyframes heroParallax {
+        0% { transform: scale(1.05) translateY(0); }
+        100% { transform: scale(1.1) translateY(-2%); }
+      }
+      .hero-bg::after {
+        content: '';
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse at 50% 100%, transparent, rgba(13, 40, 24, 0.6));
+      }
+      .hero-content {
+        position: relative; z-index: 1;
+        max-width: 1320px; margin: 0 auto; width: 100%;
+      }
+      .hero-eyebrow {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.32em;
+        color: rgba(245, 241, 232, 0.7);
+        text-transform: uppercase; margin-bottom: 28px;
+        display: inline-flex; align-items: center; gap: 14px;
+      }
+      .hero-eyebrow::before {
+        content: ''; width: 40px; height: 1px;
+        background: rgba(245, 241, 232, 0.5);
+      }
+      .hero-title {
+        font-size: clamp(56px, 9vw, 140px);
+        font-weight: 300; letter-spacing: -0.04em; line-height: 0.92;
+        margin-bottom: 32px;
+        color: var(--cream);
+        max-width: 14ch;
+      }
+      .hero-title em {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic;
+        color: rgba(245, 241, 232, 0.78);
+        font-weight: 300;
+      }
+      .hero-bottom {
+        display: grid; grid-template-columns: 1fr auto;
+        gap: 40px; align-items: end;
+      }
+      @media (max-width: 720px) {
+        .hero-bottom { grid-template-columns: 1fr; }
+      }
+      .hero-lead {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: 22px; line-height: 1.45;
+        color: rgba(245, 241, 232, 0.85); max-width: 480px;
+      }
+      .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+      .btn-cream {
+        background: var(--cream); color: var(--green-deep);
+        padding: 16px 28px; font-size: 14px;
+      }
+      .btn-cream:hover { background: #e8e2d0; transform: translateY(-2px); }
+      .btn-outline {
+        color: var(--cream);
+        border-color: rgba(245, 241, 232, 0.4);
+        padding: 16px 28px; font-size: 14px;
+      }
+      .btn-outline:hover { background: rgba(245, 241, 232, 0.1); }
+
+      .hero-scroll {
+        position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+        color: rgba(245, 241, 232, 0.6); z-index: 1;
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        animation: scrollBounce 2s ease-in-out infinite;
+      }
+      @keyframes scrollBounce {
+        0%, 100% { transform: translate(-50%, 0); opacity: 0.6; }
+        50% { transform: translate(-50%, 6px); opacity: 1; }
+      }
+      .hero-scroll-line {
+        width: 1px; height: 40px;
+        background: linear-gradient(to bottom, rgba(245, 241, 232, 0.5), transparent);
+      }
+
+      /* SOCIAL PROOF */
+      .social {
+        background: var(--cream);
+        padding: 80px 40px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .social-grid {
+        max-width: 1320px; margin: 0 auto;
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px;
+      }
+      @media (max-width: 720px) {
+        .social-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      }
+      .social-stat {
+        border-top: 1px solid var(--green-deep);
+        padding-top: 16px;
+      }
+      .social-stat .num {
+        font-family: var(--font-manrope), system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 48px; letter-spacing: -0.025em;
+        color: var(--green-deep); line-height: 1;
+      }
+      .social-stat .num em {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 400;
+      }
+      .social-stat .label {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.18em;
+        color: var(--ink-mute);
+        text-transform: uppercase; margin-top: 10px;
+      }
+
+      /* BENEFICIOS — 2x2 con números enormes */
+      .beneficios {
+        padding: 140px 40px;
+        background: var(--cream);
+      }
+      .beneficios-shell { max-width: 1320px; margin: 0 auto; }
+      .ben-head { max-width: 720px; margin-bottom: 80px; }
+
+      .eyebrow {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.22em;
+        color: var(--green-deep);
+        text-transform: uppercase; margin-bottom: 24px;
+        display: inline-flex; align-items: center; gap: 12px;
+      }
+      .eyebrow::before {
+        content: ''; width: 32px; height: 1px; background: var(--green-deep);
+      }
+      .section-title {
+        font-size: clamp(40px, 5vw, 64px);
+        font-weight: 600; letter-spacing: -0.025em; line-height: 1.0;
+        margin-bottom: 20px;
+      }
+      .section-title em {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 400;
+        color: var(--green-mid);
+      }
+      .section-lead {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: 18px; line-height: 1.6; color: var(--ink-soft);
+      }
+
+      .ben-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+        border-top: 1px solid var(--rule);
+        border-left: 1px solid var(--rule);
+      }
+      @media (max-width: 720px) {
+        .ben-grid { grid-template-columns: 1fr; }
+      }
+      .ben-card {
+        padding: 56px 48px;
+        border-right: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        position: relative; overflow: hidden;
+        transition: background .35s;
+        cursor: pointer;
+        min-height: 360px;
+        display: flex; flex-direction: column; justify-content: space-between;
+      }
+      .ben-card:hover { background: var(--paper); }
+      .ben-card.dark { background: var(--green-deep); color: var(--cream); }
+      .ben-card.dark:hover { background: var(--green-mid); }
+      .ben-num {
+        font-family: var(--font-manrope), system-ui, sans-serif;
+        font-weight: 200;
+        font-size: clamp(120px, 14vw, 200px);
+        line-height: 0.85; color: var(--green-deep);
+        letter-spacing: -0.05em; opacity: 0.08;
+        position: absolute; top: 20px; right: 32px;
+        pointer-events: none;
+      }
+      .ben-card.dark .ben-num { color: var(--cream); opacity: 0.1; }
+      .ben-tag {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 0.22em;
+        color: var(--ink-mute);
+        text-transform: uppercase; margin-bottom: 16px;
+        position: relative; z-index: 1;
+      }
+      .ben-card.dark .ben-tag { color: rgba(245, 241, 232, 0.55); }
+      .ben-title {
+        font-size: 32px; font-weight: 600;
+        letter-spacing: -0.015em; line-height: 1.12;
+        margin-bottom: 16px;
+        position: relative; z-index: 1;
+        max-width: 14ch;
+      }
+      .ben-title em {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 400;
+        color: var(--green-mid);
+      }
+      .ben-card.dark .ben-title em { color: rgba(245, 241, 232, 0.85); }
+      .ben-text {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: 16px; line-height: 1.55;
+        color: var(--ink-soft);
+        max-width: 340px;
+        position: relative; z-index: 1;
+      }
+      .ben-card.dark .ben-text { color: rgba(245, 241, 232, 0.7); }
+
+      /* SERVICIOS — acordeón */
+      .servicios {
+        background: var(--green-deep);
+        color: var(--cream);
+        padding: 140px 40px;
+        position: relative; overflow: hidden;
+      }
+      .servicios::before {
+        content: ''; position: absolute; inset: 0;
+        background:
+          radial-gradient(ellipse at 80% 20%, rgba(45, 80, 64, 0.4), transparent 60%),
+          radial-gradient(ellipse at 20% 80%, rgba(30, 64, 48, 0.5), transparent 60%);
+        pointer-events: none;
+      }
+      .serv-shell {
+        max-width: 1320px; margin: 0 auto;
+        position: relative; z-index: 1;
+      }
+      .serv-head { max-width: 720px; margin-bottom: 80px; }
+      .servicios .eyebrow { color: rgba(245, 241, 232, 0.65); }
+      .servicios .eyebrow::before { background: rgba(245, 241, 232, 0.4); }
+      .servicios .section-title { color: var(--cream); }
+      .servicios .section-title em { color: rgba(245, 241, 232, 0.78); }
+      .servicios .section-lead { color: rgba(245, 241, 232, 0.7); }
+
+      .acc-list {
+        list-style: none; padding: 0; margin: 0;
+        border-top: 1px solid rgba(245, 241, 232, 0.15);
+      }
+      .acc-item {
+        border-bottom: 1px solid rgba(245, 241, 232, 0.15);
+      }
+      .acc-trigger {
+        width: 100%; padding: 28px 0;
+        display: grid; grid-template-columns: 60px 1fr auto;
+        gap: 24px; align-items: center;
+        background: transparent; border: none; cursor: pointer;
+        text-align: left; color: var(--cream);
+        transition: padding .3s;
+        font-family: inherit;
+      }
+      .acc-trigger:hover { padding-left: 16px; }
+      .acc-num {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 13px;
+        color: rgba(245, 241, 232, 0.5);
+        letter-spacing: 0.16em;
+      }
+      .acc-name {
+        font-size: 28px; font-weight: 600;
+        letter-spacing: -0.01em; line-height: 1.15;
+        color: var(--cream);
+      }
+      .acc-toggle {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        border: 1px solid rgba(245, 241, 232, 0.3);
+        display: grid; place-items: center;
+        transition: all .3s;
+        color: var(--cream);
+        font-size: 20px; font-weight: 300;
+        line-height: 1;
+      }
+      .acc-item.open .acc-toggle {
+        background: var(--cream); color: var(--green-deep);
+        transform: rotate(45deg); border-color: var(--cream);
+      }
+      .acc-content {
+        grid-column: 2 / 4;
+        overflow: hidden; max-height: 0;
+        transition: max-height .5s cubic-bezier(.2, .7, .2, 1);
+        padding: 0 0 0 84px;
+      }
+      .acc-item.open .acc-content { max-height: 280px; }
+      .acc-body {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: 17px; line-height: 1.6;
+        color: rgba(245, 241, 232, 0.78);
+        padding-bottom: 28px;
+        max-width: 640px;
+      }
+      .acc-panel {
+        display: flex; flex-wrap: wrap; gap: 8px 16px;
+        margin-top: 14px; padding: 0; list-style: none;
+      }
+      .acc-panel li {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(245, 241, 232, 0.6);
+        letter-spacing: 0.06em;
+        display: inline-flex; align-items: center; gap: 6px;
+      }
+      .acc-panel li::before {
+        content: ''; width: 4px; height: 4px; border-radius: 50%;
+        background: rgba(245, 241, 232, 0.6);
+      }
+
+      /* CTA */
+      .cta {
+        background: var(--cream);
+        padding: 140px 40px;
+        text-align: center;
+      }
+      .cta-inner { max-width: 720px; margin: 0 auto; }
+      .cta .eyebrow { justify-content: center; }
+      .cta-title {
+        font-size: clamp(48px, 6vw, 80px);
+        font-weight: 600; letter-spacing: -0.025em; line-height: 1.0;
+        margin-bottom: 24px;
+      }
+      .cta-title em {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 400;
+        color: var(--green-mid);
+      }
+      .cta-lead {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: 19px; line-height: 1.6;
+        color: var(--ink-soft); margin-bottom: 40px;
+      }
+      .cta-actions {
+        display: inline-flex; gap: 14px; flex-wrap: wrap;
+        justify-content: center;
+      }
+      .cta-actions .btn-primary {
+        background: var(--green-deep); color: var(--cream);
+        padding: 18px 32px; font-size: 15px;
+      }
+      .cta-actions .btn-primary:hover {
+        background: var(--green-mid); transform: translateY(-2px);
+      }
+      .cta-actions .btn-ghost {
+        color: var(--green-deep); border-color: var(--rule);
+        padding: 18px 32px; font-size: 15px;
+      }
+      .cta-actions .btn-ghost:hover { background: rgba(13, 40, 24, 0.06); }
+
+      /* FOOTER */
+      .land-foot {
+        background: var(--green-deep); color: var(--cream);
+        padding: 100px 40px 0;
+        position: relative; overflow: hidden;
+      }
+      .land-foot::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(245, 241, 232, 0.25) 30%,
+          rgba(245, 241, 232, 0.25) 70%,
+          transparent 100%
+        );
+      }
+
+      /* Hojas decorativas del footer */
+      .foot-leaves {
+        position: absolute; inset: 0;
+        pointer-events: none; overflow: hidden;
+      }
+      .foot-leaves svg {
+        position: absolute;
+        color: var(--cream);
+      }
+      .foot-leaves .fl1 {
+        top: -120px; right: -80px;
+        width: 380px;
+        opacity: 0.04;
+        transform: rotate(20deg);
+      }
+      .foot-leaves .fl2 {
+        bottom: -150px; left: -100px;
+        width: 420px;
+        opacity: 0.03;
+        transform: rotate(-30deg);
+      }
+
+      /* Sello editorial gigante */
+      .foot-mast {
+        max-width: 1320px; margin: 0 auto;
+        padding: 0 0 72px;
+        position: relative; z-index: 1;
+        text-align: center;
+      }
+      .foot-mast-mark {
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 28px;
+        opacity: 0.95;
+      }
+      .foot-mast-author {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 6px;
+        margin: 0 auto 28px;
+        max-width: max-content;
+      }
+      .foot-mast-author-label {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.32em;
+        color: rgba(245, 241, 232, 0.5);
+        text-transform: uppercase;
+      }
+      .foot-mast-author-name {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 400;
+        font-size: 18px;
+        color: rgba(245, 241, 232, 0.92);
+        letter-spacing: -0.005em;
+      }
+      .foot-mast-word em {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic; font-weight: 300;
+        color: rgba(245, 241, 232, 0.55);
+        margin-left: 0.05em;
+      }
+      .foot-mast-line {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: clamp(18px, 1.6vw, 22px);
+        line-height: 1.5;
+        color: rgba(245, 241, 232, 0.7);
+        max-width: 540px; margin: 0 auto;
+      }
+      .foot-mast-line em {
+        font-style: italic;
+        color: rgba(245, 241, 232, 0.95);
+      }
+
+      .foot-divider {
+        max-width: 1320px;
+        height: 1px;
+        margin: 0 auto;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(245, 241, 232, 0.18) 50%,
+          transparent 100%
+        );
+        position: relative; z-index: 1;
+      }
+
+      /* Grid principal */
+      .foot-grid {
+        max-width: 1320px; margin: 0 auto;
+        padding: 80px 0;
+        display: grid;
+        grid-template-columns: 1.1fr 2fr;
+        gap: 80px;
+        position: relative; z-index: 1;
+      }
+      @media (max-width: 960px) {
+        .foot-grid { grid-template-columns: 1fr; gap: 56px; }
+      }
+
+      .foot-brand-col {
+        display: flex; flex-direction: column; gap: 24px;
+      }
+      .foot-brand-mark {
+        display: inline-flex;
+        padding: 16px 18px;
+        border: 1px solid rgba(245, 241, 232, 0.15);
+        border-radius: 14px;
+        background: rgba(245, 241, 232, 0.03);
+        align-self: flex-start;
+      }
+      .foot-blurb {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-size: 17px; max-width: 360px; line-height: 1.55;
+        color: rgba(245, 241, 232, 0.72);
+        margin: 0;
+      }
+      .foot-cta {
+        display: flex; flex-direction: column; gap: 10px;
+        margin-top: 8px;
+      }
+      .foot-cta-btn {
+        display: inline-flex; align-items: center; gap: 10px;
+        align-self: flex-start;
+        background: var(--cream);
+        color: var(--green-deep);
+        padding: 14px 24px;
+        border-radius: 999px;
+        font-size: 14px; font-weight: 600;
+        text-decoration: none;
+        transition: all .25s;
+      }
+      .foot-cta-btn:hover {
+        transform: translateY(-2px);
+        background: #fff;
+        box-shadow: 0 12px 24px -8px rgba(245, 241, 232, 0.25);
+      }
+      .foot-cta-btn svg { transition: transform .25s; }
+      .foot-cta-btn:hover svg { transform: translateX(4px); }
+      .foot-cta-meta {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 10.5px; letter-spacing: 0.18em;
+        color: rgba(245, 241, 232, 0.4);
+        text-transform: uppercase;
+      }
+
+      /* Columnas de links */
+      .foot-cols {
+        display: grid; grid-template-columns: 1fr 1.1fr 1.2fr;
+        gap: 48px;
+      }
+      @media (max-width: 720px) {
+        .foot-cols { grid-template-columns: 1fr 1fr; gap: 40px 32px; }
+      }
+      .foot-col {
+        display: flex; flex-direction: column;
+      }
+      .foot-tag {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 10.5px; letter-spacing: 0.28em;
+        color: rgba(245, 241, 232, 0.55);
+        margin-bottom: 24px; text-transform: uppercase;
+        display: inline-flex; align-items: center; gap: 10px;
+      }
+      .foot-tag .dot {
+        width: 5px; height: 5px; border-radius: 50%;
+        background: var(--cream);
+      }
+      .foot-link {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 11px 0;
+        color: rgba(245, 241, 232, 0.78);
+        font-size: 15px; text-decoration: none;
+        border-bottom: 1px solid rgba(245, 241, 232, 0.08);
+        transition: all .25s;
+        font-family: var(--font-manrope), system-ui, sans-serif;
+      }
+      .foot-link:hover {
+        color: var(--cream);
+        padding-left: 6px;
+        border-bottom-color: rgba(245, 241, 232, 0.25);
+      }
+      .foot-link .arrow {
+        opacity: 0;
+        transform: translateX(-6px);
+        transition: all .25s;
+        color: rgba(245, 241, 232, 0.5);
+        font-size: 14px;
+      }
+      .foot-link:hover .arrow {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .foot-link.contact-link {
+        flex-direction: column; align-items: flex-start; gap: 4px;
+        padding: 14px 0;
+      }
+      .foot-link.contact-link.static {
+        cursor: default;
+      }
+      .foot-link.contact-link.static:hover {
+        color: rgba(245, 241, 232, 0.78);
+        padding-left: 0;
+      }
+      .foot-link .contact-label {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 10px; letter-spacing: 0.2em;
+        color: rgba(245, 241, 232, 0.45);
+        text-transform: uppercase;
+      }
+      .foot-link .contact-value {
+        font-size: 16px;
+        color: rgba(245, 241, 232, 0.95);
+        font-weight: 500;
+        letter-spacing: -0.005em;
+      }
+
+      /* Footer bar */
+      .foot-bar {
+        position: relative; z-index: 1;
+        background: rgba(0, 0, 0, 0.18);
+        border-top: 1px solid rgba(245, 241, 232, 0.1);
+        margin: 0 -40px;
+        padding: 24px 40px;
+      }
+      .foot-bar-inner {
+        max-width: 1320px; margin: 0 auto;
+        display: flex; justify-content: space-between;
+        align-items: center; gap: 24px; flex-wrap: wrap;
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(245, 241, 232, 0.5);
+        letter-spacing: 0.18em; text-transform: uppercase;
+      }
+      .foot-bar-meta, .foot-bar-place {
+        display: inline-flex; align-items: center; gap: 12px;
+        flex-wrap: wrap;
+      }
+      .foot-bar-place svg {
+        color: rgba(245, 241, 232, 0.6);
+      }
+      .foot-bar-sep {
+        color: rgba(245, 241, 232, 0.25);
+      }
+      .foot-bar-italic {
+        font-family: var(--font-newsreader), Georgia, serif;
+        font-style: italic;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 13px;
+        color: rgba(245, 241, 232, 0.55);
+      }
+
+      /* Anim hero */
+      @keyframes heroIn {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .hero-anim { animation: heroIn 1.2s cubic-bezier(.2, .7, .2, 1) both; }
+      .ha1 { animation-delay: 100ms; }
+      .ha2 { animation-delay: 350ms; }
+      .ha3 { animation-delay: 700ms; }
+      .ha4 { animation-delay: 1000ms; }
+    `}</style>
   );
 }
