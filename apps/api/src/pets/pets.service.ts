@@ -27,6 +27,8 @@ export class PetsService {
   async listarTodas() {
     return this.prisma.mascota.findMany({
       include: { tutor: true, examenes: true },
+      orderBy: { creadoEn: 'desc' },
+      take: 500,
     });
   }
 

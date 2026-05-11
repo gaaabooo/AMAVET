@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -47,7 +48,7 @@ export class CitasController {
   @Get('mascota/:mascotaId')
   async listarPorMascota(
     @Req() req: RequestConUsuario,
-    @Param('mascotaId') mascotaId: string,
+    @Param('mascotaId', new ParseUUIDPipe()) mascotaId: string,
   ) {
     if (req.user.rol !== 'ADMIN') {
       const esDueno = await this.citasService.esDuenoDeMascota(mascotaId, req.user.userId);
@@ -61,7 +62,7 @@ export class CitasController {
   @Patch(':id/estado')
   async actualizarEstado(
     @Req() req: RequestConUsuario,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: ActualizarEstadoCitaDto,
   ) {
     if (req.user.rol !== 'ADMIN') {

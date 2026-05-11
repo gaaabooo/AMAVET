@@ -38,7 +38,10 @@ export class UsersService {
   }
 
   async buscarPorId(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, nombre: true, email: true, telefono: true, rol: true, creadoEn: true },
+    });
   }
 
   async listarTutores() {

@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { getSesion } from '@/lib/session';
+import { getAnimalIcon } from '@/lib/utils/animals';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Usuario {
@@ -28,17 +30,6 @@ interface Mascota {
   examenes: Examen[];
 }
 
-const ANIMAL_ICON: Record<string, string> = {
-  perro: '🐶', gato: '🐱', conejo: '🐰', ave: '🐦', pájaro: '🐦',
-  pajaro: '🐦', hamster: '🐹', hámster: '🐹', tortuga: '🐢',
-  pez: '🐟', hurón: '🦔', huron: '🦔',
-};
-
-function getAnimalIcon(tipo: string): string {
-  const key = tipo.toLowerCase().trim();
-  return ANIMAL_ICON[key] ?? '🐾';
-}
-
 export default function Dashboard() {
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -63,15 +54,11 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) {
-      router.push('/login');
-      return;
-    }
-    const parsed = JSON.parse(u) as Usuario;
-    setUsuario(parsed);
-    cargarMascotas(parsed.id);
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuario(sesion);
+    cargarMascotas(sesion.id);
   }, [router, cargarMascotas]);
 
   const crearMascota = async (e: React.FormEvent) => {

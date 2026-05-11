@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Param,
   ParseFilePipeBuilder,
+  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -43,15 +44,11 @@ export class ExamsController {
   @Get('mascota/:mascotaId')
   async listarPorMascota(
     @Req() req: RequestConUsuario,
-    @Param('mascotaId') mascotaId: string,
+    @Param('mascotaId', new ParseUUIDPipe()) mascotaId: string,
   ) {
     if (req.user.rol !== 'ADMIN') {
-      const examenes = await this.examsService.listarPorMascota(mascotaId);
-      const ajeno = examenes.some((e) => e.mascota.tutorId !== req.user.userId);
-      if (ajeno) {
-        throw new ForbiddenException('No tienes acceso a estos exámenes');
-      }
-      return examenes;
+      const esDueno = await this.examsService.esDuenoMascota(mascotaId, req.user.userId);
+      if (!esDueno) throw new ForbiddenException('No tienes acceso a estos exámenes');
     }
     return this.examsService.listarPorMascota(mascotaId);
   }
@@ -66,7 +63,7 @@ export class ExamsController {
   @Get(':id')
   async buscarPorId(
     @Req() req: RequestConUsuario,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     const examen = await this.examsService.buscarPorId(id);
     if (!examen) throw new NotFoundException('Examen no encontrado');
@@ -79,7 +76,7 @@ export class ExamsController {
   @Get(':id/descargar')
   async descargar(
     @Req() req: RequestConUsuario,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     const examen = await this.examsService.buscarPorId(id);
     if (!examen) throw new NotFoundException('Examen no encontrado');
@@ -94,7 +91,7 @@ export class ExamsController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
   actualizarEstado(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: ActualizarEstadoExamenDto,
   ) {
     return this.examsService.actualizarEstado(id, body.estado, body.archivoUrl);
@@ -105,7 +102,7 @@ export class ExamsController {
   @Roles('ADMIN')
   @UseInterceptors(FileInterceptor('archivo', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
   async subirArchivo(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /^application\/pdf$/ })

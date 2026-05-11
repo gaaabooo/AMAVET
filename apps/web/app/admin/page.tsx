@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { getSesion } from '@/lib/session';
+import { SERVICIOS_CON_PDF } from '@/lib/utils/animals';
 import Logo from '@/components/Logo';
 
 interface Usuario {
@@ -143,6 +145,11 @@ export default function Admin() {
   const [mesActual, setMesActual] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
 
+  const mostrarMensaje = useCallback((tipo: 'ok' | 'error', texto: string) => {
+    setMensaje({ tipo, texto });
+    setTimeout(() => setMensaje(null), 4000);
+  }, []);
+
   const cargarDatos = useCallback(async () => {
     try {
       const [mascRes, examRes, citasRes] = await Promise.all([
@@ -153,43 +160,33 @@ export default function Admin() {
       setMascotas(mascRes.data);
       setExamenes(examRes.data);
       setCitas(citasRes.data);
+    } catch (err) {
+      mostrarMensaje('error', mensajeError(err, 'Error al cargar los datos del panel'));
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [mostrarMensaje]);
 
   useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) { router.push('/login'); return; }
-    const parsed = JSON.parse(u) as Usuario;
-    if (parsed.rol !== 'ADMIN') { router.push('/dashboard'); return; }
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    if (sesion.rol !== 'ADMIN') { router.push('/dashboard'); return; }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUsuario(parsed);
+    setUsuario(sesion);
     cargarDatos();
   }, [router, cargarDatos]);
-
-  const mostrarMensaje = (tipo: 'ok' | 'error', texto: string) => {
-    setMensaje({ tipo, texto });
-    setTimeout(() => setMensaje(null), 4000);
-  };
 
   const actualizarEstadoCita = async (id: string, estado: EstadoCita) => {
     try {
       await api.patch(`/citas/${id}/estado`, { estado });
       mostrarMensaje('ok', `Cita marcada como ${estado.toLowerCase()}`);
-      cargarDatos();
+      await cargarDatos();
       setCitaSeleccionada(prev => (prev && prev.id === id ? { ...prev, estado } : prev));
     } catch (err) {
       mostrarMensaje('error', mensajeError(err, 'Error al actualizar la cita'));
     }
   };
 
-  const SERVICIOS_CON_PDF = new Set([
-    'Examen Hemograma', 'Examen T4', 'Examen TSH',
-    'Perfil Bioquímico',
-    'Test de Distemper', 'Test de leucemia', 'Test de Parvovirus', 'Test de SIDA Felino',
-  ]);
   const esExamen = SERVICIOS_CON_PDF.has(uploadTipo);
 
   const subirResultado = async (e: React.FormEvent) => {
@@ -213,7 +210,7 @@ export default function Admin() {
       setUploadMascotaId('');
       setUploadTipo('');
       setUploadArchivo(null);
-      cargarDatos();
+      await cargarDatos();
     } catch (err) {
       mostrarMensaje('error', mensajeError(err, 'Error al registrar el servicio'));
     } finally {
@@ -224,9 +221,9 @@ export default function Admin() {
   const actualizarEstado = async (id: string, estado: string) => {
     try {
       await api.patch(`/examenes/${id}/estado`, { estado });
-      cargarDatos();
+      await cargarDatos();
     } catch (err) {
-      console.error(err);
+      mostrarMensaje('error', mensajeError(err, 'Error al actualizar el estado del examen'));
     }
   };
 
@@ -234,7 +231,7 @@ export default function Admin() {
     try {
       await api.patch(`/examenes/${id}/estado`, { estado: 'PENDIENTE', archivoUrl: null });
       mostrarMensaje('ok', 'PDF eliminado. El examen volvió a estado pendiente.');
-      cargarDatos();
+      await cargarDatos();
     } catch (err) {
       mostrarMensaje('error', mensajeError(err, 'Error al eliminar el PDF'));
     }
@@ -340,7 +337,7 @@ export default function Admin() {
   ];
 
   const titulos: Record<Vista, { titulo: string; sub: string }> = {
-    dashboard: { titulo: `Buenos días, ${usuario?.nombre?.split(' ')[0] ?? ''}`, sub: new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
+    dashboard: { titulo: `${(() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'; })()}, ${usuario?.nombre?.split(' ')[0] ?? ''}`, sub: new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
     mascotas: { titulo: 'Mis pacientes', sub: `${mascotas.length} mascotas registradas` },
     examenes: { titulo: 'Registro de exámenes', sub: `${examenesDeduplicados.length} registros en total` },
     agenda: { titulo: 'Agenda de consultas', sub: '' },
@@ -695,11 +692,6 @@ function DashboardView({
   uploadArchivo, setUploadArchivo, dragging, setDragging,
   subiendo, fileInputRef, subirResultado, actualizarEstadoCita,
 }: DashboardViewProps) {
-  const SERVICIOS_CON_PDF = new Set([
-    'Examen Hemograma', 'Examen T4', 'Examen TSH',
-    'Perfil Bioquímico',
-    'Test de Distemper', 'Test de leucemia', 'Test de Parvovirus', 'Test de SIDA Felino',
-  ]);
   const esExamen = SERVICIOS_CON_PDF.has(uploadTipo);
 
   const serviciosSolicitados: string[] = uploadMascotaId
@@ -1344,21 +1336,32 @@ function ConfiguracionView({ usuario, cerrarSesion, mostrarMensaje }: {
     reader.readAsDataURL(file);
   };
 
-  const onSubmitPerfil = (e: React.FormEvent) => {
+  const onSubmitPerfil = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!usuario?.id) return;
     setEstadoGuardar('loading');
-    setTimeout(() => {
+    try {
+      await api.patch(`/usuarios/${usuario.id}`, { nombre, telefono });
       setEstadoGuardar('success');
-      mostrarMensaje('ok', 'Cambios listos. La sincronización con servidor llegará en próximas versiones.');
+      mostrarMensaje('ok', 'Perfil actualizado correctamente.');
       setTimeout(() => setEstadoGuardar('idle'), 2000);
-    }, 1000);
+    } catch {
+      setEstadoGuardar('idle');
+      mostrarMensaje('error', 'No se pudo actualizar el perfil.');
+    }
   };
 
-  const onSubmitPwd = (e: React.FormEvent) => {
+  const onSubmitPwd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pwdValida) { mostrarMensaje('error', 'Revisa los requisitos de la contraseña antes de guardar.'); return; }
-    mostrarMensaje('ok', 'Cambio de contraseña listo. La sincronización con servidor llegará en próximas versiones.');
-    setPwdActual(''); setPwdNueva(''); setPwdConfirma('');
+    if (!usuario?.id) return;
+    try {
+      await api.patch(`/usuarios/${usuario.id}/password`, { passwordActual: pwdActual, passwordNueva: pwdNueva });
+      mostrarMensaje('ok', 'Contraseña actualizada correctamente.');
+      setPwdActual(''); setPwdNueva(''); setPwdConfirma('');
+    } catch {
+      mostrarMensaje('error', 'No se pudo cambiar la contraseña. Verifica la contraseña actual.');
+    }
   };
 
   return (
@@ -1433,7 +1436,7 @@ function ConfiguracionView({ usuario, cerrarSesion, mostrarMensaje }: {
 function SaveButton({ estado, idle, loading, success, submit = false }: { estado: 'idle' | 'loading' | 'success'; idle: string; loading: string; success: string; submit?: boolean }) {
   const txt = estado === 'loading' ? loading : estado === 'success' ? success : idle;
   return (
-    <button type={submit ? 'submit' : 'submit'} className="w-full flex items-center justify-center gap-2 rounded-lg font-bold text-[0.85rem] transition-all mt-2" style={{ padding: '0.78rem', background: estado === 'success' ? 'var(--admin-green-leaf)' : 'var(--admin-green-deep)', color: 'var(--admin-cream)', border: 'none', cursor: estado === 'loading' ? 'wait' : 'pointer', opacity: estado === 'loading' ? 0.7 : 1 }}
+    <button type={submit ? 'submit' : 'button'} className="w-full flex items-center justify-center gap-2 rounded-lg font-bold text-[0.85rem] transition-all mt-2" style={{ padding: '0.78rem', background: estado === 'success' ? 'var(--admin-green-leaf)' : 'var(--admin-green-deep)', color: 'var(--admin-cream)', border: 'none', cursor: estado === 'loading' ? 'wait' : 'pointer', opacity: estado === 'loading' ? 0.7 : 1 }}
       onMouseEnter={e => { if (estado === 'idle') e.currentTarget.style.background = 'var(--admin-green-mid)'; }}
       onMouseLeave={e => { if (estado === 'idle') e.currentTarget.style.background = 'var(--admin-green-deep)'; }}>{txt}</button>
   );

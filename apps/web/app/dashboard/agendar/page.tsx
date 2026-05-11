@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { getSesion, type SesionUsuario } from '@/lib/session';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Mascota {
@@ -43,7 +44,7 @@ const DIAS_SEMANA_CORTO = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 
 export default function AgendarVisita() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<any>(null);
+  const [usuario, setUsuario] = useState<SesionUsuario | null>(null);
   const [mascotas, setMascotas] = useState<Mascota[]>([]);
   const [mascotaSeleccionada, setMascotaSeleccionada] = useState<string>('');
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState<string[]>([]);
@@ -60,15 +61,12 @@ export default function AgendarVisita() {
   const [exito, setExito] = useState(false);
 
   useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) {
-      router.push('/login');
-      return;
-    }
-    const parsed = JSON.parse(u);
-    setUsuario(parsed);
-    cargarMascotas(parsed.id);
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuario(sesion);
+    cargarMascotas(sesion.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cargarMascotas = async (tutorId: string) => {
@@ -76,8 +74,8 @@ export default function AgendarVisita() {
       const res = await api.get(`/mascotas/tutor/${tutorId}`);
       setMascotas(res.data);
       if (res.data.length > 0) setMascotaSeleccionada(res.data[0].id);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // error silencioso — el interceptor 401 ya redirige si es necesario
     } finally {
       setCargando(false);
     }

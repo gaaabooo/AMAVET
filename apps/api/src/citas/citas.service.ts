@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EstadoCita } from '@prisma/client';
 
@@ -7,12 +7,16 @@ export class CitasService {
   constructor(private prisma: PrismaService) {}
 
   async crear(fecha: string, direccion: string, servicios: string[], mascotaId: string) {
+    const fechaDate = new Date(fecha);
+    if (isNaN(fechaDate.getTime())) throw new BadRequestException('Fecha inválida');
+    if (fechaDate < new Date()) throw new BadRequestException('No puedes agendar en el pasado');
+
     const mascota = await this.prisma.mascota.findUnique({ where: { id: mascotaId } });
     if (!mascota) throw new NotFoundException('Mascota no encontrada');
 
     return this.prisma.cita.create({
       data: {
-        fecha: new Date(fecha),
+        fecha: fechaDate,
         direccion,
         servicios,
         mascotaId,
@@ -25,6 +29,7 @@ export class CitasService {
     return this.prisma.cita.findMany({
       include: { mascota: { include: { tutor: true } } },
       orderBy: { fecha: 'asc' },
+      take: 500,
     });
   }
 

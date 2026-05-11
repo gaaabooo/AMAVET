@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
+import { getSesion } from '@/lib/session';
+import { getAnimalIcon } from '@/lib/utils/animals';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Examen {
@@ -29,16 +31,6 @@ interface Mascota {
   edad?: number;
   examenes: Examen[];
   citas?: Cita[];
-}
-
-const ANIMAL_ICON: Record<string, string> = {
-  perro: '🐶', gato: '🐱', conejo: '🐰', ave: '🐦', pájaro: '🐦',
-  pajaro: '🐦', hamster: '🐹', hámster: '🐹', tortuga: '🐢',
-  pez: '🐟', hurón: '🦔', huron: '🦔',
-};
-
-function getAnimalIcon(tipo: string): string {
-  return ANIMAL_ICON[tipo.toLowerCase().trim()] ?? '🐾';
 }
 
 const EXAM_ICON: Record<string, string> = {
@@ -71,16 +63,28 @@ export default function PerfilMascota() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usuarioNombre, setUsuarioNombre] = useState<string | undefined>();
+  const [descargando, setDescargando] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) { router.push('/login'); return; }
-    const usuario = JSON.parse(u);
-    setUsuarioNombre(usuario.nombre);
-    cargarDatos(usuario.id);
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuarioNombre(sesion.nombre);
+    cargarDatos(sesion.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const descargarExamen = async (examenId: string) => {
+    setDescargando(examenId);
+    try {
+      const res = await api.get(`/examenes/${examenId}/descargar`);
+      window.open(res.data.url, '_blank', 'noopener,noreferrer');
+    } catch {
+      setError('No se pudo obtener el enlace de descarga. Intenta nuevamente.');
+    } finally {
+      setDescargando(null);
+    }
+  };
 
   const cargarDatos = async (tutorId: string) => {
     if (!id) return;
@@ -103,8 +107,7 @@ export default function PerfilMascota() {
       const citasRes = await api.get(`/citas/mascota/${id}`);
       setMascota(mascotaData);
       setCitas(citasRes.data ?? []);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('Error al cargar el perfil de la mascota.');
     } finally {
       setCargando(false);
@@ -418,18 +421,23 @@ export default function PerfilMascota() {
                                 {ex.estado === 'EN_PROCESO' ? 'En proceso' : ex.estado.charAt(0) + ex.estado.slice(1).toLowerCase()}
                               </span>
                               {ex.archivoUrl ? (
-                                <a
-                                  href={ex.archivoUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  onClick={() => descargarExamen(ex.id)}
+                                  disabled={descargando === ex.id}
                                   className="exam-download"
                                   title="Ver resultado"
                                   aria-label="Ver resultado"
                                 >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                                  </svg>
-                                </a>
+                                  {descargando === ex.id ? (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                                      <circle cx="12" cy="12" r="10" />
+                                    </svg>
+                                  ) : (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                  )}
+                                </button>
                               ) : (
                                 <span style={{ width: 36 }} />
                               )}

@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -53,10 +54,10 @@ export class PetsController {
   @Get(':id')
   async buscarPorId(
     @Req() req: RequestConUsuario,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     const mascota = await this.petsService.buscarPorId(id);
-    if (!mascota) return null;
+    if (!mascota) throw new NotFoundException('Mascota no encontrada');
     if (req.user.rol !== 'ADMIN' && req.user.userId !== mascota.tutorId) {
       throw new ForbiddenException('No tienes acceso a esta mascota');
     }

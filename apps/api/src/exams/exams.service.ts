@@ -31,10 +31,13 @@ export class ExamsService {
     return this.prisma.examen.findMany({
       include: { mascota: { include: { tutor: true } } },
       orderBy: { creadoEn: 'desc' },
+      take: 500,
     });
   }
 
   async actualizarEstado(id: string, estado: EstadoExamen, archivoUrl?: string | null) {
+    const examen = await this.prisma.examen.findUnique({ where: { id } });
+    if (!examen) throw new NotFoundException('Examen no encontrado');
     return this.prisma.examen.update({
       where: { id },
       data: { estado, ...(archivoUrl !== undefined && { archivoUrl }) },
@@ -73,6 +76,14 @@ export class ExamsService {
     }
 
     return resultado;
+  }
+
+  async esDuenoMascota(mascotaId: string, userId: string): Promise<boolean> {
+    const mascota = await this.prisma.mascota.findUnique({
+      where: { id: mascotaId },
+      select: { tutorId: true },
+    });
+    return mascota?.tutorId === userId;
   }
 
   async generarUrlDescarga(id: string): Promise<string> {
