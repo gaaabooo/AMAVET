@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { getSesion } from '@/lib/session';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Usuario {
@@ -36,16 +37,12 @@ export default function Configuracion() {
   const [passError, setPassError] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) {
-      router.push('/login');
-      return;
-    }
-    const parsed = JSON.parse(u) as Usuario;
-    setUsuario(parsed);
-    setNombre(parsed.nombre || '');
-    setTelefono(parsed.telefono || '');
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuario(sesion);
+    setNombre(sesion.nombre || '');
+    setTelefono(sesion.telefono || '');
     setCargando(false);
   }, [router]);
 
@@ -79,8 +76,9 @@ export default function Configuracion() {
       localStorage.setItem('usuario', JSON.stringify(nuevo));
       setPerfilOk(true);
       setTimeout(() => setPerfilOk(false), 3500);
-    } catch (err: any) {
-      setPerfilError(err.response?.data?.message || 'No se pudo guardar el perfil. Intenta de nuevo.');
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      setPerfilError(msg || 'No se pudo guardar el perfil. Intenta de nuevo.');
     } finally {
       setGuardandoPerfil(false);
     }
@@ -120,8 +118,9 @@ export default function Configuracion() {
       setPasswordNueva('');
       setPasswordConfirma('');
       setTimeout(() => setPassOk(false), 3500);
-    } catch (err: any) {
-      setPassError(err.response?.data?.message || 'No se pudo actualizar la contraseña.');
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      setPassError(msg || 'No se pudo actualizar la contraseña.');
     } finally {
       setGuardandoPass(false);
     }

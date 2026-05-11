@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { getSesion } from '@/lib/session';
@@ -65,28 +65,7 @@ export default function PerfilMascota() {
   const [usuarioNombre, setUsuarioNombre] = useState<string | undefined>();
   const [descargando, setDescargando] = useState<string | null>(null);
 
-  useEffect(() => {
-    const sesion = getSesion();
-    if (!sesion) { router.push('/login'); return; }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUsuarioNombre(sesion.nombre);
-    cargarDatos(sesion.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const descargarExamen = async (examenId: string) => {
-    setDescargando(examenId);
-    try {
-      const res = await api.get(`/examenes/${examenId}/descargar`);
-      window.open(res.data.url, '_blank', 'noopener,noreferrer');
-    } catch {
-      setError('No se pudo obtener el enlace de descarga. Intenta nuevamente.');
-    } finally {
-      setDescargando(null);
-    }
-  };
-
-  const cargarDatos = async (tutorId: string) => {
+  const cargarDatos = useCallback(async (tutorId: string) => {
     if (!id) return;
     setCargando(true);
     setError(null);
@@ -111,6 +90,26 @@ export default function PerfilMascota() {
       setError('Error al cargar el perfil de la mascota.');
     } finally {
       setCargando(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuarioNombre(sesion.nombre);
+    cargarDatos(sesion.id);
+  }, [router, cargarDatos]);
+
+  const descargarExamen = async (examenId: string) => {
+    setDescargando(examenId);
+    try {
+      const res = await api.get(`/examenes/${examenId}/descargar`);
+      window.open(res.data.url, '_blank', 'noopener,noreferrer');
+    } catch {
+      setError('No se pudo obtener el enlace de descarga. Intenta nuevamente.');
+    } finally {
+      setDescargando(null);
     }
   };
 

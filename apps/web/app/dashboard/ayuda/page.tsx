@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getSesion } from '@/lib/session';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Usuario {
@@ -104,13 +105,10 @@ export default function CentroAyuda() {
   const [abierto, setAbierto] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = localStorage.getItem('usuario');
-    const token = localStorage.getItem('token');
-    if (!u || !token) {
-      router.push('/login');
-      return;
-    }
-    setUsuario(JSON.parse(u));
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuario(sesion);
     setCargando(false);
   }, [router]);
 

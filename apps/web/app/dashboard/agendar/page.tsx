@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { getSesion, type SesionUsuario } from '@/lib/session';
@@ -60,16 +60,7 @@ export default function AgendarVisita() {
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
 
-  useEffect(() => {
-    const sesion = getSesion();
-    if (!sesion) { router.push('/login'); return; }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUsuario(sesion);
-    cargarMascotas(sesion.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const cargarMascotas = async (tutorId: string) => {
+  const cargarMascotas = useCallback(async (tutorId: string) => {
     try {
       const res = await api.get(`/mascotas/tutor/${tutorId}`);
       setMascotas(res.data);
@@ -79,7 +70,15 @@ export default function AgendarVisita() {
     } finally {
       setCargando(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const sesion = getSesion();
+    if (!sesion) { router.push('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsuario(sesion);
+    cargarMascotas(sesion.id);
+  }, [router, cargarMascotas]);
 
   const toggleServicio = (servicio: string) => {
     setServiciosSeleccionados(prev =>
@@ -183,8 +182,9 @@ export default function AgendarVisita() {
         mascotaId: mascotaSeleccionada,
       });
       setExito(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'No se pudo agendar la cita. Intenta de nuevo.');
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      setError(msg || 'No se pudo agendar la cita. Intenta de nuevo.');
     } finally {
       setEnviando(false);
     }

@@ -3,6 +3,7 @@ export interface SesionUsuario {
   nombre: string;
   email: string;
   rol: 'TUTOR' | 'ADMIN';
+  telefono?: string;
 }
 
 export function getSesion(): SesionUsuario | null {
