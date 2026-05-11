@@ -417,17 +417,17 @@ export default function PerfilMascota() {
                               <span className={`exam-badge exam-badge-${estadoCls}`}>
                                 {ex.estado === 'EN_PROCESO' ? 'En proceso' : ex.estado.charAt(0) + ex.estado.slice(1).toLowerCase()}
                               </span>
-                              {ex.estado === 'DISPONIBLE' && ex.archivoUrl ? (
+                              {ex.archivoUrl ? (
                                 <a
                                   href={ex.archivoUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="exam-download"
-                                  title="Descargar resultado"
-                                  aria-label="Descargar resultado"
+                                  title="Ver resultado"
+                                  aria-label="Ver resultado"
                                 >
-                                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 2v9m0 0l-3-3m3 3l3-3M3 13h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                   </svg>
                                 </a>
                               ) : (
