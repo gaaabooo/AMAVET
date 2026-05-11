@@ -76,6 +76,20 @@ export class ExamsController {
     return examen;
   }
 
+  @Get(':id/descargar')
+  async descargar(
+    @Req() req: RequestConUsuario,
+    @Param('id') id: string,
+  ) {
+    const examen = await this.examsService.buscarPorId(id);
+    if (!examen) throw new NotFoundException('Examen no encontrado');
+    if (req.user.rol !== 'ADMIN' && examen.mascota.tutorId !== req.user.userId) {
+      throw new ForbiddenException('No tienes acceso a este examen');
+    }
+    const url = await this.examsService.generarUrlDescarga(id);
+    return { url };
+  }
+
   @Patch(':id/estado')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')

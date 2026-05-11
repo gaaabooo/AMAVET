@@ -1,6 +1,8 @@
 import { Injectable, InternalServerErrorException, OnModuleInit } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+const SIGNED_URL_TTL_SECONDS = 3600; // 1 hora
+
 @Injectable()
 export class SupabaseService implements OnModuleInit {
   private client!: SupabaseClient;
@@ -16,7 +18,7 @@ export class SupabaseService implements OnModuleInit {
     });
   }
 
-  async subirArchivo(buffer: Buffer, nombreArchivo: string, mimeType: string) {
+  async subirArchivo(buffer: Buffer, nombreArchivo: string, mimeType: string): Promise<string> {
     if (mimeType !== 'application/pdf') {
       throw new InternalServerErrorException('Tipo de archivo no permitido');
     }
@@ -30,7 +32,20 @@ export class SupabaseService implements OnModuleInit {
 
     if (error) throw new InternalServerErrorException(`Error al subir archivo: ${error.message}`);
 
-    const { data: urlData } = this.client.storage.from('Examenes').getPublicUrl(nombreArchivo);
-    return urlData.publicUrl;
+    // Devolvemos la ruta del archivo, NO una URL pública.
+    // Las URLs se generan bajo demanda con createSignedUrl().
+    return nombreArchivo;
+  }
+
+  async generarUrlFirmada(rutaArchivo: string): Promise<string> {
+    const { data, error } = await this.client.storage
+      .from('Examenes')
+      .createSignedUrl(rutaArchivo, SIGNED_URL_TTL_SECONDS);
+
+    if (error || !data?.signedUrl) {
+      throw new InternalServerErrorException('No se pudo generar la URL del archivo');
+    }
+
+    return data.signedUrl;
   }
 }
