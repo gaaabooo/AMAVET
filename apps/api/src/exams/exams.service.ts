@@ -1,8 +1,9 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ExamsService {
@@ -22,12 +23,14 @@ export class ExamsService {
     return this.prisma.examen.findMany({
       where: { mascotaId },
       include: { mascota: true },
+      orderBy: { creadoEn: 'desc' },
     });
   }
 
   async listarTodos() {
     return this.prisma.examen.findMany({
       include: { mascota: { include: { tutor: true } } },
+      orderBy: { creadoEn: 'desc' },
     });
   }
 
@@ -47,24 +50,28 @@ export class ExamsService {
 
   async subirArchivo(id: string, archivo: Express.Multer.File) {
     const examen = await this.buscarPorId(id);
-    const nombreArchivo = `${id}-${Date.now()}.pdf`;
+    if (!examen) throw new NotFoundException('Examen no encontrado');
+
+    // Nombre opaco e impredecible para evitar enumeración o sobrescritura.
+    const nombreArchivo = `${examen.id}/${randomUUID()}.pdf`;
+
     const url = await this.supabase.subirArchivo(
       archivo.buffer,
       nombreArchivo,
-      archivo.mimetype,
+      'application/pdf',
     );
     const resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, url);
-    if (examen) {
-      try {
-        await this.notificaciones.notificarExamenDisponible(
-          examen.mascota.tutor.email,
-          examen.mascota.nombre,
-          url,
-        );
-      } catch {
-        // fallo de SMTP no interrumpe la subida
-      }
+
+    try {
+      await this.notificaciones.notificarExamenDisponible(
+        examen.mascota.tutor.email,
+        examen.mascota.nombre,
+        url,
+      );
+    } catch {
+      // fallo de SMTP no interrumpe la subida
     }
+
     return resultado;
   }
 }

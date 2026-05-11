@@ -1,20 +1,40 @@
-import { Injectable, NotFoundException, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcryptjs';
+
+const BCRYPT_ROUNDS = 12;
+const MIN_PASSWORD_LENGTH = 8;
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async crear(nombre: string, email: string, telefono: string, password: string) {
-    const hash = await bcrypt.hash(password, 10);
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      throw new BadRequestException(
+        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
+      );
+    }
+    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     return this.prisma.user.create({
-      data: { nombre, email, telefono, password: hash },
+      data: {
+        nombre: nombre.trim(),
+        email: email.trim().toLowerCase(),
+        telefono: telefono.trim(),
+        password: hash,
+      },
     });
   }
 
   async buscarPorEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
   }
 
   async buscarPorId(id: string) {
@@ -45,20 +65,21 @@ export class UsersService {
       update.telefono = telefono;
     }
 
-    const actualizado = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id },
       data: update,
       select: { id: true, nombre: true, email: true, telefono: true, rol: true },
     });
-    return actualizado;
   }
 
   async cambiarPassword(id: string, passwordActual: string, passwordNueva: string) {
     if (!passwordActual || !passwordNueva) {
       throw new BadRequestException('Debes ingresar la contraseña actual y la nueva');
     }
-    if (passwordNueva.length < 6) {
-      throw new BadRequestException('La nueva contraseña debe tener al menos 6 caracteres');
+    if (passwordNueva.length < MIN_PASSWORD_LENGTH) {
+      throw new BadRequestException(
+        `La nueva contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
+      );
     }
     if (passwordActual === passwordNueva) {
       throw new BadRequestException('La nueva contraseña debe ser distinta de la actual');
@@ -70,7 +91,7 @@ export class UsersService {
     const valido = await bcrypt.compare(passwordActual, usuario.password);
     if (!valido) throw new UnauthorizedException('La contraseña actual no es correcta');
 
-    const hash = await bcrypt.hash(passwordNueva, 10);
+    const hash = await bcrypt.hash(passwordNueva, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id },
       data: { password: hash },

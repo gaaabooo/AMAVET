@@ -5,7 +5,13 @@ import { PrismaService } from '../prisma.service';
 export class PetsService {
   constructor(private prisma: PrismaService) {}
 
-  async crear(nombre: string, tipo: string, raza: string, edad: number, tutorId: string) {
+  async crear(
+    nombre: string,
+    tipo: string,
+    raza: string | null,
+    edad: number | null,
+    tutorId: string,
+  ) {
     return this.prisma.mascota.create({
       data: { nombre, tipo, raza, edad, tutorId },
     });

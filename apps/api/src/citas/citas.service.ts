@@ -35,6 +35,13 @@ export class CitasService {
     });
   }
 
+  async buscarPorId(id: string) {
+    return this.prisma.cita.findUnique({
+      where: { id },
+      include: { mascota: true },
+    });
+  }
+
   async actualizarEstado(id: string, estado: EstadoCita) {
     const cita = await this.prisma.cita.findUnique({ where: { id } });
     if (!cita) throw new NotFoundException('Cita no encontrada');
@@ -43,5 +50,13 @@ export class CitasService {
       where: { id },
       data: { estado },
     });
+  }
+
+  async esDuenoDeMascota(mascotaId: string, userId: string): Promise<boolean> {
+    const mascota = await this.prisma.mascota.findUnique({
+      where: { id: mascotaId },
+      select: { tutorId: true },
+    });
+    return mascota?.tutorId === userId;
   }
 }

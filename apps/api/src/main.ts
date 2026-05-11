@@ -1,22 +1,76 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
+function assertRequiredEnv() {
+  const required = ['JWT_SECRET', 'DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+  const missing = required.filter((k) => !process.env[k]);
+  if (missing.length) {
+    throw new Error(`Faltan variables de entorno requeridas: ${missing.join(', ')}`);
+  }
+  if ((process.env.JWT_SECRET ?? '').length < 32) {
+    throw new Error('JWT_SECRET debe tener al menos 32 caracteres');
+  }
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  assertRequiredEnv();
+
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
   const allowedOrigins = [
     'http://localhost:3000',
-    ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(u => u.trim()) : []),
+    ...(process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map((u) => u.trim()).filter(Boolean)
+      : []),
   ];
+
+  const allowedVercelPattern = process.env.ALLOWED_VERCEL_PATTERN;
+
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (allowedVercelPattern) {
+        try {
+          if (new RegExp(allowedVercelPattern).test(origin)) return callback(null, true);
+        } catch {
+          // patrón inválido — ignorar y continuar
+        }
       }
+      return callback(new Error(`Origin no permitido: ${origin}`));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 600,
   });
-  await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
+
+  const port = Number(process.env.PORT ?? 3001);
+  await app.listen(port, '0.0.0.0');
+  Logger.log(`API escuchando en puerto ${port}`, 'Bootstrap');
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  Logger.error(`Error iniciando la aplicación: ${err.message}`, 'Bootstrap');
+  process.exit(1);
+});
