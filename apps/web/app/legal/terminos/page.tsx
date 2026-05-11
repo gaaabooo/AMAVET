@@ -1,150 +1,686 @@
-import LegalLayout from '@/components/LegalLayout';
+import Link from 'next/link';
+import LegalNav from '@/components/LegalNav';
+import LegalFooter from '@/components/LegalFooter';
 
 export const metadata = {
   title: 'Términos de Servicio — Silvestra Vet',
   description:
-    'Términos y condiciones que regulan el uso de los servicios veterinarios a domicilio de Silvestra Vet.',
+    'Acuerdo de servicio que regula las visitas veterinarias a domicilio en la Región de Valparaíso prestadas por Silvestra Vet.',
 };
+
+const SECCIONES = [
+  {
+    num: 'I',
+    titulo: 'Qué es Silvestra Vet',
+    resumen: 'Quién te atiende y bajo qué credenciales.',
+    parrafos: [
+      'Silvestra Vet es un servicio de medicina veterinaria a domicilio que opera en la Región de Valparaíso. Cada visita es realizada por un médico veterinario titulado, con cédula profesional vigente y registro habilitado para el ejercicio de la profesión en Chile.',
+      'Trabajamos bajo los protocolos clínicos reconocidos por la medicina veterinaria contemporánea. No prometemos resultados milagrosos: prometemos hacer las cosas bien, conversar contigo lo que estamos haciendo y entregarte un registro claro de cada visita.',
+    ],
+  },
+  {
+    num: 'II',
+    titulo: 'Cobertura y agendamiento',
+    resumen: 'Dónde llegamos y cómo coordinas una visita.',
+    parrafos: [
+      'Atendemos en cobertura habitual en Valparaíso, Viña del Mar y Quilpué; y en cobertura extendida en Villa Alemana, Limache, Quillota, La Cruz, La Calera, Nogales y El Melón. Si vives en una comuna que no aparece en este listado, escríbenos antes de descartar la visita: muchas veces podemos coordinar.',
+      'Las visitas se agendan desde el dashboard de tu cuenta o por WhatsApp. Confirmamos por correo el día, la hora y los servicios contratados. No cobramos por adelantado al momento de agendar.',
+    ],
+  },
+  {
+    num: 'III',
+    titulo: 'Cancelación y reagendamiento',
+    resumen: 'Lo que pedimos cuando algo cambia.',
+    parrafos: [
+      'Sabemos que la vida pasa: si necesitas mover o cancelar una visita, te pedimos avisarnos con al menos 4 horas de anticipación, sin costo. Cancelaciones bajo ese plazo pueden estar sujetas a un cargo administrativo, que se informa de manera transparente al momento de agendar.',
+      'Si somos nosotros quienes debemos reagendar por una emergencia clínica de otro paciente o por imposibilidad de traslado, te avisaremos lo antes posible y propondremos la primera hora disponible.',
+    ],
+  },
+  {
+    num: 'IV',
+    titulo: 'Alcance y límites del servicio',
+    resumen: 'Hasta dónde llega lo que se puede hacer en casa.',
+    parrafos: [
+      'En la visita podemos realizar examen clínico general, vacunaciones, desparasitación, toma de muestras, controles de seguimiento, eutanasia humanitaria con acompañamiento, recetas y certificados, entre otros procedimientos compatibles con la atención en hogar.',
+      'Algunos procedimientos —cirugías mayores, hospitalización, imagenología avanzada, cuidados intensivos— requieren equipamiento que solo está disponible en clínica. En esos casos te derivaremos a una clínica asociada de la zona y, si lo necesitas, ayudaremos a coordinar el traslado.',
+    ],
+  },
+  {
+    num: 'V',
+    titulo: 'Resultados de exámenes',
+    resumen: 'Cómo y cuándo te llegan los resultados.',
+    parrafos: [
+      'Las muestras se procesan en laboratorios veterinarios externos certificados. El plazo habitual de entrega es de 24 a 72 horas hábiles, dependiendo del tipo de examen; algunos paneles especializados pueden tomar más tiempo y siempre te informaremos el plazo estimado.',
+      'Los resultados se publican en formato PDF dentro de tu cuenta y, cuando corresponda, los comentamos contigo en una breve llamada o mensaje para asegurarnos de que entiendas qué significan y cuáles son los siguientes pasos.',
+    ],
+  },
+  {
+    num: 'VI',
+    titulo: 'Pagos y tarifas',
+    resumen: 'Cuándo y cómo se paga la visita.',
+    parrafos: [
+      'El pago se realiza al finalizar la visita. Aceptamos transferencia bancaria, tarjetas y los medios digitales habituales del comercio chileno. Emitimos boleta o factura electrónica según corresponda.',
+      'Las tarifas se informan al momento de agendar y pueden ajustarse si en la visita surgen procedimientos adicionales no previstos: en ese caso, siempre te lo conversaremos antes de realizarlos.',
+    ],
+  },
+  {
+    num: 'VII',
+    titulo: 'Lo que necesitamos de ti',
+    resumen: 'Tu rol en que la atención salga bien.',
+    parrafos: [
+      'Para que la visita sea segura y útil, necesitamos que nos cuentes los antecedentes médicos relevantes de tu mascota: enfermedades previas, medicamentos en uso, alergias conocidas y cualquier cambio de comportamiento reciente. Si hay otro veterinario tratante, también es valioso tener su contacto o sus indicaciones.',
+      'Las indicaciones que te dejamos al final de la visita —dosis, controles, signos de alarma— son parte del tratamiento. Seguirlas con cuidado es lo que asegura que el trabajo clínico tenga el efecto esperado.',
+    ],
+  },
+  {
+    num: 'VIII',
+    titulo: 'Responsabilidad',
+    resumen: 'Hasta dónde respondemos y por qué.',
+    parrafos: [
+      'Aplicamos los protocolos vigentes de la medicina veterinaria con el mejor estándar a nuestro alcance. La medicina, sin embargo, no es una ciencia exacta: existen reacciones individuales, condiciones subyacentes no detectables a simple vista y evoluciones que escapan al control de cualquier profesional. Asumimos responsabilidad por los actos clínicos realizados conforme a la lex artis.',
+      'No respondemos por consecuencias derivadas de información clínica incompleta o inexacta entregada por el tutor, ni por el incumplimiento de las indicaciones posteriores a la visita. Tampoco respondemos por servicios prestados por terceros (clínicas asociadas, laboratorios, traslados) más allá del cuidado en su elección.',
+    ],
+  },
+  {
+    num: 'IX',
+    titulo: 'Modificaciones y vigencia',
+    resumen: 'Qué pasa si estos términos cambian.',
+    parrafos: [
+      'Estos términos pueden actualizarse cuando lo amerite la operación o el marco regulatorio. Cualquier cambio sustancial se publicará en esta misma página con fecha visible y, cuando afecte de forma material tus derechos como tutor, te avisaremos por correo con razonable antelación.',
+      'El uso continuado del servicio después de la entrada en vigencia de los nuevos términos implica su aceptación. Si no estás de acuerdo con un cambio, puedes solicitar la baja de tu cuenta escribiéndonos al correo de contacto.',
+    ],
+  },
+];
 
 export default function TerminosPage() {
   return (
-    <LegalLayout
-      eyebrow="Documento legal"
-      title="Términos de"
-      titleItalic="servicio"
-      intro="Estos términos regulan el uso de los servicios veterinarios a domicilio prestados por Silvestra Vet. Al agendar una visita o crear una cuenta, aceptas las condiciones descritas a continuación."
-      lastUpdated="enero de 2026"
-    >
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        1. Servicio veterinario a domicilio
-      </h2>
-      <p>
-        Silvestra Vet presta atención veterinaria en el domicilio del tutor
-        dentro del área de cobertura publicada. Las visitas son realizadas
-        por médicos veterinarios titulados, con cédula profesional vigente y
-        afiliados al Colegio Médico Veterinario de Chile.
-      </p>
+    <main className="terms-root">
+      <LegalNav />
 
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        2. Agendamiento y cancelación
-      </h2>
-      <p>
-        Las visitas se agendan por WhatsApp o desde el panel de la cuenta del
-        tutor. Las cancelaciones con menos de 4 horas de anticipación pueden
-        estar sujetas a un cargo administrativo, que se informa al momento de
-        agendar.
-      </p>
+      <header className="terms-hero">
+        <div className="terms-hero-leaves" aria-hidden>
+          <div className="leaf leaf-1" />
+          <div className="leaf leaf-2" />
+          <div className="leaf leaf-3" />
+        </div>
 
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        3. Limitaciones del servicio a domicilio
-      </h2>
-      <p>
-        Algunos procedimientos requieren equipamiento que solo está disponible
-        en clínica (cirugías mayores, hospitalización, imagenología avanzada).
-        En esos casos, derivamos a clínicas asociadas y coordinamos el
-        traslado si el tutor lo solicita.
-      </p>
+        <div className="terms-hero-inner">
+          <span className="terms-eyebrow">
+            <span className="terms-eyebrow-line" />
+            Acuerdo de servicio
+          </span>
 
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        4. Resultados clínicos
-      </h2>
-      <p>
-        Los exámenes de laboratorio se procesan en laboratorio veterinario
-        externo certificado. Los resultados se entregan en formato PDF a
-        través de la cuenta del tutor en un plazo habitual de 24 a 72 horas
-        dependiendo del tipo de examen.
-      </p>
+          <h1 className="terms-title">
+            Términos de
+            <br />
+            <em>servicio</em>
+          </h1>
 
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        5. Pagos
-      </h2>
-      <p>
-        El pago se realiza al finalizar la visita, mediante transferencia
-        bancaria o medios digitales aceptados. Las tarifas se informan al
-        momento de agendar y pueden variar según los procedimientos
-        efectivamente realizados.
-      </p>
+          <p className="terms-intro">
+            Este documento explica cómo trabajamos contigo: qué hacemos, qué
+            necesitamos de ti y qué puedes esperar a cambio. Está escrito para
+            que se entienda, no para esconderse detrás del lenguaje legal.
+          </p>
 
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        6. Responsabilidad
-      </h2>
-      <p>
-        Aplicamos los protocolos clínicos vigentes de la medicina veterinaria.
-        El tutor es responsable de informar antecedentes médicos relevantes y
-        de seguir las indicaciones posteriores a la visita. Silvestra Vet no
-        se hace responsable por reacciones derivadas de información incompleta
-        o del incumplimiento de las indicaciones entregadas.
-      </p>
+          <div className="terms-meta">
+            <div className="terms-meta-item">
+              <span className="terms-meta-label">Vigente desde</span>
+              <span className="terms-meta-val">Enero 2026</span>
+            </div>
+            <div className="terms-meta-divider" aria-hidden />
+            <div className="terms-meta-item">
+              <span className="terms-meta-label">Cobertura</span>
+              <span className="terms-meta-val">Región V</span>
+            </div>
+            <div className="terms-meta-divider" aria-hidden />
+            <div className="terms-meta-item">
+              <span className="terms-meta-label">Secciones</span>
+              <span className="terms-meta-val">IX</span>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      <h2
-        className="text-2xl font-semibold mt-4"
-        style={{
-          color: '#191c1d',
-          fontFamily: 'var(--font-manrope)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        7. Modificaciones
-      </h2>
-      <p>
-        Podemos actualizar estos términos cuando sea necesario. Los cambios
-        sustanciales se notifican por correo electrónico antes de su entrada
-        en vigencia.
-      </p>
+      <section className="terms-pact">
+        <div className="terms-pact-inner">
+          <span className="terms-pact-mark" aria-hidden>§</span>
+          <p className="terms-pact-text">
+            Al agendar una visita o crear una cuenta en Silvestra Vet,
+            entendemos que has leído y aceptas el siguiente acuerdo.
+          </p>
+        </div>
+      </section>
 
-      <p
-        className="mt-6"
-        style={{
-          color: '#717973',
-          fontStyle: 'italic',
-          fontSize: '0.95rem',
-        }}
-      >
-        Este documento es un borrador inicial. Antes de su publicación
-        definitiva debe ser revisado por asesoría legal.
-      </p>
-    </LegalLayout>
+      <section className="terms-body">
+        <div className="terms-body-inner">
+          <aside className="terms-toc" aria-label="Índice del documento">
+            <span className="terms-toc-label">Índice</span>
+            <ol className="terms-toc-list">
+              {SECCIONES.map((s) => (
+                <li key={s.num}>
+                  <a href={`#sec-${s.num}`}>
+                    <span className="terms-toc-num">{s.num}</span>
+                    <span className="terms-toc-title">{s.titulo}</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </aside>
+
+          <div className="terms-content">
+            {SECCIONES.map((s) => (
+              <article
+                key={s.num}
+                id={`sec-${s.num}`}
+                className="terms-sec"
+              >
+                <header className="terms-sec-head">
+                  <div className="terms-sec-num-wrap">
+                    <span className="terms-sec-num">{s.num}</span>
+                  </div>
+                  <div className="terms-sec-titles">
+                    <h2 className="terms-sec-title">{s.titulo}</h2>
+                    <p className="terms-sec-resumen">{s.resumen}</p>
+                  </div>
+                </header>
+                <div className="terms-sec-body">
+                  {s.parrafos.map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
+                </div>
+              </article>
+            ))}
+
+            <div className="terms-contact">
+              <span className="terms-contact-eyebrow">Dudas o disputas</span>
+              <h3 className="terms-contact-title">
+                Antes de cualquier reclamo formal,
+                <br />
+                <em>conversemos</em>
+              </h3>
+              <p className="terms-contact-text">
+                Si algo no se entiende o no estás conforme con cómo se prestó
+                un servicio, escríbenos. Resolvemos directamente, sin
+                intermediarios. Para temas de tratamiento de datos personales,
+                revisa también nuestra{' '}
+                <Link href="/legal/privacidad" className="terms-contact-link">
+                  Política de Privacidad
+                </Link>
+                .
+              </p>
+              <a
+                href="mailto:contacto@silvestravet.cl"
+                className="terms-contact-mail"
+              >
+                contacto@silvestravet.cl
+                <span className="terms-contact-arrow" aria-hidden>→</span>
+              </a>
+            </div>
+
+            <p className="terms-updated">
+              Última actualización: enero de 2026
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <LegalFooter />
+
+      <TerminosStyles />
+    </main>
+  );
+}
+
+function TerminosStyles() {
+  return (
+    <style>{`
+      .terms-root {
+        --cream: #f5f1e8;
+        --cream-soft: #ede8da;
+        --green-deep: #0d2818;
+        --green: #012d1d;
+        --green-soft: #1a3a26;
+        --gold: #735c00;
+        --gold-soft: #d4c47a;
+        --ink: #191c1d;
+        --muted: #6b7268;
+        --line: #d8d2c2;
+        background: var(--cream);
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: var(--font-manrope);
+        scroll-behavior: smooth;
+      }
+
+      /* HERO */
+      .terms-hero {
+        position: relative;
+        padding: 6rem 2rem 5rem;
+        overflow: hidden;
+      }
+      .terms-hero-leaves {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.08;
+      }
+      .leaf {
+        position: absolute;
+        background: var(--green-deep);
+        border-radius: 50% 0 50% 0;
+      }
+      .leaf-1 {
+        top: 8%;
+        right: -3%;
+        width: 220px;
+        height: 220px;
+        transform: rotate(35deg);
+      }
+      .leaf-2 {
+        top: 55%;
+        left: -4%;
+        width: 280px;
+        height: 280px;
+        transform: rotate(-30deg);
+      }
+      .leaf-3 {
+        bottom: -10%;
+        right: 25%;
+        width: 180px;
+        height: 180px;
+        transform: rotate(20deg);
+      }
+      .terms-hero-inner {
+        position: relative;
+        max-width: 980px;
+        margin: 0 auto;
+      }
+      .terms-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--green);
+        margin-bottom: 1.5rem;
+        font-family: var(--font-dm-mono), monospace;
+      }
+      .terms-eyebrow-line {
+        width: 36px;
+        height: 1px;
+        background: var(--green);
+      }
+      .terms-title {
+        font-size: clamp(3rem, 8vw, 6.5rem);
+        font-weight: 700;
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        margin-bottom: 2rem;
+      }
+      .terms-title em {
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-weight: 300;
+        color: var(--green);
+      }
+      .terms-intro {
+        max-width: 60ch;
+        font-family: var(--font-newsreader);
+        font-size: 1.25rem;
+        line-height: 1.6;
+        color: #414844;
+        margin-bottom: 3.5rem;
+      }
+      .terms-meta {
+        display: flex;
+        align-items: stretch;
+        gap: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .terms-meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .terms-meta-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+        font-family: var(--font-dm-mono), monospace;
+      }
+      .terms-meta-val {
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-weight: 300;
+        font-size: 1.5rem;
+        color: var(--green);
+        letter-spacing: -0.01em;
+      }
+      .terms-meta-divider {
+        width: 1px;
+        background: var(--line);
+        align-self: stretch;
+      }
+
+      /* PACT BANNER */
+      .terms-pact {
+        background: var(--green-deep);
+        color: var(--cream);
+        padding: 2.25rem 2rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .terms-pact::before {
+        content: '';
+        position: absolute;
+        top: -60%;
+        right: -10%;
+        width: 360px;
+        height: 360px;
+        background: radial-gradient(circle, rgba(212, 196, 122, 0.16), transparent 70%);
+        pointer-events: none;
+      }
+      .terms-pact-inner {
+        max-width: 980px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        position: relative;
+      }
+      .terms-pact-mark {
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-weight: 300;
+        font-size: 4rem;
+        line-height: 1;
+        color: var(--gold-soft);
+        opacity: 0.7;
+        flex-shrink: 0;
+      }
+      .terms-pact-text {
+        font-family: var(--font-newsreader);
+        font-size: 1.1rem;
+        line-height: 1.55;
+        color: rgba(245, 241, 232, 0.92);
+        max-width: 60ch;
+      }
+
+      /* BODY */
+      .terms-body {
+        background: var(--cream);
+        padding: 5rem 2rem 6rem;
+      }
+      .terms-body-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 5rem;
+        align-items: start;
+      }
+
+      /* TOC */
+      .terms-toc {
+        position: sticky;
+        top: 6rem;
+      }
+      .terms-toc-label {
+        display: block;
+        font-family: var(--font-dm-mono), monospace;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .terms-toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .terms-toc-list a {
+        display: flex;
+        align-items: baseline;
+        gap: 0.875rem;
+        padding: 0.4rem 0;
+        text-decoration: none;
+        transition: transform 0.25s;
+      }
+      .terms-toc-list a:hover {
+        transform: translateX(4px);
+      }
+      .terms-toc-num {
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-weight: 300;
+        font-size: 0.95rem;
+        color: var(--green);
+        opacity: 0.5;
+        min-width: 1.5rem;
+        transition: opacity 0.2s;
+      }
+      .terms-toc-title {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #414844;
+        line-height: 1.4;
+        transition: color 0.2s;
+      }
+      .terms-toc-list a:hover .terms-toc-title {
+        color: var(--green);
+      }
+      .terms-toc-list a:hover .terms-toc-num {
+        opacity: 1;
+      }
+
+      /* CONTENT */
+      .terms-content {
+        max-width: 64ch;
+      }
+      .terms-sec {
+        margin-bottom: 4rem;
+        scroll-margin-top: 6rem;
+      }
+      .terms-sec-head {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.75rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .terms-sec-num-wrap {
+        display: flex;
+        justify-content: center;
+        padding-top: 0.25rem;
+      }
+      .terms-sec-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border: 1px solid var(--green);
+        border-radius: 50%;
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-weight: 300;
+        font-size: 1.25rem;
+        color: var(--green);
+        letter-spacing: -0.02em;
+      }
+      .terms-sec-titles {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+      .terms-sec-title {
+        font-size: 1.625rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+      }
+      .terms-sec-resumen {
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-size: 1rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .terms-sec-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        padding-left: calc(64px + 1.5rem);
+      }
+      .terms-sec-body p {
+        font-family: var(--font-newsreader);
+        font-size: 1.0625rem;
+        line-height: 1.75;
+        color: #2f3530;
+      }
+
+      /* CONTACT BLOCK */
+      .terms-contact {
+        margin-top: 5rem;
+        padding: 3rem;
+        background: var(--green-deep);
+        color: var(--cream);
+        position: relative;
+        overflow: hidden;
+        border-radius: 4px;
+      }
+      .terms-contact::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        left: -10%;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(212, 196, 122, 0.18), transparent 70%);
+        pointer-events: none;
+      }
+      .terms-contact-eyebrow {
+        position: relative;
+        display: inline-block;
+        font-family: var(--font-dm-mono), monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--gold-soft);
+        margin-bottom: 1rem;
+      }
+      .terms-contact-title {
+        position: relative;
+        font-size: 1.875rem;
+        font-weight: 600;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        color: var(--cream);
+        margin-bottom: 1.25rem;
+      }
+      .terms-contact-title em {
+        font-family: var(--font-newsreader);
+        font-style: italic;
+        font-weight: 300;
+        color: var(--gold-soft);
+      }
+      .terms-contact-text {
+        position: relative;
+        font-family: var(--font-newsreader);
+        font-size: 1rem;
+        line-height: 1.65;
+        color: rgba(245, 241, 232, 0.78);
+        max-width: 56ch;
+        margin-bottom: 2rem;
+      }
+      .terms-contact-link {
+        color: var(--gold-soft);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        transition: opacity 0.2s;
+      }
+      .terms-contact-link:hover { opacity: 0.75; }
+      .terms-contact-mail {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-family: var(--font-dm-mono), monospace;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--cream);
+        text-decoration: none;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid rgba(245, 241, 232, 0.3);
+        transition: border-color 0.3s, color 0.3s;
+      }
+      .terms-contact-mail:hover {
+        color: var(--gold-soft);
+        border-bottom-color: var(--gold-soft);
+      }
+      .terms-contact-arrow {
+        transition: transform 0.3s;
+      }
+      .terms-contact-mail:hover .terms-contact-arrow {
+        transform: translateX(4px);
+      }
+
+      .terms-updated {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--line);
+        font-family: var(--font-dm-mono), monospace;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      @media (max-width: 900px) {
+        .terms-body-inner {
+          grid-template-columns: 1fr;
+          gap: 3rem;
+        }
+        .terms-toc {
+          position: static;
+        }
+      }
+      @media (max-width: 768px) {
+        .terms-meta { gap: 1.25rem; }
+        .terms-meta-divider { display: none; }
+        .terms-pact-inner {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+        .terms-pact-mark { font-size: 3rem; }
+        .terms-sec-head {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+        .terms-sec-num-wrap { justify-content: flex-start; }
+        .terms-sec-body { padding-left: 0; }
+        .terms-contact { padding: 2rem; }
+        .terms-contact-title { font-size: 1.5rem; }
+      }
+    `}</style>
   );
 }

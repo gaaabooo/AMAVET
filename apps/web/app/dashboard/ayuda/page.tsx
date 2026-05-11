@@ -62,7 +62,7 @@ const CATEGORIAS = [
       },
       {
         q: '¿En qué zonas hacen visitas?',
-        a: 'Actualmente cubrimos la Región Metropolitana. Si vives fuera de la zona, contáctanos para evaluar la visita caso a caso.',
+        a: 'Actualmente cubrimos la Región de Valparaíso. Cobertura habitual en Valparaíso, Viña del Mar y Quilpué; cobertura extendida en Villa Alemana, Limache, Quillota, La Cruz, La Calera, Nogales y El Melón. Si vives fuera de la zona, contáctanos para evaluar la visita caso a caso.',
       },
       {
         q: '¿Puedo cancelar o modificar una visita agendada?',
