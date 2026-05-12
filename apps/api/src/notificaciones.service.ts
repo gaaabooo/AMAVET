@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
-import * as dns from 'dns';
 
 function escapeHtml(str: string): string {
   return str
@@ -134,27 +133,18 @@ export class NotificacionesService implements OnModuleInit {
   private transporter!: Transporter;
 
   onModuleInit() {
-    const opcionesBase: SMTPTransport.Options = {
+    // El orden de resolución DNS se fuerza a IPv4 en main.ts (Render no tiene
+    // conectividad IPv6 saliente). Dejamos también family: 4 a nivel de socket.
+    const opciones: SMTPTransport.Options & { family?: number } = {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       secure: Number(process.env.SMTP_PORT) === 465,
+      family: 4,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     };
-    // Render no tiene conectividad IPv6 saliente. Forzamos IPv4 de dos formas:
-    // 1) family: 4 en las opciones del socket
-    // 2) lookup personalizado que pide a DNS solo registros A (IPv4), porque
-    //    algunas versiones de nodemailer resuelven el host por su cuenta e
-    //    ignoran "family", provocando ENETUNREACH con IPv6.
-    const opciones = {
-      ...opcionesBase,
-      family: 4,
-      lookup: (hostname: string, _options: unknown, callback: (...args: unknown[]) => void) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-      },
-    } as SMTPTransport.Options;
     this.transporter = nodemailer.createTransport(opciones);
   }
 

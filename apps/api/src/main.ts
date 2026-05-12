@@ -1,7 +1,13 @@
+import { setDefaultResultOrder } from 'dns';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+
+// Render no tiene conectividad IPv6 saliente. Forzamos que la resolución DNS
+// devuelva direcciones IPv4 primero para evitar ENETUNREACH al conectar a
+// servicios externos (p. ej. smtp.gmail.com).
+setDefaultResultOrder('ipv4first');
 
 function assertRequiredEnv() {
   const required = ['JWT_SECRET', 'DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
