@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { ExamsController } from './exams.controller';
 import { SupabaseService } from '../supabase.service';
-import { NotificacionesService } from '../notificaciones.service';
+import { NotificacionesModule } from '../notificaciones.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificacionesModule],
   controllers: [ExamsController],
-  providers: [ExamsService, SupabaseService, NotificacionesService],
+  providers: [ExamsService, SupabaseService],
 })
 export class ExamsModule {}

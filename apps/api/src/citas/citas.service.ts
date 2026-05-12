@@ -1,28 +1,40 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { NotificacionesService } from '../notificaciones.service';
 import { EstadoCita } from '@prisma/client';
 
 @Injectable()
 export class CitasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificaciones: NotificacionesService,
+  ) {}
 
   async crear(fecha: string, direccion: string, servicios: string[], mascotaId: string) {
     const fechaDate = new Date(fecha);
     if (isNaN(fechaDate.getTime())) throw new BadRequestException('Fecha inválida');
     if (fechaDate < new Date()) throw new BadRequestException('No puedes agendar en el pasado');
 
-    const mascota = await this.prisma.mascota.findUnique({ where: { id: mascotaId } });
+    const mascota = await this.prisma.mascota.findUnique({
+      where: { id: mascotaId },
+      include: { tutor: true },
+    });
     if (!mascota) throw new NotFoundException('Mascota no encontrada');
 
-    return this.prisma.cita.create({
-      data: {
-        fecha: fechaDate,
-        direccion,
-        servicios,
-        mascotaId,
-      },
+    const cita = await this.prisma.cita.create({
+      data: { fecha: fechaDate, direccion, servicios, mascotaId },
       include: { mascota: { include: { tutor: true } } },
     });
+
+    await this.notificaciones.notificarCitaAgendada(
+      mascota.tutor.email,
+      mascota.nombre,
+      fechaDate,
+      servicios,
+      direccion,
+    );
+
+    return cita;
   }
 
   async listarTodas() {
@@ -48,13 +60,27 @@ export class CitasService {
   }
 
   async actualizarEstado(id: string, estado: EstadoCita) {
-    const cita = await this.prisma.cita.findUnique({ where: { id } });
+    const cita = await this.prisma.cita.findUnique({
+      where: { id },
+      include: { mascota: { include: { tutor: true } } },
+    });
     if (!cita) throw new NotFoundException('Cita no encontrada');
 
-    return this.prisma.cita.update({
+    const resultado = await this.prisma.cita.update({
       where: { id },
       data: { estado },
     });
+
+    if (estado === 'CONFIRMADA' || estado === 'CANCELADA') {
+      await this.notificaciones.notificarEstadoCita(
+        cita.mascota.tutor.email,
+        cita.mascota.nombre,
+        cita.fecha,
+        estado,
+      );
+    }
+
+    return resultado;
   }
 
   async esDuenoDeMascota(mascotaId: string, userId: string): Promise<boolean> {

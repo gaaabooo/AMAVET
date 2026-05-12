@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CitasService } from './citas.service';
 import { PrismaService } from '../prisma.service';
+import { NotificacionesService } from '../notificaciones.service';
+
+const tutorMock = { id: 'tutor-1', email: 'tutor@test.cl' };
+const mascotaConTutorMock = { id: 'mascota-1', nombre: 'Firulais', tutorId: 'tutor-1', tutor: tutorMock };
 
 const mockPrisma = {
   mascota: { findUnique: jest.fn() },
@@ -13,6 +17,11 @@ const mockPrisma = {
   },
 };
 
+const mockNotificaciones = {
+  notificarCitaAgendada: jest.fn().mockResolvedValue(undefined),
+  notificarEstadoCita: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('CitasService', () => {
   let service: CitasService;
 
@@ -21,6 +30,7 @@ describe('CitasService', () => {
       providers: [
         CitasService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: NotificacionesService, useValue: mockNotificaciones },
       ],
     }).compile();
 
@@ -29,17 +39,17 @@ describe('CitasService', () => {
   });
 
   describe('crear', () => {
-    const mascotaMock = { id: 'mascota-1', tutorId: 'tutor-1' };
     const fechaFutura = new Date(Date.now() + 86_400_000).toISOString();
 
-    it('crea la cita con fecha válida en el futuro', async () => {
-      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaMock);
+    it('crea la cita y envía notificación', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
       mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
 
       const result = await service.crear(fechaFutura, 'Av. Test 123', ['Consulta'], 'mascota-1');
 
       expect(result).toEqual({ id: 'cita-1' });
       expect(mockPrisma.cita.create).toHaveBeenCalledTimes(1);
+      expect(mockNotificaciones.notificarCitaAgendada).toHaveBeenCalledTimes(1);
     });
 
     it('lanza BadRequestException si la fecha es inválida', async () => {
@@ -66,13 +76,39 @@ describe('CitasService', () => {
   });
 
   describe('actualizarEstado', () => {
-    it('actualiza el estado si la cita existe', async () => {
-      mockPrisma.cita.findUnique.mockResolvedValue({ id: 'cita-1', estado: 'PENDIENTE' });
-      mockPrisma.cita.update.mockResolvedValue({ id: 'cita-1', estado: 'CONFIRMADA' });
+    const citaMock = {
+      id: 'cita-1',
+      estado: 'PENDIENTE',
+      fecha: new Date(),
+      mascota: { nombre: 'Firulais', tutor: tutorMock },
+    };
+
+    it('actualiza el estado y notifica si es CONFIRMADA', async () => {
+      mockPrisma.cita.findUnique.mockResolvedValue(citaMock);
+      mockPrisma.cita.update.mockResolvedValue({ ...citaMock, estado: 'CONFIRMADA' });
 
       const result = await service.actualizarEstado('cita-1', 'CONFIRMADA');
 
       expect(result.estado).toBe('CONFIRMADA');
+      expect(mockNotificaciones.notificarEstadoCita).toHaveBeenCalledTimes(1);
+    });
+
+    it('actualiza el estado y notifica si es CANCELADA', async () => {
+      mockPrisma.cita.findUnique.mockResolvedValue(citaMock);
+      mockPrisma.cita.update.mockResolvedValue({ ...citaMock, estado: 'CANCELADA' });
+
+      await service.actualizarEstado('cita-1', 'CANCELADA');
+
+      expect(mockNotificaciones.notificarEstadoCita).toHaveBeenCalledTimes(1);
+    });
+
+    it('no notifica si el estado es PENDIENTE', async () => {
+      mockPrisma.cita.findUnique.mockResolvedValue(citaMock);
+      mockPrisma.cita.update.mockResolvedValue(citaMock);
+
+      await service.actualizarEstado('cita-1', 'PENDIENTE');
+
+      expect(mockNotificaciones.notificarEstadoCita).not.toHaveBeenCalled();
     });
 
     it('lanza NotFoundException si la cita no existe', async () => {
@@ -87,26 +123,17 @@ describe('CitasService', () => {
   describe('esDuenoDeMascota', () => {
     it('retorna true si el tutorId coincide', async () => {
       mockPrisma.mascota.findUnique.mockResolvedValue({ tutorId: 'tutor-1' });
-
-      const result = await service.esDuenoDeMascota('mascota-1', 'tutor-1');
-
-      expect(result).toBe(true);
+      expect(await service.esDuenoDeMascota('mascota-1', 'tutor-1')).toBe(true);
     });
 
     it('retorna false si el tutorId no coincide', async () => {
       mockPrisma.mascota.findUnique.mockResolvedValue({ tutorId: 'tutor-1' });
-
-      const result = await service.esDuenoDeMascota('mascota-1', 'otro-tutor');
-
-      expect(result).toBe(false);
+      expect(await service.esDuenoDeMascota('mascota-1', 'otro-tutor')).toBe(false);
     });
 
     it('retorna false si la mascota no existe', async () => {
       mockPrisma.mascota.findUnique.mockResolvedValue(null);
-
-      const result = await service.esDuenoDeMascota('no-existe', 'tutor-1');
-
-      expect(result).toBe(false);
+      expect(await service.esDuenoDeMascota('no-existe', 'tutor-1')).toBe(false);
     });
   });
 });

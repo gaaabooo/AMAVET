@@ -75,6 +75,25 @@ export class UsersService {
     });
   }
 
+  async buscarOCrearGoogle(email: string, nombre: string): Promise<{ id: string; nombre: string; email: string; rol: string }> {
+    const emailNorm = email.trim().toLowerCase();
+    const existente = await this.prisma.user.findUnique({ where: { email: emailNorm } });
+    if (existente) {
+      return { id: existente.id, nombre: existente.nombre, email: existente.email, rol: existente.rol };
+    }
+    const nuevo = await this.prisma.user.create({
+      data: {
+        nombre: nombre.trim(),
+        email: emailNorm,
+        telefono: '',
+        // Contraseña bloqueada — este usuario solo puede entrar con Google.
+        password: '',
+        rol: 'TUTOR',
+      },
+    });
+    return { id: nuevo.id, nombre: nuevo.nombre, email: nuevo.email, rol: nuevo.rol };
+  }
+
   async cambiarPassword(id: string, passwordActual: string, passwordNueva: string) {
     if (!passwordActual || !passwordNueva) {
       throw new BadRequestException('Debes ingresar la contraseña actual y la nueva');
