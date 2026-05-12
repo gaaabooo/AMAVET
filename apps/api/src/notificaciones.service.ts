@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import * as dns from 'dns';
 
 function escapeHtml(str: string): string {
   return str
@@ -133,7 +134,7 @@ export class NotificacionesService implements OnModuleInit {
   private transporter!: Transporter;
 
   onModuleInit() {
-    const opciones: SMTPTransport.Options & { family?: number } = {
+    const opcionesBase: SMTPTransport.Options = {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       secure: Number(process.env.SMTP_PORT) === 465,
@@ -141,10 +142,19 @@ export class NotificacionesService implements OnModuleInit {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      // Render no tiene conectividad IPv6 saliente; forzamos IPv4 para evitar
-      // ENETUNREACH al resolver smtp.gmail.com a una dirección IPv6.
-      family: 4,
     };
+    // Render no tiene conectividad IPv6 saliente. Forzamos IPv4 de dos formas:
+    // 1) family: 4 en las opciones del socket
+    // 2) lookup personalizado que pide a DNS solo registros A (IPv4), porque
+    //    algunas versiones de nodemailer resuelven el host por su cuenta e
+    //    ignoran "family", provocando ENETUNREACH con IPv6.
+    const opciones = {
+      ...opcionesBase,
+      family: 4,
+      lookup: (hostname: string, _options: unknown, callback: (...args: unknown[]) => void) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
+    } as SMTPTransport.Options;
     this.transporter = nodemailer.createTransport(opciones);
   }
 
