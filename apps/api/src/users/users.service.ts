@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 const BCRYPT_ROUNDS = 12;
 const MIN_PASSWORD_LENGTH = 8;
@@ -90,13 +91,15 @@ export class UsersService {
         telefono: existente.telefono,
       };
     }
+    // Hash de un valor aleatorio impredecible: satisface el constraint de la DB
+    // (password no vacío) y nadie puede hacer login con email/password — solo Google.
+    const passwordBloqueada = await bcrypt.hash(randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
     const nuevo = await this.prisma.user.create({
       data: {
         nombre: nombre.trim(),
         email: emailNorm,
         telefono: '',
-        // Contraseña bloqueada — este usuario solo puede entrar con Google.
-        password: '',
+        password: passwordBloqueada,
         rol: 'TUTOR',
       },
     });
