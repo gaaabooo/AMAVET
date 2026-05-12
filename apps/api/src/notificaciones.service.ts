@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Resend } from 'resend';
+import sgMail from '@sendgrid/mail';
 
 function escapeHtml(str: string): string {
   return str
@@ -130,27 +130,37 @@ function nota(texto: string): string {
   return `<p style="margin:0; font-family:Helvetica,Arial,sans-serif; font-size:12px; line-height:1.5; color:${COLOR.inkMute};">${texto}</p>`;
 }
 
+// Parsea "Nombre <email@dominio>" → { name, email }. Si no trae nombre, usa solo el email.
+function parseRemitente(valor: string): { name: string; email: string } {
+  const m = /^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/.exec(valor);
+  if (m) return { name: m[1] || 'Silvestra Vet', email: m[2] };
+  return { name: 'Silvestra Vet', email: valor.trim() };
+}
+
 @Injectable()
 export class NotificacionesService implements OnModuleInit {
   private readonly logger = new Logger(NotificacionesService.name);
-  private resend!: Resend;
 
   onModuleInit() {
-    // Usamos la API HTTP de Resend (puerto 443) en lugar de SMTP, porque el
+    // Usamos la API HTTP de SendGrid (puerto 443) en lugar de SMTP, porque el
     // hosting (Render free) bloquea el SMTP saliente (puertos 465/587).
-    const apiKey = process.env.RESEND_API_KEY;
+    const apiKey = process.env.SENDGRID_API_KEY;
     if (!apiKey) {
       this.logger.warn(
-        'RESEND_API_KEY no configurada; los emails no se enviarán.',
+        'SENDGRID_API_KEY no configurada; los emails no se enviarán.',
       );
+      return;
     }
-    this.resend = new Resend(apiKey ?? 'missing-key');
+    sgMail.setApiKey(apiKey);
   }
 
-  private get from(): string {
-    // Con onboarding@resend.dev solo se puede enviar a emails verificados en
-    // la cuenta de Resend. Cuando haya dominio propio, usar noreply@tu-dominio.
-    return process.env.RESEND_FROM ?? 'Silvestra Vet <onboarding@resend.dev>';
+  private get from(): { name: string; email: string } {
+    // El "from" debe ser un sender verificado en SendGrid (single sender o
+    // dominio verificado). Cuando haya dominio propio, usar noreply@tu-dominio.
+    return parseRemitente(
+      process.env.SENDGRID_FROM ??
+        'Silvestra Vet <notificaciones.silvestra@gmail.com>',
+    );
   }
 
   private async enviar(
@@ -158,13 +168,7 @@ export class NotificacionesService implements OnModuleInit {
     subject: string,
     html: string,
   ): Promise<void> {
-    const { error } = await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject,
-      html,
-    });
-    if (error) throw new Error(`Resend: ${error.name} — ${error.message}`);
+    await sgMail.send({ from: this.from, to, subject, html });
   }
 
   private formatearFecha(fecha: Date): string {
