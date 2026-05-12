@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UsersService, TELEFONO_PENDIENTE } from './users.service';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcryptjs';
 
@@ -51,6 +51,33 @@ describe('UsersService', () => {
       const select = mockPrisma.user.findUnique.mock.calls[0][0].select;
       expect(select.password).toBeUndefined();
       expect(select.id).toBe(true);
+    });
+  });
+
+  describe('buscarOCrearGoogle', () => {
+    it('devuelve el usuario existente sin crear uno nuevo', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u-1', nombre: 'Ana', email: 'ana@test.cl', rol: 'TUTOR', telefono: '+56911112222',
+      });
+      const result = await service.buscarOCrearGoogle('ANA@Test.cl ', 'Ana Google');
+      expect(result).toEqual({
+        id: 'u-1', nombre: 'Ana', email: 'ana@test.cl', rol: 'TUTOR', telefono: '+56911112222',
+      });
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('crea un usuario nuevo con teléfono PENDIENTE y password bloqueada', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue({
+        id: 'u-2', nombre: 'Beto', email: 'beto@test.cl', rol: 'TUTOR', telefono: TELEFONO_PENDIENTE,
+      });
+      const result = await service.buscarOCrearGoogle('beto@test.cl', 'Beto Google');
+      const data = mockPrisma.user.create.mock.calls[0][0].data;
+      expect(data.telefono).toBe(TELEFONO_PENDIENTE);
+      expect(data.rol).toBe('TUTOR');
+      // El constraint de la DB exige >= 60 chars; un hash bcrypt mide 60.
+      expect(data.password.length).toBeGreaterThanOrEqual(60);
+      expect(result.telefono).toBe(TELEFONO_PENDIENTE);
     });
   });
 

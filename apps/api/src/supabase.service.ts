@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException, OnModuleInit } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, OnModuleInit } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SIGNED_URL_TTL_SECONDS = 3600; // 1 hora
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
+  private readonly logger = new Logger(SupabaseService.name);
   private client!: SupabaseClient;
 
   onModuleInit() {
@@ -50,13 +51,20 @@ export class SupabaseService implements OnModuleInit {
   }
 
   async verificarTokenAcceso(accessToken: string): Promise<{ email: string; nombre: string } | null> {
-    const { data, error } = await this.client.auth.getUser(accessToken);
-    if (error || !data.user?.email) return null;
-    const email = data.user.email;
-    const nombre =
-      (data.user.user_metadata?.full_name as string | undefined) ??
-      (data.user.user_metadata?.name as string | undefined) ??
-      email.split('@')[0];
-    return { email, nombre };
+    try {
+      const { data, error } = await this.client.auth.getUser(accessToken);
+      if (error || !data.user?.email) return null;
+      const email = data.user.email;
+      const nombre =
+        (data.user.user_metadata?.full_name as string | undefined) ??
+        (data.user.user_metadata?.name as string | undefined) ??
+        email.split('@')[0];
+      return { email, nombre };
+    } catch (err) {
+      // Cualquier fallo al validar (red, cliente, etc.) se trata como token inválido.
+      // No incluimos el token en el log para no filtrarlo.
+      this.logger.warn(`Fallo al verificar token de acceso: ${String(err)}`);
+      return null;
+    }
   }
 }
