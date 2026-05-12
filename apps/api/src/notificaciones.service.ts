@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 function escapeHtml(str: string): string {
   return str
@@ -132,7 +133,7 @@ export class NotificacionesService implements OnModuleInit {
   private transporter!: Transporter;
 
   onModuleInit() {
-    this.transporter = nodemailer.createTransport({
+    const opciones: SMTPTransport.Options & { family?: number } = {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       secure: Number(process.env.SMTP_PORT) === 465,
@@ -140,7 +141,11 @@ export class NotificacionesService implements OnModuleInit {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-    });
+      // Render no tiene conectividad IPv6 saliente; forzamos IPv4 para evitar
+      // ENETUNREACH al resolver smtp.gmail.com a una dirección IPv6.
+      family: 4,
+    };
+    this.transporter = nodemailer.createTransport(opciones);
   }
 
   private get from(): string {
