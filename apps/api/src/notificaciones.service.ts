@@ -1,7 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { Resend } from 'resend';
 
 function escapeHtml(str: string): string {
   return str
@@ -36,7 +34,12 @@ interface PlantillaOpciones {
  * Envuelve el contenido en el layout HTML de la marca, usando tablas e
  * inline styles para compatibilidad máxima con clientes de correo.
  */
-function plantilla({ titulo, preheader, cuerpoHtml, acento = 'verde' }: PlantillaOpciones): string {
+function plantilla({
+  titulo,
+  preheader,
+  cuerpoHtml,
+  acento = 'verde',
+}: PlantillaOpciones): string {
   const acentoColor = acento === 'rojo' ? COLOR.danger : COLOR.greenDeep;
   return `<!DOCTYPE html>
 <html lang="es">
@@ -130,40 +133,54 @@ function nota(texto: string): string {
 @Injectable()
 export class NotificacionesService implements OnModuleInit {
   private readonly logger = new Logger(NotificacionesService.name);
-  private transporter!: Transporter;
+  private resend!: Resend;
 
   onModuleInit() {
-    // El orden de resolución DNS se fuerza a IPv4 en main.ts (Render no tiene
-    // conectividad IPv6 saliente). Dejamos también family: 4 a nivel de socket.
-    const opciones: SMTPTransport.Options & { family?: number } = {
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      family: 4,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    };
-    this.transporter = nodemailer.createTransport(opciones);
+    // Usamos la API HTTP de Resend (puerto 443) en lugar de SMTP, porque el
+    // hosting (Render free) bloquea el SMTP saliente (puertos 465/587).
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      this.logger.warn(
+        'RESEND_API_KEY no configurada; los emails no se enviarán.',
+      );
+    }
+    this.resend = new Resend(apiKey ?? 'missing-key');
   }
 
   private get from(): string {
-    return process.env.SMTP_FROM ?? 'Silvestra Vet <notificaciones.silvestra@gmail.com>';
+    // Con onboarding@resend.dev solo se puede enviar a emails verificados en
+    // la cuenta de Resend. Cuando haya dominio propio, usar noreply@tu-dominio.
+    return process.env.RESEND_FROM ?? 'Silvestra Vet <onboarding@resend.dev>';
   }
 
-  private async enviar(to: string, subject: string, html: string): Promise<void> {
-    await this.transporter.sendMail({ from: this.from, to, subject, html });
+  private async enviar(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to,
+      subject,
+      html,
+    });
+    if (error) throw new Error(`Resend: ${error.name} — ${error.message}`);
   }
 
   private formatearFecha(fecha: Date): string {
     return fecha.toLocaleDateString('es-CL', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   }
 
   private formatearHora(fecha: Date): string {
-    return fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return fecha.toLocaleTimeString('es-CL', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   async notificarExamenDisponible(
@@ -179,14 +196,20 @@ export class NotificacionesService implements OnModuleInit {
       preheader: `Ya puedes ver el examen de ${nombre}.`,
       cuerpoHtml:
         heading(`Examen de ${nombre} disponible`) +
-        parrafo(`Los resultados del examen de <strong>${nombre}</strong> ya están listos para que los revises.`) +
+        parrafo(
+          `Los resultados del examen de <strong>${nombre}</strong> ya están listos para que los revises.`,
+        ) +
         boton('Ver examen', url) +
-        nota('Por seguridad, este enlace expira en 24 horas. Si caduca, contáctanos para generar uno nuevo.'),
+        nota(
+          'Por seguridad, este enlace expira en 24 horas. Si caduca, contáctanos para generar uno nuevo.',
+        ),
     });
     try {
       await this.enviar(email, titulo, html);
     } catch (err) {
-      this.logger.warn(`No se pudo enviar notificación de examen a ${email}: ${String(err)}`);
+      this.logger.warn(
+        `No se pudo enviar notificación de examen a ${email}: ${String(err)}`,
+      );
     }
   }
 
@@ -206,20 +229,26 @@ export class NotificacionesService implements OnModuleInit {
       preheader: `Tu cita para ${nombre} quedó registrada. Te avisaremos al confirmarse.`,
       cuerpoHtml:
         heading(`Cita registrada`) +
-        parrafo(`La cita para <strong>${nombre}</strong> quedó registrada. Pronto la confirmaremos y te avisaremos por este medio.`) +
+        parrafo(
+          `La cita para <strong>${nombre}</strong> quedó registrada. Pronto la confirmaremos y te avisaremos por este medio.`,
+        ) +
         tablaDetalles(
           detalleFila('Mascota', nombre) +
-          detalleFila('Fecha', `${this.formatearFecha(fecha)}`) +
-          detalleFila('Hora', `${this.formatearHora(fecha)}`) +
-          detalleFila('Servicios', serviciosStr) +
-          detalleFila('Dirección', dir),
+            detalleFila('Fecha', `${this.formatearFecha(fecha)}`) +
+            detalleFila('Hora', `${this.formatearHora(fecha)}`) +
+            detalleFila('Servicios', serviciosStr) +
+            detalleFila('Dirección', dir),
         ) +
-        nota('Si necesitas modificar o cancelar la cita, puedes hacerlo desde tu panel.'),
+        nota(
+          'Si necesitas modificar o cancelar la cita, puedes hacerlo desde tu panel.',
+        ),
     });
     try {
       await this.enviar(email, titulo, html);
     } catch (err) {
-      this.logger.warn(`No se pudo enviar notificación de cita a ${email}: ${String(err)}`);
+      this.logger.warn(
+        `No se pudo enviar notificación de cita a ${email}: ${String(err)}`,
+      );
     }
   }
 
@@ -244,21 +273,31 @@ export class NotificacionesService implements OnModuleInit {
       acento: esConfirmada ? 'verde' : 'rojo',
       cuerpoHtml: esConfirmada
         ? heading(`Cita confirmada`) +
-          parrafo(`Confirmamos la visita a domicilio para <strong>${nombre}</strong>.`) +
+          parrafo(
+            `Confirmamos la visita a domicilio para <strong>${nombre}</strong>.`,
+          ) +
           tablaDetalles(
             detalleFila('Mascota', nombre) +
-            detalleFila('Fecha', fechaStr) +
-            detalleFila('Hora', horaStr),
+              detalleFila('Fecha', fechaStr) +
+              detalleFila('Hora', horaStr),
           ) +
-          parrafo('Nuestro equipo llegará a la dirección indicada en el horario acordado. Procura tener a tu mascota disponible y un espacio tranquilo para la atención.')
+          parrafo(
+            'Nuestro equipo llegará a la dirección indicada en el horario acordado. Procura tener a tu mascota disponible y un espacio tranquilo para la atención.',
+          )
         : heading(`Cita cancelada`) +
-          parrafo(`La cita para <strong>${nombre}</strong> del <strong>${fechaStr}</strong> ha sido cancelada.`) +
-          nota('Si quieres reagendar, puedes hacerlo desde tu panel o contactarnos directamente.'),
+          parrafo(
+            `La cita para <strong>${nombre}</strong> del <strong>${fechaStr}</strong> ha sido cancelada.`,
+          ) +
+          nota(
+            'Si quieres reagendar, puedes hacerlo desde tu panel o contactarnos directamente.',
+          ),
     });
     try {
       await this.enviar(email, titulo, html);
     } catch (err) {
-      this.logger.warn(`No se pudo enviar estado de cita a ${email}: ${String(err)}`);
+      this.logger.warn(
+        `No se pudo enviar estado de cita a ${email}: ${String(err)}`,
+      );
     }
   }
 }
