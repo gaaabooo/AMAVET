@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
+import { getSupabase } from '../../lib/supabase';
 import Logo from '../../components/Logo';
 
 export default function Registro() {
@@ -14,6 +15,25 @@ export default function Registro() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleGoogle = async () => {
+    setCargando(true);
+    setError('');
+    try {
+      const { error: oauthError } = await getSupabase().auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      });
+      if (oauthError) setError('No se pudo conectar con Google. Intenta de nuevo.');
+    } catch {
+      setError('Error al conectar con Google.');
+    } finally {
+      setCargando(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,6 +240,25 @@ export default function Registro() {
                 )}
               </button>
             </form>
+
+            <div className="google-divider">
+              <span className="divider-line" /><span className="divider-text">o continúa con</span><span className="divider-line" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={cargando}
+              className="btn-google"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/>
+                <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332Z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58Z"/>
+              </svg>
+              Continuar con Google
+            </button>
 
             <div className="card-foot">
               <span>¿Ya tienes cuenta?</span>
@@ -614,6 +653,37 @@ function AuthStyles() {
       @media (max-width: 960px) {
         .auth-bg .back-home { position: static; margin: 16px auto 0; }
       }
+
+      .auth-bg .google-divider {
+        display: flex; align-items: center; gap: 12px;
+        margin: 22px 0 16px;
+      }
+      .auth-bg .divider-line { flex: 1; height: 1px; background: var(--rule-soft); }
+      .auth-bg .divider-text {
+        font-family: var(--font-dm-mono), 'JetBrains Mono', monospace;
+        font-size: 10px; letter-spacing: 0.14em;
+        color: var(--ink-mute); white-space: nowrap;
+      }
+      .auth-bg .btn-google {
+        width: 100%;
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 10px;
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 13px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: border-color .2s, background .2s;
+        font-family: inherit;
+      }
+      .auth-bg .btn-google:hover:not(:disabled) {
+        border-color: var(--green-mid);
+        background: var(--rule-soft);
+      }
+      .auth-bg .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
     `}</style>
   );
 }

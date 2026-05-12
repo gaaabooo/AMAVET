@@ -3,15 +3,21 @@ import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
+import { SupabaseService } from '../supabase.service';
 import * as bcrypt from 'bcryptjs';
 
 const mockUsersService = {
   buscarPorEmail: jest.fn(),
   crear: jest.fn(),
+  buscarOCrearGoogle: jest.fn(),
 };
 
 const mockJwtService = {
   sign: jest.fn().mockReturnValue('signed-token'),
+};
+
+const mockSupabaseService = {
+  verificarTokenAcceso: jest.fn(),
 };
 
 describe('AuthService', () => {
@@ -23,6 +29,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: SupabaseService, useValue: mockSupabaseService },
       ],
     }).compile();
 
@@ -95,6 +102,42 @@ describe('AuthService', () => {
       await expect(service.login('test@test.cl', 'pass')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
+    });
+  });
+
+  describe('loginConGoogle', () => {
+    it('retorna token cuando el token de Google es válido y el usuario es TUTOR', async () => {
+      mockSupabaseService.verificarTokenAcceso.mockResolvedValue({
+        email: 'tutor@test.cl', nombre: 'Tutor Google',
+      });
+      mockUsersService.buscarOCrearGoogle.mockResolvedValue({
+        id: 'uuid-g', nombre: 'Tutor Google', email: 'tutor@test.cl', rol: 'TUTOR', telefono: '',
+      });
+
+      const result = await service.loginConGoogle('valid-access-token');
+
+      expect(result.token).toBe('signed-token');
+      expect(result.usuario.email).toBe('tutor@test.cl');
+      expect(result.usuario.telefono).toBe('');
+      expect(mockUsersService.buscarOCrearGoogle).toHaveBeenCalledWith('tutor@test.cl', 'Tutor Google');
+    });
+
+    it('lanza UnauthorizedException si el token de Google es inválido', async () => {
+      mockSupabaseService.verificarTokenAcceso.mockResolvedValue(null);
+
+      await expect(service.loginConGoogle('bad-token')).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(mockUsersService.buscarOCrearGoogle).not.toHaveBeenCalled();
+    });
+
+    it('lanza UnauthorizedException si el usuario existente no es TUTOR', async () => {
+      mockSupabaseService.verificarTokenAcceso.mockResolvedValue({
+        email: 'admin@test.cl', nombre: 'Admin',
+      });
+      mockUsersService.buscarOCrearGoogle.mockResolvedValue({
+        id: 'uuid-a', nombre: 'Admin', email: 'admin@test.cl', rol: 'ADMIN', telefono: '999',
+      });
+
+      await expect(service.loginConGoogle('valid-token')).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });
 });

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
-import { supabase } from '../../lib/supabase';
+import { getSupabase } from '../../lib/supabase';
 import Logo from '../../components/Logo';
 
 export default function Login() {
@@ -21,7 +21,7 @@ export default function Login() {
     setCargando(true);
     setError('');
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { error: oauthError } = await getSupabase().auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,

@@ -75,11 +75,20 @@ export class UsersService {
     });
   }
 
-  async buscarOCrearGoogle(email: string, nombre: string): Promise<{ id: string; nombre: string; email: string; rol: string }> {
+  async buscarOCrearGoogle(
+    email: string,
+    nombre: string,
+  ): Promise<{ id: string; nombre: string; email: string; rol: string; telefono: string }> {
     const emailNorm = email.trim().toLowerCase();
     const existente = await this.prisma.user.findUnique({ where: { email: emailNorm } });
     if (existente) {
-      return { id: existente.id, nombre: existente.nombre, email: existente.email, rol: existente.rol };
+      return {
+        id: existente.id,
+        nombre: existente.nombre,
+        email: existente.email,
+        rol: existente.rol,
+        telefono: existente.telefono,
+      };
     }
     const nuevo = await this.prisma.user.create({
       data: {
@@ -91,7 +100,7 @@ export class UsersService {
         rol: 'TUTOR',
       },
     });
-    return { id: nuevo.id, nombre: nuevo.nombre, email: nuevo.email, rol: nuevo.rol };
+    return { id: nuevo.id, nombre: nuevo.nombre, email: nuevo.email, rol: nuevo.rol, telefono: nuevo.telefono };
   }
 
   async cambiarPassword(id: string, passwordActual: string, passwordNueva: string) {

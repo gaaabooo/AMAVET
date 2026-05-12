@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
+import { SupabaseService } from '../supabase.service';
 import { UsersModule } from '../users/users.module';
 
 @Module({
@@ -27,7 +28,7 @@ import { UsersModule } from '../users/users.module';
       },
     }),
   ],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard, SupabaseService],
   controllers: [AuthController],
   exports: [JwtStrategy, JwtAuthGuard, RolesGuard],
 })

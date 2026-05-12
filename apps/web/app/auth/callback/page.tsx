@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../../lib/supabase';
+import { getSupabase } from '../../../lib/supabase';
 import api from '../../../lib/api';
 
 export default function AuthCallback() {
@@ -9,7 +9,7 @@ export default function AuthCallback() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
+    getSupabase().auth.getSession().then(async ({ data, error: sessionError }) => {
       if (sessionError || !data.session?.access_token) {
         setError('No se pudo completar el inicio de sesión. Intenta de nuevo.');
         return;
@@ -21,7 +21,8 @@ export default function AuthCallback() {
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('usuario', JSON.stringify(res.data.usuario));
-        router.push('/dashboard');
+        const telefono = res.data.usuario?.telefono?.trim();
+        router.push(telefono ? '/dashboard' : '/auth/completar-perfil');
       } catch {
         setError('Tu cuenta no está habilitada para acceder. Contacta al administrador.');
       }

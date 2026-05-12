@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { IsString, IsNotEmpty } from 'class-validator';
 import { AuthService } from './auth.service';
@@ -33,7 +33,6 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   loginGoogle(@Body() body: GoogleLoginDto) {
-    if (!body.accessToken) throw new BadRequestException('accessToken requerido');
     return this.authService.loginConGoogle(body.accessToken);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseService } from '../supabase.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -9,6 +9,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private supabaseService: SupabaseService,
   ) {}
 
   async registro(nombre: string, email: string, telefono: string, password: string) {
@@ -33,18 +34,10 @@ export class AuthService {
   }
 
   async loginConGoogle(accessToken: string) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-    if (!supabaseUrl || !supabaseKey) throw new UnauthorizedException('Configuración de Supabase incompleta');
+    const datosGoogle = await this.supabaseService.verificarTokenAcceso(accessToken);
+    if (!datosGoogle) throw new UnauthorizedException('Token de Google inválido');
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data, error } = await supabase.auth.getUser(accessToken);
-    if (error || !data.user?.email) throw new UnauthorizedException('Token de Google inválido');
-
-    const email = data.user.email;
-    const nombre = data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? email.split('@')[0];
-
-    const usuario = await this.usersService.buscarOCrearGoogle(email, nombre);
+    const usuario = await this.usersService.buscarOCrearGoogle(datosGoogle.email, datosGoogle.nombre);
 
     if (usuario.rol !== 'TUTOR') throw new UnauthorizedException('Solo tutores pueden ingresar con Google');
 

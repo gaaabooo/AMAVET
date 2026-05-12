@@ -48,4 +48,15 @@ export class SupabaseService implements OnModuleInit {
 
     return data.signedUrl;
   }
+
+  async verificarTokenAcceso(accessToken: string): Promise<{ email: string; nombre: string } | null> {
+    const { data, error } = await this.client.auth.getUser(accessToken);
+    if (error || !data.user?.email) return null;
+    const email = data.user.email;
+    const nombre =
+      (data.user.user_metadata?.full_name as string | undefined) ??
+      (data.user.user_metadata?.name as string | undefined) ??
+      email.split('@')[0];
+    return { email, nombre };
+  }
 }
