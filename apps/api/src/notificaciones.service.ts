@@ -131,8 +131,8 @@ function nota(texto: string): string {
 }
 
 // Parsea "Nombre <email@dominio>" → { name, email }. Si no trae nombre, usa solo el email.
-function parseRemitente(valor: string): { name: string; email: string } {
-  const m = /^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/.exec(valor);
+export function parseRemitente(valor: string): { name: string; email: string } {
+  const m = /^\s*(.*?)\s*<\s*([^>]+?)\s*>\s*$/.exec(valor);
   if (m) return { name: m[1] || 'Silvestra Vet', email: m[2] };
   return { name: 'Silvestra Vet', email: valor.trim() };
 }

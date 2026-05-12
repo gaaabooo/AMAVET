@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 
 // Render no tiene conectividad IPv6 saliente. Forzamos que la resolución DNS
 // devuelva direcciones IPv4 primero para evitar ENETUNREACH al conectar a
-// servicios externos (p. ej. smtp.gmail.com).
+// servicios externos (APIs HTTP de terceros, etc.).
 setDefaultResultOrder('ipv4first');
 
 function assertRequiredEnv() {
