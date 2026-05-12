@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../lib/api';
-import { getSesion, SesionUsuario } from '../../../lib/session';
+import { getSesion, SesionUsuario, tieneTelefonoValido } from '../../../lib/session';
 import Logo from '../../../components/Logo';
 
 export default function CompletarPerfil() {
@@ -15,7 +15,7 @@ export default function CompletarPerfil() {
   useEffect(() => {
     const sesion = getSesion();
     if (!sesion) { router.push('/login'); return; }
-    if (sesion.telefono && sesion.telefono.trim()) { router.push('/dashboard'); return; }
+    if (tieneTelefonoValido(sesion.telefono)) { router.push('/dashboard'); return; }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUsuario(sesion);
   }, [router]);

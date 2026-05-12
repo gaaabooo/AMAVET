@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '../../../lib/supabase';
+import { tieneTelefonoValido } from '../../../lib/session';
 import api from '../../../lib/api';
 
 export default function AuthCallback() {
@@ -21,8 +22,8 @@ export default function AuthCallback() {
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('usuario', JSON.stringify(res.data.usuario));
-        const telefono = res.data.usuario?.telefono?.trim();
-        router.push(telefono ? '/dashboard' : '/auth/completar-perfil');
+        const completo = tieneTelefonoValido(res.data.usuario?.telefono);
+        router.push(completo ? '/dashboard' : '/auth/completar-perfil');
       } catch {
         setError('Tu cuenta no está habilitada para acceder. Contacta al administrador.');
       }

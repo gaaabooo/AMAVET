@@ -6,6 +6,14 @@ export interface SesionUsuario {
   telefono?: string;
 }
 
+// Sentinel del backend para usuarios de Google que aún no completaron su teléfono.
+export const TELEFONO_PENDIENTE = 'PENDIENTE';
+
+export function tieneTelefonoValido(telefono?: string | null): boolean {
+  const t = telefono?.trim();
+  return !!t && t !== TELEFONO_PENDIENTE;
+}
+
 export function getSesion(): SesionUsuario | null {
   if (typeof window === 'undefined') return null;
   try {

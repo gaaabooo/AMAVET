@@ -11,6 +11,11 @@ import { randomBytes } from 'crypto';
 const BCRYPT_ROUNDS = 12;
 const MIN_PASSWORD_LENGTH = 8;
 
+// Sentinel para usuarios creados por Google que aún no han ingresado su teléfono.
+// La DB tiene un constraint que prohíbe teléfono vacío, así que usamos este valor
+// y el frontend lo trata como "sin teléfono" para pedirlo en /auth/completar-perfil.
+export const TELEFONO_PENDIENTE = 'PENDIENTE';
+
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
@@ -98,7 +103,7 @@ export class UsersService {
       data: {
         nombre: nombre.trim(),
         email: emailNorm,
-        telefono: '',
+        telefono: TELEFONO_PENDIENTE,
         password: passwordBloqueada,
         rol: 'TUTOR',
       },
