@@ -179,9 +179,12 @@ export default function Admin() {
   const actualizarEstadoCita = async (id: string, estado: EstadoCita) => {
     try {
       await api.patch(`/citas/${id}/estado`, { estado });
-      mostrarMensaje('ok', `Cita marcada como ${estado.toLowerCase()}`);
-      await cargarDatos();
+      // Actualización optimista: refleja el cambio en la UI de inmediato.
       setCitaSeleccionada(prev => (prev && prev.id === id ? { ...prev, estado } : prev));
+      setCitas(prev => prev.map(c => (c.id === id ? { ...c, estado } : c)));
+      mostrarMensaje('ok', `Cita marcada como ${estado.toLowerCase()}`);
+      // Recarga en segundo plano para sincronizar con el servidor (no bloquea).
+      void cargarDatos();
     } catch (err) {
       mostrarMensaje('error', mensajeError(err, 'Error al actualizar la cita'));
     }
