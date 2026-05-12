@@ -26,7 +26,9 @@ export class CitasService {
       include: { mascota: { include: { tutor: true } } },
     });
 
-    await this.notificaciones.notificarCitaAgendada(
+    // Fire-and-forget: el envío del email no debe bloquear ni demorar la
+    // respuesta. notificarCitaAgendada ya maneja sus propios errores.
+    void this.notificaciones.notificarCitaAgendada(
       mascota.tutor.email,
       mascota.nombre,
       fechaDate,
@@ -72,7 +74,8 @@ export class CitasService {
     });
 
     if (estado === 'CONFIRMADA' || estado === 'CANCELADA') {
-      await this.notificaciones.notificarEstadoCita(
+      // Fire-and-forget: no bloquear la respuesta esperando el email.
+      void this.notificaciones.notificarEstadoCita(
         cita.mascota.tutor.email,
         cita.mascota.nombre,
         cita.fecha,

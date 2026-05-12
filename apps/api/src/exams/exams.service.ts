@@ -63,17 +63,20 @@ export class ExamsService {
     // Guardamos la ruta en archivoUrl (no la URL pública).
     const resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, rutaArchivo);
 
-    // Para la notificación por email generamos una URL firmada de 24h.
-    try {
-      const urlFirmada = await this.supabase.generarUrlFirmada(rutaArchivo);
-      await this.notificaciones.notificarExamenDisponible(
-        examen.mascota.tutor.email,
-        examen.mascota.nombre,
-        urlFirmada,
-      );
-    } catch {
-      // fallo de SMTP o URL firmada no interrumpe la subida
-    }
+    // Fire-and-forget: generar la URL firmada y enviar el email no debe
+    // bloquear ni demorar la respuesta de la subida.
+    void (async () => {
+      try {
+        const urlFirmada = await this.supabase.generarUrlFirmada(rutaArchivo);
+        await this.notificaciones.notificarExamenDisponible(
+          examen.mascota.tutor.email,
+          examen.mascota.nombre,
+          urlFirmada,
+        );
+      } catch {
+        // fallo de SMTP o URL firmada no interrumpe la subida
+      }
+    })();
 
     return resultado;
   }
