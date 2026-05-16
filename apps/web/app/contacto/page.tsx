@@ -849,6 +849,14 @@ function ContactoStyles() {
         .ct-hero-actions { gap: 1.25rem; }
         .ct-cob-inner { flex-direction: column; align-items: flex-start; }
       }
+      @media (max-width: 640px) {
+        .ct-hero { padding: 4rem 1.25rem; }
+        .ct-canales { padding: 3.5rem 1.25rem; }
+        .ct-horario { padding: 3.5rem 1.25rem; }
+        .ct-cobertura { padding: 3.5rem 1.25rem; }
+        .ct-hero-actions { flex-direction: column; align-items: stretch; }
+        .ct-hero-actions > * { justify-content: center; }
+      }
     `}</style>
   );
 }

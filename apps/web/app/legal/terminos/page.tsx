@@ -681,6 +681,11 @@ function TerminosStyles() {
         .terms-contact { padding: 2rem; }
         .terms-contact-title { font-size: 1.5rem; }
       }
+      @media (max-width: 640px) {
+        .terms-hero { padding: 4.5rem 1.25rem 3rem; }
+        .terms-body { padding: 3.5rem 1.25rem 4rem; }
+        .terms-contact { padding: 1.5rem; }
+      }
     `}</style>
   );
 }

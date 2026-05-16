@@ -602,8 +602,10 @@ function CfgStyles() {
         grid-template-columns: 1fr 1fr;
         gap: 16px;
       }
-      @media (max-width: 600px) {
+      @media (max-width: 640px) {
         .dash-bg .field-row { grid-template-columns: 1fr; }
+        .dash-bg .cfg-section { padding: 28px 22px; }
+        .dash-bg .profile-card { padding: 24px 18px; }
       }
       .dash-bg .field-label {
         display: block;

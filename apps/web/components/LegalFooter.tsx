@@ -476,6 +476,7 @@ export default function LegalFooter() {
         }
 
         @media (max-width: 980px) {
+          .lfoot { padding: 4rem 1.5rem 2rem; }
           .lfoot-grid {
             grid-template-columns: 1fr 1fr;
             gap: 2.25rem;
@@ -484,8 +485,8 @@ export default function LegalFooter() {
             grid-column: 1 / -1;
           }
         }
-        @media (max-width: 600px) {
-          .lfoot { padding: 4rem 1.5rem 2rem; }
+        @media (max-width: 640px) {
+          .lfoot { padding: 3rem 1.25rem 1.5rem; }
           .lfoot-grid {
             grid-template-columns: 1fr;
             gap: 2rem;

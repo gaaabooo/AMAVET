@@ -742,6 +742,11 @@ function HelpStyles() {
         transition: all .15s ease;
       }
       .dash-bg .btn-ghost:hover { border-color: var(--d-green-mid); background: var(--d-bg-soft); }
+
+      @media (max-width: 640px) {
+        .dash-bg .help-cta { padding: 36px 22px; }
+        .dash-bg .help-side > * { padding: 22px; }
+      }
     `}</style>
   );
 }

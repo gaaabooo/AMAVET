@@ -135,8 +135,8 @@ export default function LegalNav() {
           50% { background-position: 100% 50%; }
         }
 
-        @media (max-width: 600px) {
-          .lnav-inner { gap: 1rem; }
+        @media (max-width: 640px) {
+          .lnav-inner { padding: 1rem 1.25rem; gap: 1rem; }
           .lnav-back-text { display: none; }
           .lnav-back { padding: 0.55rem 0.85rem; }
         }

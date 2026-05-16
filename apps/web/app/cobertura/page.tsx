@@ -729,6 +729,12 @@ function CoberturaStyles() {
         .cov-meta-divider { display: none; }
         .cov-zona-title { font-size: 1.875rem; }
       }
+
+      @media (max-width: 640px) {
+        .cov-hero { padding: 4.5rem 1.25rem 3rem; }
+        .cov-section { padding: 3.5rem 1.25rem; }
+        .cov-cta { padding: 4.5rem 1.25rem; }
+      }
     `}</style>
   );
 }

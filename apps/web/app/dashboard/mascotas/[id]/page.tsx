@@ -993,6 +993,20 @@ function DashStyles() {
         .stats-strip { grid-template-columns: repeat(2, 1fr); }
         .grid-2 { grid-template-columns: 1fr; }
       }
+      @media (max-width: 640px) {
+        .panel { padding: 1.4rem; border-radius: 22px; }
+        .pet-name { font-size: clamp(2rem, 9vw, 3rem); }
+        .hero-avatar { width: 88px; height: 88px; border-radius: 24px; }
+        .hero-avatar > span { font-size: 3.2rem !important; }
+        .stat-card { padding: 1rem 1.1rem; }
+        .stat-num { font-size: 1.9rem; }
+        .exam { grid-template-columns: 36px 1fr auto; gap: 0.7rem; padding: 0.8rem 0.4rem; }
+        .exam-icon { width: 34px; height: 34px; }
+        .exam-badge { font-size: 0.55rem; padding: 0.28rem 0.5rem; }
+        .exam-download { width: 32px; height: 32px; }
+        .cita { grid-template-columns: 54px 1fr; gap: 0.85rem; }
+        .cita-list::before { left: 26px; }
+      }
       @media (max-width: 480px) {
         .stats-strip { grid-template-columns: 1fr 1fr; }
       }

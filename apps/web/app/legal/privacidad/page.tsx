@@ -554,6 +554,11 @@ function PrivacidadStyles() {
         .priv-contact { padding: 2rem; }
         .priv-contact-title { font-size: 1.5rem; }
       }
+      @media (max-width: 640px) {
+        .priv-hero { padding: 4.5rem 1.25rem 3rem; }
+        .priv-body { padding: 3.5rem 1.25rem 4rem; }
+        .priv-contact { padding: 1.5rem; }
+      }
     `}</style>
   );
 }

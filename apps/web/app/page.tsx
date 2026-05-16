@@ -1097,6 +1097,63 @@ function LandingStyles() {
       .ha2 { animation-delay: 350ms; }
       .ha3 { animation-delay: 700ms; }
       .ha4 { animation-delay: 1000ms; }
+
+      /* ─────────────  RESPONSIVE  ───────────── */
+      @media (max-width: 1024px) {
+        .land-nav { padding: 16px 24px; }
+        .land-nav.opaque { padding: 12px 24px; }
+        .hero { padding: 64px 24px; }
+        .social { padding: 64px 24px; }
+        .beneficios { padding: 96px 24px; }
+        .servicios { padding: 96px 24px; }
+        .cta { padding: 96px 24px; }
+        .land-foot { padding: 80px 24px 0; }
+        .foot-bar { margin: 0 -24px; padding: 24px; }
+        .ben-card { padding: 44px 32px; min-height: 300px; }
+      }
+
+      @media (max-width: 768px) {
+        .land-nav .brand small { display: none; }
+        .hero { min-height: 0; height: auto; padding: 120px 20px 64px; align-items: flex-start; }
+        .hero-scroll { display: none; }
+        .hero-bottom { gap: 28px; }
+        .hero-lead { font-size: 18px; }
+        .social { padding: 48px 20px; }
+        .beneficios { padding: 64px 20px; }
+        .ben-head { margin-bottom: 48px; }
+        .ben-card { padding: 36px 24px; min-height: auto; }
+        .ben-num { font-size: 120px; top: 12px; right: 16px; }
+        .ben-title { font-size: 26px; max-width: none; }
+        .ben-text { max-width: none; }
+        .servicios { padding: 64px 20px; }
+        .serv-head { margin-bottom: 48px; }
+        .acc-trigger { grid-template-columns: 1fr auto; gap: 16px; padding: 22px 0; }
+        .acc-trigger:hover { padding-left: 0; }
+        .acc-num { display: none; }
+        .acc-name { font-size: 21px; }
+        .acc-content { grid-column: 1 / 3; padding-left: 0; }
+        .acc-item.open .acc-content { max-height: 360px; }
+        .acc-body { font-size: 15.5px; padding-bottom: 22px; }
+        .cta { padding: 64px 20px; }
+        .land-foot { padding: 64px 20px 0; }
+        .foot-bar { margin: 0 -20px; padding: 20px; }
+        .foot-mast { padding-bottom: 48px; }
+        .foot-grid { padding: 48px 0; gap: 40px; }
+      }
+
+      @media (max-width: 480px) {
+        .nav-actions { gap: 6px; }
+        .nav-actions .btn { padding: 8px 14px; font-size: 12.5px; }
+        .nav-actions .btn-ghost svg, .nav-actions .btn-primary svg { display: none; }
+        .hero { padding-top: 104px; }
+        .hero-eyebrow { font-size: 10px; letter-spacing: 0.2em; margin-bottom: 20px; }
+        .hero-actions { gap: 10px; width: 100%; }
+        .hero-actions .btn { flex: 1; justify-content: center; padding: 14px 18px; }
+        .social-grid { grid-template-columns: 1fr; gap: 24px; }
+        .social-stat .num { font-size: 40px; }
+        .foot-bar-inner { font-size: 10px; }
+        .foot-bar-italic { font-size: 12px; }
+      }
     `}</style>
   );
 }

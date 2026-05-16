@@ -1325,6 +1325,15 @@ function AgendarStyles() {
         text-align: right;
         max-width: 60%;
       }
+
+      @media (max-width: 640px) {
+        .dash-bg .agenda-grid { gap: 24px; }
+        .dash-bg .timeline-col,
+        .dash-bg .summary-col { position: static; }
+        .dash-bg .calendar-card,
+        .dash-bg .summary-card { padding: 22px 18px; }
+        .dash-bg .timeline-label { padding-left: 0; }
+      }
     `}</style>
   );
 }
