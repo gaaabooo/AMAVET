@@ -230,6 +230,15 @@ export default function Admin() {
     }
   };
 
+  const verPdf = async (id: string) => {
+    try {
+      const res = await api.get(`/examenes/${id}/descargar`);
+      window.open(res.data.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      mostrarMensaje('error', mensajeError(err, 'No se pudo abrir el examen'));
+    }
+  };
+
   const borrarPdf = async (id: string) => {
     try {
       await api.patch(`/examenes/${id}/estado`, { estado: 'PENDIENTE', archivoUrl: null });
@@ -507,6 +516,7 @@ export default function Admin() {
               setBusqueda={setExamenBusqueda}
               actualizarEstado={actualizarEstado}
               borrarPdf={borrarPdf}
+              verPdf={verPdf}
             />
           )}
 
@@ -985,9 +995,9 @@ function MascotasView({ mascotas, orden, setOrden, busqueda, setBusqueda }: {
 
 type ExamenEstado = 'TODOS' | 'PENDIENTE' | 'EN_PROCESO' | 'DISPONIBLE';
 
-function ExamenesView({ examenes, estado, setEstado, busqueda, setBusqueda, actualizarEstado, borrarPdf }: {
+function ExamenesView({ examenes, estado, setEstado, busqueda, setBusqueda, actualizarEstado, borrarPdf, verPdf }: {
   examenes: Examen[]; estado: ExamenEstado; setEstado: (e: ExamenEstado) => void; busqueda: string; setBusqueda: (s: string) => void;
-  actualizarEstado: (id: string, estado: string) => void; borrarPdf: (id: string) => void;
+  actualizarEstado: (id: string, estado: string) => void; borrarPdf: (id: string) => void; verPdf: (id: string) => void;
 }) {
   return (
     <div className="px-10 pt-8 pb-14">
@@ -1041,11 +1051,11 @@ function ExamenesView({ examenes, estado, setEstado, busqueda, setBusqueda, actu
                         <option value="DISPONIBLE">Disponible</option>
                       </select>
                       {ex.archivoUrl ? (
-                        <a href={ex.archivoUrl} target="_blank" rel="noopener noreferrer" title="Ver PDF" className="flex items-center justify-center transition-all" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid rgba(20,36,26,0.1)', color: 'var(--admin-ink)', textDecoration: 'none' }}
+                        <button onClick={() => verPdf(ex.id)} title="Ver PDF" className="flex items-center justify-center transition-all" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid rgba(20,36,26,0.1)', background: 'transparent', color: 'var(--admin-ink)', cursor: 'pointer' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'var(--admin-glow)'; e.currentTarget.style.borderColor = 'var(--admin-green-leaf)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(20,36,26,0.1)'; }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </a>
+                        </button>
                       ) : (
                         <span title="Sin PDF" className="flex items-center justify-center" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid rgba(20,36,26,0.06)', color: 'rgba(20,36,26,0.2)', cursor: 'not-allowed' }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
