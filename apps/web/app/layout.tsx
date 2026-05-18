@@ -26,7 +26,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${manrope.variable} ${newsreader.variable} ${dmMono.variable} antialiased`}>
+      {/* suppressHydrationWarning: extensiones del navegador (Grammarly,
+          DarkReader, etc.) inyectan atributos en <body> antes de la hidratación
+          y disparan un warning falso positivo. No afecta otros nodos. */}
+      <body
+        suppressHydrationWarning
+        className={`${manrope.variable} ${newsreader.variable} ${dmMono.variable} antialiased`}
+      >
         {children}
       </body>
     </html>
