@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
@@ -6,6 +6,8 @@ import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -49,23 +51,28 @@ export class AuthService {
     return { token, usuario };
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, ip?: string) {
     const usuario = await this.usersService.buscarPorEmail(email);
 
     // Defensa contra timing attacks: si el usuario no existe, hacemos un compare
     // dummy para que la latencia sea similar al caso "usuario existe pero pwd mala".
     if (!usuario) {
       await bcrypt.compare(password, '$2b$12$invalidsaltinvalidsaltinvalidsaltinvalidsaltinvalidsaltinv');
+      this.logger.warn(`Login fallido (usuario inexistente) email=${email} ip=${ip ?? '?'}`);
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     // Defensa contra hashes vacíos o corruptos en BD.
     if (!usuario.password || usuario.password.length < 60) {
+      this.logger.warn(`Login fallido (hash inválido) email=${email} ip=${ip ?? '?'}`);
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const valido = await bcrypt.compare(password, usuario.password);
-    if (!valido) throw new UnauthorizedException('Credenciales inválidas');
+    if (!valido) {
+      this.logger.warn(`Login fallido (password incorrecta) email=${email} ip=${ip ?? '?'}`);
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
 
     const token = this.jwtService.sign({
       sub: usuario.id,

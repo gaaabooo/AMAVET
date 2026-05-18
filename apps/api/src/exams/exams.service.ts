@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
 import { SupabaseService } from '../supabase.service';
@@ -7,6 +7,8 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ExamsService {
+  private readonly logger = new Logger(ExamsService.name);
+
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(SupabaseService) private supabase: SupabaseService,
@@ -73,8 +75,10 @@ export class ExamsService {
           examen.mascota.nombre,
           urlFirmada,
         );
-      } catch {
-        // fallo de SMTP o URL firmada no interrumpe la subida
+      } catch (err) {
+        this.logger.warn(
+          `No se pudo notificar examen disponible (examen=${id}): ${String(err)}`,
+        );
       }
     })();
 

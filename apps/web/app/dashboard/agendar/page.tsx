@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { getSesion, type SesionUsuario } from '@/lib/session';
+import { getSesion, tieneTelefonoValido, type SesionUsuario } from '@/lib/session';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Mascota {
@@ -75,6 +75,10 @@ export default function AgendarVisita() {
   useEffect(() => {
     const sesion = getSesion();
     if (!sesion) { router.push('/login'); return; }
+    if (sesion.rol === 'TUTOR' && !tieneTelefonoValido(sesion.telefono)) {
+      router.push('/auth/completar-perfil');
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUsuario(sesion);
     cargarMascotas(sesion.id);

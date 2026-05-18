@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { getSesion } from '@/lib/session';
+import { getSesion, tieneTelefonoValido } from '@/lib/session';
 import { getAnimalIcon } from '@/lib/utils/animals';
 import DashboardNav from '@/components/DashboardNav';
 
@@ -56,6 +56,12 @@ export default function Dashboard() {
   useEffect(() => {
     const sesion = getSesion();
     if (!sesion) { router.push('/login'); return; }
+    // Tutores de Google sin teléfono real (sentinel PENDIENTE) deben completarlo
+    // antes de operar; el admin necesita el número para coordinar visitas.
+    if (sesion.rol === 'TUTOR' && !tieneTelefonoValido(sesion.telefono)) {
+      router.push('/auth/completar-perfil');
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUsuario(sesion);
     cargarMascotas(sesion.id);

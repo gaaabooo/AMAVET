@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
+import { UsersService, TELEFONO_PENDIENTE } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
 import * as bcrypt from 'bcryptjs';
 
@@ -111,14 +111,14 @@ describe('AuthService', () => {
         email: 'tutor@test.cl', nombre: 'Tutor Google',
       });
       mockUsersService.buscarOCrearGoogle.mockResolvedValue({
-        id: 'uuid-g', nombre: 'Tutor Google', email: 'tutor@test.cl', rol: 'TUTOR', telefono: '',
+        id: 'uuid-g', nombre: 'Tutor Google', email: 'tutor@test.cl', rol: 'TUTOR', telefono: TELEFONO_PENDIENTE,
       });
 
       const result = await service.loginConGoogle('valid-access-token');
 
       expect(result.token).toBe('signed-token');
       expect(result.usuario.email).toBe('tutor@test.cl');
-      expect(result.usuario.telefono).toBe('');
+      expect(result.usuario.telefono).toBe(TELEFONO_PENDIENTE);
       expect(mockUsersService.buscarOCrearGoogle).toHaveBeenCalledWith('tutor@test.cl', 'Tutor Google');
     });
 

@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger, OnModuleInit } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SIGNED_URL_TTL_SECONDS = 3600; // 1 hora
+const SIGNED_URL_TTL_SECONDS = 86_400; // 24 horas (coincide con el texto del email)
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {

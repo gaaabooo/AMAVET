@@ -27,7 +27,7 @@ apps/
 
 ### Flujo de autenticación
 
-- **Email / contraseña:** el backend emite un JWT firmado (`HS256`, issuer `silvestra-api`) tras validar credenciales con `bcrypt` (12 rounds).
+- **Email / contraseña:** el backend emite un JWT firmado (`HS256`, issuer `amavet-api`) tras validar credenciales con `bcrypt` (12 rounds).
 - **Google:** el frontend hace el OAuth con el SDK de Supabase; el backend recibe el access token de Supabase, lo verifica (`supabase.auth.getUser`), busca o crea al usuario con rol `TUTOR` y emite el mismo JWT propio. Así el resto del sistema (guards, rutas protegidas) no distingue el origen del login.
 - Los usuarios creados por Google se guardan con un hash de contraseña aleatorio (no usable) y, si aún no tienen teléfono, se les pide completarlo en `/auth/completar-perfil` antes de entrar al panel.
 - Roles: `TUTOR` (cliente) y `ADMIN` (equipo veterinario). El rol es la fuente de verdad en la base de datos, no en el token.
