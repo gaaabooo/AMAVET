@@ -22,6 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey: secret,
       issuer: 'amavet-api',
+      // Solo se acepta HMAC-SHA256, el algoritmo con el que se firman los
+      // tokens. Fijarlo explícitamente evita que un token firmado con otro
+      // algoritmo sea aceptado.
+      algorithms: ['HS256'],
     });
   }
 

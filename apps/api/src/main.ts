@@ -44,6 +44,13 @@ async function bootstrap() {
     }),
   );
 
+  // La API solo devuelve datos privados y autenticados (PII, datos clínicos,
+  // URLs firmadas). Nunca debe cachearse: ni en el navegador ni en proxies.
+  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
