@@ -18,6 +18,7 @@ model User {
   // sesiones previas sin mantener una lista de tokens emitidos.
   tokenVersion Int      @default(0)
   mascotas    Mascota[]
+  resetTokens PasswordResetToken[]
   creadoEn    DateTime  @default(now())
   actualizadoEn DateTime @updatedAt
 
@@ -69,6 +70,20 @@ model Cita {
   @@index([mascotaId])
   @@index([fecha])
   @@index([estado])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String   @unique
+  expiraEn    DateTime
+  usado       Boolean  @default(false)
+  ipSolicitud String?
+  creadoEn    DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiraEn])
 }
 
 enum Rol {

@@ -136,6 +136,27 @@ export class UsersService {
     return usuario?.tokenVersion ?? null;
   }
 
+  // Resetea la contraseña SIN exigir la contraseña actual. Lo usa el flujo de
+  // recuperación ("olvidé mi contraseña"), donde la identidad ya quedó probada
+  // por el token de un solo uso enviado al email. Igual que cambiarPassword,
+  // incrementa tokenVersion para invalidar cualquier sesión previa.
+  async resetearPassword(id: string, passwordNueva: string) {
+    if (!passwordNueva || passwordNueva.length < MIN_PASSWORD_LENGTH) {
+      throw new BadRequestException(
+        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
+      );
+    }
+    const usuario = await this.prisma.user.findUnique({ where: { id } });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+    const hash = await bcrypt.hash(passwordNueva, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id },
+      data: { password: hash, tokenVersion: { increment: 1 } },
+    });
+    return { ok: true };
+  }
+
   async cambiarPassword(id: string, passwordActual: string, passwordNueva: string) {
     if (!passwordActual || !passwordNueva) {
       throw new BadRequestException('Debes ingresar la contraseña actual y la nueva');

@@ -304,4 +304,85 @@ export class NotificacionesService implements OnModuleInit {
       );
     }
   }
+
+  // Email con el enlace para restablecer la contraseña. El enlace lleva un
+  // token de un solo uso que caduca en 15 minutos.
+  async notificarResetPassword(email: string, urlReset: string): Promise<void> {
+    const url = escapeHtml(urlReset);
+    const titulo = 'Silvestra Vet · Recupera tu contraseña';
+    const html = plantilla({
+      titulo,
+      preheader: 'Restablece tu contraseña con el enlace de este correo.',
+      cuerpoHtml:
+        heading('Recupera tu contraseña') +
+        parrafo(
+          'Recibimos una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el botón para crear una contraseña nueva.',
+        ) +
+        boton('Restablecer contraseña', url) +
+        nota(
+          'Este enlace expira en 15 minutos y solo puede usarse una vez. Si no solicitaste este cambio, ignora este correo: tu contraseña actual seguirá siendo válida.',
+        ),
+    });
+    try {
+      await this.enviar(email, titulo, html);
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar email de reset a ${email}: ${String(err)}`,
+      );
+    }
+  }
+
+  // Email de aviso enviado a cuentas que ingresan con Google cuando alguien
+  // pide recuperar su contraseña: no tienen contraseña que restablecer.
+  async notificarResetCuentaGoogle(email: string): Promise<void> {
+    const titulo = 'Silvestra Vet · Tu cuenta usa acceso con Google';
+    const html = plantilla({
+      titulo,
+      preheader:
+        'Tu cuenta ingresa con Google; no tiene contraseña que restablecer.',
+      cuerpoHtml:
+        heading('Tu cuenta usa Google') +
+        parrafo(
+          'Recibimos una solicitud para restablecer tu contraseña, pero tu cuenta de Silvestra Vet ingresa con Google. No tiene una contraseña que cambiar.',
+        ) +
+        parrafo(
+          'Para entrar, usa el botón <strong>Continuar con Google</strong> en la página de inicio de sesión.',
+        ) +
+        nota(
+          'Si no solicitaste esto, puedes ignorar este correo con tranquilidad.',
+        ),
+    });
+    try {
+      await this.enviar(email, titulo, html);
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar aviso de cuenta Google a ${email}: ${String(err)}`,
+      );
+    }
+  }
+
+  // Confirmación tras un cambio de contraseña exitoso (por reset o manual).
+  async notificarPasswordCambiada(email: string): Promise<void> {
+    const titulo = 'Silvestra Vet · Tu contraseña fue cambiada';
+    const html = plantilla({
+      titulo,
+      preheader: 'Confirmamos el cambio de contraseña de tu cuenta.',
+      acento: 'rojo',
+      cuerpoHtml:
+        heading('Tu contraseña fue cambiada') +
+        parrafo(
+          'Te confirmamos que la contraseña de tu cuenta de Silvestra Vet se cambió correctamente. Por seguridad, se cerraron todas las sesiones abiertas.',
+        ) +
+        nota(
+          'Si no fuiste tú quien hizo este cambio, contacta a soporte de inmediato: tu cuenta podría estar comprometida.',
+        ),
+    });
+    try {
+      await this.enviar(email, titulo, html);
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar confirmación de cambio de password a ${email}: ${String(err)}`,
+      );
+    }
+  }
 }

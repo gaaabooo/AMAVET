@@ -1,12 +1,21 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import { getSupabase } from '../../lib/supabase';
 import Logo from '../../components/Logo';
 
+// useSearchParams() exige una frontera de Suspense para el prerender de Next 16.
 export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContenido />
+    </Suspense>
+  );
+}
+
+function LoginContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -19,8 +28,15 @@ export default function Login() {
     // Mensaje neutro tras /registro: no revela si la cuenta era nueva o ya
     // existía (defensa contra enumeración de cuentas).
     if (searchParams.get('registro') === 'pendiente') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAviso(
         'Si el correo no estaba registrado, ya puedes iniciar sesión. Si ya tenías una cuenta, ingresa con tu contraseña habitual.',
+      );
+    }
+    // Tras restablecer la contraseña desde /auth/restablecer.
+    if (searchParams.get('reset') === 'ok') {
+      setAviso(
+        'Tu contraseña fue actualizada. Ingresa con tu nueva contraseña.',
       );
     }
   }, [searchParams]);
@@ -224,6 +240,12 @@ export default function Login() {
                 )}
               </button>
             </form>
+
+            <div className="forgot-row">
+              <Link href="/auth/olvide-password" className="foot-link">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
 
             <div className="google-divider">
               <span className="divider-line" /><span className="divider-text">o continúa con</span><span className="divider-line" />
@@ -569,6 +591,12 @@ function AuthStyles() {
       @keyframes pulseDot {
         0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
         40% { opacity: 1; transform: scale(1); }
+      }
+
+      .auth-bg .forgot-row {
+        display: flex; justify-content: center;
+        margin-top: 18px;
+        font-size: 13.5px;
       }
 
       .auth-bg .card-foot {
