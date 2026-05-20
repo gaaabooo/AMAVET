@@ -1,17 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../lib/api';
 import { getSupabase } from '../../lib/supabase';
 import Logo from '../../components/Logo';
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [aviso, setAviso] = useState('');
   const [cargando, setCargando] = useState(false);
   const [mostrarPass, setMostrarPass] = useState(false);
+
+  useEffect(() => {
+    // Mensaje neutro tras /registro: no revela si la cuenta era nueva o ya
+    // existía (defensa contra enumeración de cuentas).
+    if (searchParams.get('registro') === 'pendiente') {
+      setAviso(
+        'Si el correo no estaba registrado, ya puedes iniciar sesión. Si ya tenías una cuenta, ingresa con tu contraseña habitual.',
+      );
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -125,6 +137,24 @@ export default function Login() {
             <p className="subtitle">
               Ingresa para gestionar a tus mascotas y revisar resultados clínicos.
             </p>
+
+            {aviso && (
+              <div
+                role="status"
+                className="alert"
+                style={{
+                  background: 'rgba(30, 64, 48, 0.08)',
+                  borderColor: 'rgba(30, 64, 48, 0.2)',
+                  color: '#1e4030',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M8 5.5v3M8 11v.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+                <span>{aviso}</span>
+              </div>
+            )}
 
             {error && (
               <div role="alert" className="alert">

@@ -57,11 +57,11 @@ describe('UsersService', () => {
   describe('buscarOCrearGoogle', () => {
     it('devuelve el usuario existente sin crear uno nuevo', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'u-1', nombre: 'Ana', email: 'ana@test.cl', rol: 'TUTOR', telefono: '+56911112222',
+        id: 'u-1', nombre: 'Ana', email: 'ana@test.cl', rol: 'TUTOR', telefono: '+56911112222', tokenVersion: 2,
       });
       const result = await service.buscarOCrearGoogle('ANA@Test.cl ', 'Ana Google');
       expect(result).toEqual({
-        id: 'u-1', nombre: 'Ana', email: 'ana@test.cl', rol: 'TUTOR', telefono: '+56911112222',
+        id: 'u-1', nombre: 'Ana', email: 'ana@test.cl', rol: 'TUTOR', telefono: '+56911112222', tokenVersion: 2,
       });
       expect(mockPrisma.user.create).not.toHaveBeenCalled();
     });
@@ -69,7 +69,7 @@ describe('UsersService', () => {
     it('crea un usuario nuevo con teléfono PENDIENTE y password bloqueada', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.create.mockResolvedValue({
-        id: 'u-2', nombre: 'Beto', email: 'beto@test.cl', rol: 'TUTOR', telefono: TELEFONO_PENDIENTE,
+        id: 'u-2', nombre: 'Beto', email: 'beto@test.cl', rol: 'TUTOR', telefono: TELEFONO_PENDIENTE, tokenVersion: 0,
       });
       const result = await service.buscarOCrearGoogle('beto@test.cl', 'Beto Google');
       const data = mockPrisma.user.create.mock.calls[0][0].data;
@@ -78,6 +78,7 @@ describe('UsersService', () => {
       // El constraint de la DB exige >= 60 chars; un hash bcrypt mide 60.
       expect(data.password.length).toBeGreaterThanOrEqual(60);
       expect(result.telefono).toBe(TELEFONO_PENDIENTE);
+      expect(result.tokenVersion).toBe(0);
     });
   });
 
@@ -95,6 +96,27 @@ describe('UsersService', () => {
       await expect(
         service.cambiarPassword('no-existe', 'Actual1!', 'Nueva1234!'),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('incrementa tokenVersion al cambiar la contraseña — invalida sesiones previas', async () => {
+      const hash = await bcrypt.hash('Actual1234!', 12);
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u-1', password: hash });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u-1' });
+      await service.cambiarPassword('u-1', 'Actual1234!', 'Nueva12345!');
+      const updateArg = mockPrisma.user.update.mock.calls[0][0];
+      expect(updateArg.data.tokenVersion).toEqual({ increment: 1 });
+    });
+  });
+
+  describe('obtenerTokenVersion', () => {
+    it('devuelve el tokenVersion del usuario', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ tokenVersion: 5 });
+      expect(await service.obtenerTokenVersion('u-1')).toBe(5);
+    });
+
+    it('devuelve null si el usuario no existe', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      expect(await service.obtenerTokenVersion('no-existe')).toBeNull();
     });
   });
 });

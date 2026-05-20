@@ -42,6 +42,13 @@ export default function Registro() {
     setError('');
     try {
       const res = await api.post('/auth/registro', form);
+      // Si el correo ya estaba registrado el backend NO devuelve token (para
+      // no permitir enumerar cuentas). Redirigimos a login con un mensaje
+      // neutro que cubre tanto "nuevo" como "ya existía".
+      if (!res.data?.token) {
+        router.push('/login?registro=pendiente');
+        return;
+      }
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('usuario', JSON.stringify(res.data.usuario));
       router.push('/dashboard');

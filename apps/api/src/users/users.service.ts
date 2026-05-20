@@ -84,7 +84,14 @@ export class UsersService {
   async buscarOCrearGoogle(
     email: string,
     nombre: string,
-  ): Promise<{ id: string; nombre: string; email: string; rol: string; telefono: string }> {
+  ): Promise<{
+    id: string;
+    nombre: string;
+    email: string;
+    rol: string;
+    telefono: string;
+    tokenVersion: number;
+  }> {
     const emailNorm = email.trim().toLowerCase();
     const existente = await this.prisma.user.findUnique({ where: { email: emailNorm } });
     if (existente) {
@@ -94,6 +101,7 @@ export class UsersService {
         email: existente.email,
         rol: existente.rol,
         telefono: existente.telefono,
+        tokenVersion: existente.tokenVersion,
       };
     }
     // Hash de un valor aleatorio impredecible: satisface el constraint de la DB
@@ -108,7 +116,24 @@ export class UsersService {
         rol: 'TUTOR',
       },
     });
-    return { id: nuevo.id, nombre: nuevo.nombre, email: nuevo.email, rol: nuevo.rol, telefono: nuevo.telefono };
+    return {
+      id: nuevo.id,
+      nombre: nuevo.nombre,
+      email: nuevo.email,
+      rol: nuevo.rol,
+      telefono: nuevo.telefono,
+      tokenVersion: nuevo.tokenVersion,
+    };
+  }
+
+  // Usado por JwtStrategy para validar que el token no fue emitido antes de un
+  // cambio de contraseña. Devuelve null si el usuario ya no existe.
+  async obtenerTokenVersion(id: string): Promise<number | null> {
+    const usuario = await this.prisma.user.findUnique({
+      where: { id },
+      select: { tokenVersion: true },
+    });
+    return usuario?.tokenVersion ?? null;
   }
 
   async cambiarPassword(id: string, passwordActual: string, passwordNueva: string) {
@@ -131,9 +156,12 @@ export class UsersService {
     if (!valido) throw new UnauthorizedException('La contraseña actual no es correcta');
 
     const hash = await bcrypt.hash(passwordNueva, BCRYPT_ROUNDS);
+    // Incrementar tokenVersion invalida todos los JWT emitidos antes de este
+    // cambio: si la contraseña se cambió por sospecha de robo, las sesiones
+    // del atacante dejan de ser válidas de inmediato.
     await this.prisma.user.update({
       where: { id },
-      data: { password: hash },
+      data: { password: hash, tokenVersion: { increment: 1 } },
     });
     return { ok: true };
   }
