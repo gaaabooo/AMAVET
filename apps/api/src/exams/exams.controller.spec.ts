@@ -1,6 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { ExamsController } from './exams.controller';
 import { ExamsService } from './exams.service';
+
+// Construye un objeto Multer.File mínimo para los tests de subida.
+function archivoFake(buffer: Buffer): Express.Multer.File {
+  return {
+    fieldname: 'archivo',
+    originalname: 'examen.pdf',
+    encoding: '7bit',
+    mimetype: 'application/pdf',
+    size: buffer.length,
+    buffer,
+    stream: undefined as never,
+    destination: '',
+    filename: '',
+    path: '',
+  };
+}
 
 describe('ExamsController', () => {
   let controller: ExamsController;
@@ -40,5 +57,26 @@ describe('ExamsController', () => {
     const result = await controller.descargar(req, 'ex-1');
 
     expect(result).toEqual({ url: 'https://signed.example.com/f.pdf' });
+  });
+
+  describe('subirArchivo', () => {
+    it('rechaza un archivo cuyos bytes no son los de un PDF', async () => {
+      // Content-Type "application/pdf" pero el contenido es HTML.
+      const noPdf = archivoFake(Buffer.from('<html><body>fake</body></html>'));
+
+      await expect(controller.subirArchivo('ex-1', noPdf)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(mockExamsService.subirArchivo).not.toHaveBeenCalled();
+    });
+
+    it('acepta un archivo que empieza con la firma %PDF-', async () => {
+      const pdf = archivoFake(Buffer.from('%PDF-1.7\n...contenido...'));
+      mockExamsService.subirArchivo.mockResolvedValue({ id: 'ex-1' });
+
+      await controller.subirArchivo('ex-1', pdf);
+
+      expect(mockExamsService.subirArchivo).toHaveBeenCalledWith('ex-1', pdf);
+    });
   });
 });

@@ -29,6 +29,16 @@ interface RequestConUsuario {
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
+// Firma de un PDF: todo PDF válido empieza con los bytes "%PDF-".
+const FIRMA_PDF = Buffer.from('%PDF-', 'ascii');
+
+// El validador de tipo de Multer solo mira el Content-Type que envía el
+// cliente, que es falsificable. Comprobamos los bytes reales del archivo para
+// rechazar contenido disfrazado de PDF (p. ej. un HTML con .pdf).
+function pareceArchivoPdf(buffer: Buffer): boolean {
+  return buffer.subarray(0, FIRMA_PDF.length).equals(FIRMA_PDF);
+}
+
 @Controller('examenes')
 @UseGuards(JwtAuthGuard)
 export class ExamsController {
@@ -113,6 +123,9 @@ export class ExamsController {
   ) {
     if (!archivo?.buffer || archivo.size === 0) {
       throw new BadRequestException('Archivo vacío');
+    }
+    if (!pareceArchivoPdf(archivo.buffer)) {
+      throw new BadRequestException('El archivo no es un PDF válido');
     }
     return this.examsService.subirArchivo(id, archivo);
   }

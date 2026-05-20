@@ -1,4 +1,4 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CrearExamenDto {
@@ -8,7 +8,6 @@ export class CrearExamenDto {
   @Transform(({ value }: { value: string }) => value?.trim())
   tipo!: string;
 
-  @IsString()
-  @MinLength(1)
+  @IsUUID()
   mascotaId!: string;
 }

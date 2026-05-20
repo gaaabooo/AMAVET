@@ -202,7 +202,9 @@ export class NotificacionesService implements OnModuleInit {
   ): Promise<void> {
     const nombre = escapeHtml(nombreMascota);
     const url = escapeHtml(archivoUrl);
-    const titulo = `Silvestra Vet · El examen de ${nombre} ya está disponible`;
+    // El asunto es texto plano, no HTML: usa el nombre sin escapar para no
+    // mostrar entidades como "&amp;".
+    const titulo = `Silvestra Vet · El examen de ${nombreMascota} ya está disponible`;
     const html = plantilla({
       titulo,
       preheader: `Ya puedes ver el examen de ${nombre}.`,
@@ -235,7 +237,8 @@ export class NotificacionesService implements OnModuleInit {
     const nombre = escapeHtml(nombreMascota);
     const serviciosStr = servicios.map(escapeHtml).join(', ') || '—';
     const dir = escapeHtml(direccion);
-    const titulo = `Silvestra Vet · Recibimos tu solicitud de cita para ${nombre}`;
+    // Asunto en texto plano: nombre sin escapar.
+    const titulo = `Silvestra Vet · Recibimos tu solicitud de cita para ${nombreMascota}`;
     const html = plantilla({
       titulo,
       preheader: `Tu cita para ${nombre} quedó registrada. Te avisaremos al confirmarse.`,
@@ -274,9 +277,10 @@ export class NotificacionesService implements OnModuleInit {
     const fechaStr = this.formatearFecha(fecha);
     const horaStr = this.formatearHora(fecha);
     const esConfirmada = estado === 'CONFIRMADA';
+    // Asunto en texto plano: nombre sin escapar.
     const titulo = esConfirmada
-      ? `Silvestra Vet · Cita confirmada para ${nombre} — ${fechaStr}, ${horaStr}`
-      : `Silvestra Vet · Cita cancelada para ${nombre}`;
+      ? `Silvestra Vet · Cita confirmada para ${nombreMascota} — ${fechaStr}, ${horaStr}`
+      : `Silvestra Vet · Cita cancelada para ${nombreMascota}`;
     const html = plantilla({
       titulo,
       preheader: esConfirmada
