@@ -3,11 +3,13 @@ import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { AuditLogger } from '../common/audit';
 import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ExamsService {
   private readonly logger = new Logger(ExamsService.name);
+  private readonly audit = new AuditLogger();
 
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
@@ -16,9 +18,14 @@ export class ExamsService {
   ) {}
 
   async crear(tipo: string, mascotaId: string) {
-    return this.prisma.examen.create({
+    const examen = await this.prisma.examen.create({
       data: { tipo, mascotaId },
     });
+    this.audit.registrar('EXAMEN_CREADO', {
+      examenId: examen.id,
+      mascotaId,
+    });
+    return examen;
   }
 
   async listarPorMascota(mascotaId: string) {
@@ -40,10 +47,15 @@ export class ExamsService {
   async actualizarEstado(id: string, estado: EstadoExamen, archivoUrl?: string | null) {
     const examen = await this.prisma.examen.findUnique({ where: { id } });
     if (!examen) throw new NotFoundException('Examen no encontrado');
-    return this.prisma.examen.update({
+    const actualizado = await this.prisma.examen.update({
       where: { id },
       data: { estado, ...(archivoUrl !== undefined && { archivoUrl }) },
     });
+    this.audit.registrar('EXAMEN_ESTADO_ACTUALIZADO', {
+      examenId: id,
+      estado,
+    });
+    return actualizado;
   }
 
   async buscarPorId(id: string) {
@@ -61,6 +73,11 @@ export class ExamsService {
     const rutaArchivo = `${examen.id}/${randomUUID()}.pdf`;
 
     await this.supabase.subirArchivo(archivo.buffer, rutaArchivo, 'application/pdf');
+
+    this.audit.registrar('EXAMEN_ARCHIVO_SUBIDO', {
+      examenId: id,
+      bytes: archivo.size,
+    });
 
     // Guardamos la ruta en archivoUrl (no la URL pública).
     const resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, rutaArchivo);

@@ -1,20 +1,13 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
+import { AuditLogger, emailEnmascarado } from '../common/audit';
 import * as bcrypt from 'bcryptjs';
-
-// Enmascara un email para no filtrar PII en logs. "gabriel@gmail.com" -> "g***@gmail.com".
-function emailEnmascarado(email: string): string {
-  if (!email || !email.includes('@')) return '***';
-  const [local, dominio] = email.split('@');
-  const inicial = local[0] ?? '';
-  return `${inicial}***@${dominio}`;
-}
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
+  private readonly audit = new AuditLogger();
 
   constructor(
     private usersService: UsersService,
@@ -30,13 +23,17 @@ export class AuthService {
     // tampoco emitimos token: respondemos un payload neutro y el frontend
     // muestra el mismo mensaje en ambos casos.
     if (existe) {
-      this.logger.warn(
-        `Intento de registro con email ya existente=${emailEnmascarado(email)}`,
-      );
+      this.audit.alertar('REGISTRO_EMAIL_DUPLICADO', {
+        email: emailEnmascarado(email),
+      });
       return { pendiente: true };
     }
 
     const usuario = await this.usersService.crear(nombre, email, telefono, password);
+    this.audit.registrar('REGISTRO_OK', {
+      userId: usuario.id,
+      rol: usuario.rol,
+    });
     const token = this.jwtService.sign({
       sub: usuario.id,
       email: usuario.email,
@@ -62,6 +59,10 @@ export class AuthService {
 
     if (usuario.rol !== 'TUTOR') throw new UnauthorizedException('Solo tutores pueden ingresar con Google');
 
+    this.audit.registrar('LOGIN_GOOGLE_OK', {
+      userId: usuario.id,
+      rol: usuario.rol,
+    });
     const token = this.jwtService.sign({
       sub: usuario.id,
       email: usuario.email,
@@ -74,13 +75,14 @@ export class AuthService {
   async login(email: string, password: string, ip?: string) {
     const usuario = await this.usersService.buscarPorEmail(email);
 
-    // Mensaje único en logs para no permitir enumeración de cuentas desde Render
-    // logs (mismo texto si el usuario no existe, si el hash está corrupto o si
+    // Evento único en logs para no permitir enumeración de cuentas desde Render
+    // logs (mismo evento si el usuario no existe, si el hash está corrupto o si
     // la password no coincide).
     const logFallo = () =>
-      this.logger.warn(
-        `Login fallido email=${emailEnmascarado(email)} ip=${ip ?? '?'}`,
-      );
+      this.audit.alertar('LOGIN_FALLIDO', {
+        email: emailEnmascarado(email),
+        ip: ip ?? '?',
+      });
 
     // Defensa contra timing attacks: si el usuario no existe, hacemos un compare
     // dummy para que la latencia sea similar al caso "usuario existe pero pwd mala".
@@ -102,6 +104,11 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    this.audit.registrar('LOGIN_OK', {
+      userId: usuario.id,
+      rol: usuario.rol,
+      ip: ip ?? '?',
+    });
     const token = this.jwtService.sign({
       sub: usuario.id,
       email: usuario.email,

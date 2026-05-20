@@ -1,20 +1,12 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { AuditLogger, emailEnmascarado } from '../common/audit';
 
 // Minutos de validez del token de recuperación.
 const TOKEN_TTL_MINUTOS = 15;
-
-// Enmascara un email para no filtrar PII en logs. "gabriel@gmail.com" -> "g***@gmail.com".
-// Se replica aquí (en auth.service.ts es una función privada de archivo).
-function emailEnmascarado(email: string): string {
-  if (!email || !email.includes('@')) return '***';
-  const [local, dominio] = email.split('@');
-  const inicial = local[0] ?? '';
-  return `${inicial}***@${dominio}`;
-}
 
 // SHA-256 en hex. Igual que se hashea el token antes de guardarlo en la DB.
 function hashToken(token: string): string {
@@ -28,7 +20,7 @@ const MENSAJE_NEUTRO =
 
 @Injectable()
 export class PasswordResetService {
-  private readonly logger = new Logger(PasswordResetService.name);
+  private readonly audit = new AuditLogger();
 
   constructor(
     private prisma: PrismaService,
@@ -46,9 +38,11 @@ export class PasswordResetService {
     const usuario = await this.usersService.buscarPorEmail(email);
 
     if (!usuario) {
-      this.logger.warn(
-        `Solicitud de reset para email no registrado=${emailEnmascarado(email)} ip=${ip ?? '?'}`,
-      );
+      this.audit.alertar('PASSWORD_RESET_SOLICITADO', {
+        resultado: 'EMAIL_NO_REGISTRADO',
+        email: emailEnmascarado(email),
+        ip: ip ?? '?',
+      });
       return { mensaje: MENSAJE_NEUTRO };
     }
 
@@ -57,9 +51,11 @@ export class PasswordResetService {
     // buscarOCrearGoogle al crear la cuenta). Avisamos por correo que ingresen
     // con Google y no generamos token.
     if (usuario.proveedor === 'GOOGLE') {
-      this.logger.warn(
-        `Solicitud de reset sobre cuenta Google=${emailEnmascarado(email)} ip=${ip ?? '?'}`,
-      );
+      this.audit.alertar('PASSWORD_RESET_SOLICITADO', {
+        resultado: 'CUENTA_GOOGLE',
+        userId: usuario.id,
+        ip: ip ?? '?',
+      });
       await this.notificaciones.notificarResetCuentaGoogle(usuario.email);
       return { mensaje: MENSAJE_NEUTRO };
     }
@@ -84,9 +80,11 @@ export class PasswordResetService {
     const urlReset = `${base}/auth/restablecer?token=${tokenEnClaro}`;
     await this.notificaciones.notificarResetPassword(usuario.email, urlReset);
 
-    this.logger.log(
-      `Token de reset emitido para=${emailEnmascarado(email)} ip=${ip ?? '?'}`,
-    );
+    this.audit.registrar('PASSWORD_RESET_SOLICITADO', {
+      resultado: 'TOKEN_EMITIDO',
+      userId: usuario.id,
+      ip: ip ?? '?',
+    });
     return { mensaje: MENSAJE_NEUTRO };
   }
 
@@ -131,9 +129,7 @@ export class PasswordResetService {
     });
 
     await this.notificaciones.notificarPasswordCambiada(usuario.email);
-    this.logger.log(
-      `Contraseña restablecida para=${emailEnmascarado(usuario.email)}`,
-    );
+    this.audit.registrar('PASSWORD_RESET_CONFIRMADO', { userId: usuario.id });
     return { ok: true };
   }
 }

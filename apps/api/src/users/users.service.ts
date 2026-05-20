@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { AuditLogger } from '../common/audit';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
@@ -18,6 +19,8 @@ export const TELEFONO_PENDIENTE = 'PENDIENTE';
 
 @Injectable()
 export class UsersService {
+  private readonly audit = new AuditLogger();
+
   constructor(private prisma: PrismaService) {}
 
   async crear(nombre: string, email: string, telefono: string, password: string) {
@@ -185,6 +188,7 @@ export class UsersService {
       where: { id },
       data: { password: hash, tokenVersion: { increment: 1 } },
     });
+    this.audit.registrar('PASSWORD_CAMBIADA', { userId: id });
     return { ok: true };
   }
 }
