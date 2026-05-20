@@ -20,6 +20,17 @@ interface RequestConUsuario {
   user: { userId: string; email: string; rol: 'TUTOR' | 'ADMIN' };
 }
 
+// Mascota.numero es un autoincrement global. Devolvérselo al tutor permite
+// enumerar el total de mascotas del sistema. Solo ADMIN lo recibe.
+function ocultarNumeroSiTutor<T extends { numero?: number } | null>(
+  rol: 'TUTOR' | 'ADMIN',
+  mascota: T,
+): T {
+  if (rol === 'ADMIN' || mascota == null) return mascota;
+  const { numero: _numero, ...resto } = mascota;
+  return resto as T;
+}
+
 @Controller('mascotas')
 @UseGuards(JwtAuthGuard)
 export class PetsController {
@@ -27,21 +38,25 @@ export class PetsController {
 
   @Post()
   crear(@Req() req: RequestConUsuario, @Body() body: CrearMascotaDto) {
-    if (req.user.rol !== 'ADMIN' && req.user.userId !== body.tutorId) {
-      throw new ForbiddenException('Solo puedes crear mascotas asociadas a tu propio usuario');
-    }
-    return this.petsService.crear(body.nombre, body.tipo, body.raza ?? null, body.edad ?? null, body.tutorId);
+    // El tutorId NUNCA se confía del body para tutores normales: se deriva del
+    // JWT. Solo ADMIN puede crear mascotas para otro tutor explícitamente.
+    const tutorId =
+      req.user.rol === 'ADMIN' && body.tutorId ? body.tutorId : req.user.userId;
+    return this.petsService
+      .crear(body.nombre, body.tipo, body.raza ?? null, body.edad ?? null, tutorId)
+      .then((m) => ocultarNumeroSiTutor(req.user.rol, m));
   }
 
   @Get('tutor/:tutorId')
-  listarPorTutor(
+  async listarPorTutor(
     @Req() req: RequestConUsuario,
     @Param('tutorId', new ParseUUIDPipe()) tutorId: string,
   ) {
     if (req.user.rol !== 'ADMIN' && req.user.userId !== tutorId) {
       throw new ForbiddenException('Solo puedes ver tus propias mascotas');
     }
-    return this.petsService.listarPorTutor(tutorId);
+    const mascotas = await this.petsService.listarPorTutor(tutorId);
+    return mascotas.map((m) => ocultarNumeroSiTutor(req.user.rol, m));
   }
 
   @Get()
@@ -61,6 +76,6 @@ export class PetsController {
     if (req.user.rol !== 'ADMIN' && req.user.userId !== mascota.tutorId) {
       throw new ForbiddenException('No tienes acceso a esta mascota');
     }
-    return mascota;
+    return ocultarNumeroSiTutor(req.user.rol, mascota);
   }
 }

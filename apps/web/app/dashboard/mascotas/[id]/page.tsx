@@ -24,7 +24,6 @@ interface Cita {
 
 interface Mascota {
   id: string;
-  numero?: number;
   nombre: string;
   tipo: string;
   raza?: string;
@@ -199,9 +198,9 @@ export default function PerfilMascota() {
     return `${dia}·${mes}·${anio}`;
   };
 
-  const numeroExpediente = mascota.numero != null
-    ? String(mascota.numero).padStart(3, '0')
-    : '—';
+  // Identificador opaco derivado del UUID (primeros 4 chars, hex). No es
+  // secuencial, así que no permite enumerar el total de mascotas del sistema.
+  const numeroExpediente = mascota.id.replace(/-/g, '').slice(0, 4).toUpperCase();
 
   // Estado clínico
   const estadoClinico: { texto: string; tono: 'al-dia' | 'revisar' } =

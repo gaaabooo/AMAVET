@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -25,7 +26,6 @@ export class CrearCitaDto {
   @IsString({ each: true })
   servicios!: string[];
 
-  @IsString()
-  @MinLength(1)
+  @IsUUID()
   mascotaId!: string;
 }

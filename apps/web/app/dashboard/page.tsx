@@ -73,10 +73,10 @@ export default function Dashboard() {
     setEnviandoMascota(true);
     setErrorMascota(null);
     try {
+      // tutorId se deriva del JWT en el backend; no se envía desde el cliente.
       await api.post('/mascotas', {
         ...nuevaMascota,
         edad: nuevaMascota.edad ? Number(nuevaMascota.edad) : undefined,
-        tutorId: usuario.id,
       });
       setMostrarForm(false);
       setNuevaMascota({ nombre: '', tipo: '', raza: '', edad: '' });

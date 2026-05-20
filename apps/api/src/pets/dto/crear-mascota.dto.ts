@@ -35,6 +35,9 @@ export class CrearMascotaDto {
   @Max(50)
   edad?: number;
 
+  // Solo lo usa ADMIN para crear mascotas para otro tutor. Para tutores
+  // normales el tutorId se deriva del JWT y este campo se ignora.
+  @IsOptional()
   @IsUUID()
-  tutorId!: string;
+  tutorId?: string;
 }

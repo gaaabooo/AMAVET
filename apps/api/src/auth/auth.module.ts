@@ -17,7 +17,7 @@ import { UsersModule } from '../users/users.module';
       useFactory: () => {
         const secret = process.env.JWT_SECRET;
         if (!secret) throw new Error('JWT_SECRET no está definido');
-        const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as `${number}${'s' | 'm' | 'h' | 'd'}`;
+        const expiresIn = (process.env.JWT_EXPIRES_IN ?? '24h') as `${number}${'s' | 'm' | 'h' | 'd'}`;
         return {
           secret,
           signOptions: {
