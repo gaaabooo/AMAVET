@@ -12,9 +12,15 @@ const mockPrisma = {
   cita: {
     create: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    count: jest.fn(),
   },
+  // $transaction ejecuta el callback de inmediato pasándole el propio mock
+  // como cliente transaccional (sin transacción real). La implementación se
+  // (re)aplica en beforeEach porque clearAllMocks la borra.
+  $transaction: jest.fn(),
 };
 
 const mockNotificaciones = {
@@ -36,6 +42,9 @@ describe('CitasService', () => {
 
     service = module.get<CitasService>(CitasService);
     jest.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      (cb: (tx: unknown) => unknown) => cb(mockPrisma),
+    );
   });
 
   describe('crear', () => {
@@ -43,6 +52,8 @@ describe('CitasService', () => {
 
     it('crea la cita y envía notificación', async () => {
       mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(0);
+      mockPrisma.cita.findFirst.mockResolvedValue(null);
       mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
 
       const result = await service.crear(fechaFutura, 'Av. Test 123', ['Consulta'], 'mascota-1');
@@ -50,6 +61,35 @@ describe('CitasService', () => {
       expect(result).toEqual({ id: 'cita-1' });
       expect(mockPrisma.cita.create).toHaveBeenCalledTimes(1);
       expect(mockNotificaciones.notificarCitaAgendada).toHaveBeenCalledTimes(1);
+    });
+
+    it('rechaza la cita si el tutor ya tiene el máximo de citas activas (D-2)', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(10);
+
+      await expect(
+        service.crear(fechaFutura, 'Av. Test', ['Consulta'], 'mascota-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.cita.create).not.toHaveBeenCalled();
+    });
+
+    it('rechaza la cita si hay otra en el mismo horario — doble-booking (D-1)', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(0);
+      mockPrisma.cita.findFirst.mockResolvedValue({ id: 'cita-existente' });
+
+      await expect(
+        service.crear(fechaFutura, 'Av. Test', ['Consulta'], 'mascota-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.cita.create).not.toHaveBeenCalled();
+    });
+
+    it('rechaza la cita si la fecha está demasiado lejos en el futuro', async () => {
+      const muyLejos = new Date(Date.now() + 400 * 86_400_000).toISOString();
+
+      await expect(
+        service.crear(muyLejos, 'Av. Test', ['Consulta'], 'mascota-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('lanza BadRequestException si la fecha es inválida', async () => {
@@ -117,6 +157,24 @@ describe('CitasService', () => {
       await expect(
         service.actualizarEstado('no-existe', 'CANCELADA'),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rechaza cambiar el estado de una cita ya COMPLETADA (D-4)', async () => {
+      mockPrisma.cita.findUnique.mockResolvedValue({ ...citaMock, estado: 'COMPLETADA' });
+
+      await expect(
+        service.actualizarEstado('cita-1', 'PENDIENTE'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.cita.update).not.toHaveBeenCalled();
+    });
+
+    it('rechaza cambiar el estado de una cita ya CANCELADA (D-4)', async () => {
+      mockPrisma.cita.findUnique.mockResolvedValue({ ...citaMock, estado: 'CANCELADA' });
+
+      await expect(
+        service.actualizarEstado('cita-1', 'CONFIRMADA'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.cita.update).not.toHaveBeenCalled();
     });
   });
 
