@@ -1,8 +1,9 @@
 import { setDefaultResultOrder } from 'dns';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 
 // Render no tiene conectividad IPv6 saliente. Forzamos que la resolución DNS
 // devuelva direcciones IPv4 primero para evitar ENETUNREACH al conectar a
@@ -59,6 +60,11 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  // Traduce los errores conocidos de Prisma a códigos HTTP correctos (409, 404,
+  // 400) en vez de dejarlos caer como 500 genérico.
+  const httpAdapterHost = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new PrismaExceptionFilter(httpAdapterHost.httpAdapter));
 
   const allowedOrigins = [
     'http://localhost:3000',

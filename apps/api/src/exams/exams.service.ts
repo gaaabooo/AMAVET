@@ -79,8 +79,17 @@ export class ExamsService {
       bytes: archivo.size,
     });
 
-    // Guardamos la ruta en archivoUrl (no la URL pública).
-    const resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, rutaArchivo);
+    // Compensación: subir a Storage y guardar la ruta en la BD son dos sistemas
+    // distintos, no hay transacción que los abarque. Si el guardado en BD falla,
+    // el archivo ya está en Storage y quedaría huérfano; lo borramos antes de
+    // propagar el error para que un reintento parta limpio.
+    let resultado: Awaited<ReturnType<typeof this.actualizarEstado>>;
+    try {
+      resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, rutaArchivo);
+    } catch (err) {
+      await this.supabase.borrarArchivo(rutaArchivo);
+      throw err;
+    }
 
     // Fire-and-forget: generar la URL firmada y enviar el email no debe
     // bloquear ni demorar la respuesta de la subida.

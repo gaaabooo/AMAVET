@@ -19,6 +19,7 @@ const mockPrisma = {
 
 const mockSupabase = {
   subirArchivo: jest.fn(),
+  borrarArchivo: jest.fn().mockResolvedValue(undefined),
   generarUrlFirmada: jest.fn().mockResolvedValue('https://signed-url.example.com/file.pdf'),
 };
 
@@ -150,6 +151,26 @@ describe('ExamsService', () => {
 
       const archivo = { buffer: Buffer.from('pdf'), size: 3 } as Express.Multer.File;
       await expect(service.subirArchivo('ex-1', archivo)).resolves.toBeDefined();
+    });
+
+    it('borra el archivo de Storage si falla el guardado en BD (compensación M-1)', async () => {
+      const examenMock = {
+        id: 'ex-1',
+        mascota: { nombre: 'Firulais', tutor: { email: 'tutor@test.cl' } },
+      };
+      // findUnique: 1ª vez en buscarPorId (subirArchivo), 2ª en actualizarEstado.
+      mockPrisma.examen.findUnique
+        .mockResolvedValueOnce(examenMock)
+        .mockResolvedValueOnce(examenMock);
+      mockSupabase.subirArchivo.mockResolvedValue(undefined);
+      // El guardado en BD falla después de que el archivo ya subió a Storage.
+      mockPrisma.examen.update.mockRejectedValue(new Error('BD caída'));
+
+      const archivo = { buffer: Buffer.from('pdf'), size: 3 } as Express.Multer.File;
+
+      await expect(service.subirArchivo('ex-1', archivo)).rejects.toThrow('BD caída');
+      // El archivo huérfano se borra para que un reintento parta limpio.
+      expect(mockSupabase.borrarArchivo).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -43,6 +43,21 @@ export class SupabaseService implements OnModuleInit {
     return nombreArchivo;
   }
 
+  /**
+   * Borra un archivo del bucket. Se usa para compensar (rollback) cuando una
+   * operación multi-paso falla después de haber subido el archivo. No lanza:
+   * si el borrado falla, solo se registra — el archivo huérfano es un problema
+   * menor frente a propagar el error original de la operación.
+   */
+  async borrarArchivo(rutaArchivo: string): Promise<void> {
+    const { error } = await this.client.storage.from('Examenes').remove([rutaArchivo]);
+    if (error) {
+      this.logger.error(
+        `No se pudo borrar el archivo huérfano ${rutaArchivo}: ${error.message}`,
+      );
+    }
+  }
+
   async generarUrlFirmada(rutaArchivo: string): Promise<string> {
     const { data, error } = await this.client.storage
       .from('Examenes')
