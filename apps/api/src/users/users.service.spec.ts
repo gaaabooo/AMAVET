@@ -75,6 +75,8 @@ describe('UsersService', () => {
       const data = mockPrisma.user.create.mock.calls[0][0].data;
       expect(data.telefono).toBe(TELEFONO_PENDIENTE);
       expect(data.rol).toBe('TUTOR');
+      // La cuenta creada vía Google se marca con proveedor GOOGLE.
+      expect(data.proveedor).toBe('GOOGLE');
       // El constraint de la DB exige >= 60 chars; un hash bcrypt mide 60.
       expect(data.password.length).toBeGreaterThanOrEqual(60);
       expect(result.telefono).toBe(TELEFONO_PENDIENTE);

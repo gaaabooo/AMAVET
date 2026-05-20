@@ -64,6 +64,7 @@ describe('PasswordResetService', () => {
         id: 'u-1',
         email: 'ana@test.cl',
         telefono: '+56911112222',
+        proveedor: 'LOCAL',
       });
 
       await service.solicitarReset('ana@test.cl', '1.2.3.4');
@@ -87,6 +88,7 @@ describe('PasswordResetService', () => {
         id: 'u-g',
         email: 'google@test.cl',
         telefono: 'PENDIENTE',
+        proveedor: 'GOOGLE',
       });
 
       await service.solicitarReset('google@test.cl', '1.2.3.4');

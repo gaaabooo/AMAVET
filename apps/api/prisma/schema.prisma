@@ -13,6 +13,11 @@ model User {
   telefono    String
   password    String
   rol         Rol       @default(TUTOR)
+  // Origen de la cuenta. LOCAL: registro con email + contraseña. GOOGLE: cuenta
+  // creada vía OAuth de Google, sin contraseña propia utilizable. Reemplaza la
+  // heurística antigua (telefono === 'PENDIENTE') para decidir si una cuenta
+  // puede recuperar contraseña.
+  proveedor   Proveedor @default(LOCAL)
   // Se incrementa al cambiar la contraseña. El JWT lleva este valor en el claim
   // "tv"; si no coincide, JwtStrategy rechaza el token. Permite invalidar
   // sesiones previas sin mantener una lista de tokens emitidos.
@@ -89,6 +94,11 @@ model PasswordResetToken {
 enum Rol {
   TUTOR
   ADMIN
+}
+
+enum Proveedor {
+  LOCAL
+  GOOGLE
 }
 
 enum EstadoExamen {

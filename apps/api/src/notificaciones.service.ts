@@ -10,6 +10,14 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+// Enmascara un email para no filtrar PII en logs. "gabriel@gmail.com" -> "g***@gmail.com".
+function emailEnmascarado(email: string): string {
+  if (!email || !email.includes('@')) return '***';
+  const [local, dominio] = email.split('@');
+  const inicial = local[0] ?? '';
+  return `${inicial}***@${dominio}`;
+}
+
 // Paleta de la marca Silvestra Vet.
 const COLOR = {
   greenDeep: '#0d2818',
@@ -212,7 +220,7 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(email, titulo, html);
     } catch (err) {
       this.logger.warn(
-        `No se pudo enviar notificación de examen a ${email}: ${String(err)}`,
+        `No se pudo enviar notificación de examen a ${emailEnmascarado(email)}: ${String(err)}`,
       );
     }
   }
@@ -251,7 +259,7 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(email, titulo, html);
     } catch (err) {
       this.logger.warn(
-        `No se pudo enviar notificación de cita a ${email}: ${String(err)}`,
+        `No se pudo enviar notificación de cita a ${emailEnmascarado(email)}: ${String(err)}`,
       );
     }
   }
@@ -300,7 +308,7 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(email, titulo, html);
     } catch (err) {
       this.logger.warn(
-        `No se pudo enviar estado de cita a ${email}: ${String(err)}`,
+        `No se pudo enviar estado de cita a ${emailEnmascarado(email)}: ${String(err)}`,
       );
     }
   }
@@ -327,7 +335,7 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(email, titulo, html);
     } catch (err) {
       this.logger.warn(
-        `No se pudo enviar email de reset a ${email}: ${String(err)}`,
+        `No se pudo enviar email de reset a ${emailEnmascarado(email)}: ${String(err)}`,
       );
     }
   }
@@ -356,7 +364,7 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(email, titulo, html);
     } catch (err) {
       this.logger.warn(
-        `No se pudo enviar aviso de cuenta Google a ${email}: ${String(err)}`,
+        `No se pudo enviar aviso de cuenta Google a ${emailEnmascarado(email)}: ${String(err)}`,
       );
     }
   }
@@ -381,7 +389,7 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(email, titulo, html);
     } catch (err) {
       this.logger.warn(
-        `No se pudo enviar confirmación de cambio de password a ${email}: ${String(err)}`,
+        `No se pudo enviar confirmación de cambio de password a ${emailEnmascarado(email)}: ${String(err)}`,
       );
     }
   }

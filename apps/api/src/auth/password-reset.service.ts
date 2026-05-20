@@ -52,15 +52,11 @@ export class PasswordResetService {
       return { mensaje: MENSAJE_NEUTRO };
     }
 
-    // Heurística para detectar cuentas creadas con Google: su contraseña es un
-    // hash de un valor aleatorio impredecible y el teléfono quedó en el
-    // sentinel PENDIENTE hasta que completen el perfil. Como no podemos saber
-    // con certeza el origen sin un campo dedicado, usamos el indicador más
-    // fiable disponible: si el usuario nunca pudo loguearse con password, un
-    // reset no le sirve. Avisamos por correo que use Google y no generamos token.
-    // (Si en el futuro se agrega un campo "proveedor", reemplazar esta lógica.)
-    const esProbableCuentaGoogle = usuario.telefono === 'PENDIENTE';
-    if (esProbableCuentaGoogle) {
+    // Las cuentas creadas con Google no tienen contraseña propia que
+    // restablecer. El campo proveedor lo determina con certeza (lo marca
+    // buscarOCrearGoogle al crear la cuenta). Avisamos por correo que ingresen
+    // con Google y no generamos token.
+    if (usuario.proveedor === 'GOOGLE') {
       this.logger.warn(
         `Solicitud de reset sobre cuenta Google=${emailEnmascarado(email)} ip=${ip ?? '?'}`,
       );

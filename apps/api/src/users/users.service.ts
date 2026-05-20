@@ -114,6 +114,7 @@ export class UsersService {
         telefono: TELEFONO_PENDIENTE,
         password: passwordBloqueada,
         rol: 'TUTOR',
+        proveedor: 'GOOGLE',
       },
     });
     return {
