@@ -1,0 +1,40 @@
+# Monitoreo automático de dependencias. Dependabot abre PRs cuando una
+# dependencia tiene una actualización o un CVE conocido.
+# Docs: https://docs.github.com/code-security/dependabot
+version: 2
+updates:
+  # API (NestJS)
+  - package-ecosystem: npm
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencias
+    # Las actualizaciones mayores se revisan a mano (pueden traer breaking changes).
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Web (Next.js)
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencias
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Las propias GitHub Actions (si en el futuro se agregan workflows).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencias
