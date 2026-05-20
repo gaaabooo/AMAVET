@@ -31,7 +31,12 @@ export class SupabaseService implements OnModuleInit {
         upsert: false,
       });
 
-    if (error) throw new InternalServerErrorException(`Error al subir archivo: ${error.message}`);
+    if (error) {
+      // El detalle del SDK (nombres de bucket, rutas internas) solo va al log
+      // del servidor; al cliente se le devuelve un mensaje genérico.
+      this.logger.error(`Error al subir archivo a Storage: ${error.message}`);
+      throw new InternalServerErrorException('No se pudo subir el archivo');
+    }
 
     // Devolvemos la ruta del archivo, NO una URL pública.
     // Las URLs se generan bajo demanda con createSignedUrl().

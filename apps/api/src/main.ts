@@ -29,8 +29,18 @@ async function bootstrap() {
 
   app.use(
     helmet({
+      // La API solo sirve JSON, no HTML: una CSP aquí no aporta (no se
+      // renderiza nada). La CSP de cara al usuario está en el frontend
+      // (apps/web/next.config.ts).
       contentSecurityPolicy: false,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // HSTS explícito: instruye al navegador/clientes a usar siempre HTTPS
+      // durante 2 años. Render ya fuerza HTTPS; esto cierra el primer request.
+      hsts: {
+        maxAge: 63_072_000,
+        includeSubDomains: true,
+        preload: true,
+      },
     }),
   );
 
