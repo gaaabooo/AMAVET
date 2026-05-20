@@ -8,6 +8,8 @@ import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { SupabaseService } from '../supabase.service';
+import { TurnstileService } from '../common/turnstile.service';
+import { TurnstileGuard } from '../common/turnstile.guard';
 import { NotificacionesModule } from '../notificaciones.module';
 import { UsersModule } from '../users/users.module';
 
@@ -39,6 +41,8 @@ import { UsersModule } from '../users/users.module';
     JwtAuthGuard,
     RolesGuard,
     SupabaseService,
+    TurnstileService,
+    TurnstileGuard,
   ],
   controllers: [AuthController],
   exports: [JwtStrategy, JwtAuthGuard, RolesGuard],

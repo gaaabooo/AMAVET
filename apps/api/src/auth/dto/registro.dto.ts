@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsOptional,
   IsString,
   Length,
   Matches,
@@ -29,4 +30,11 @@ export class RegistroDto {
   @MinLength(8)
   @MaxLength(72)
   password!: string;
+
+  // Token de Cloudflare Turnstile. Lo valida TurnstileGuard; es opcional en el
+  // DTO para no romper la petición cuando Turnstile aún no está configurado.
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  captchaToken?: string;
 }

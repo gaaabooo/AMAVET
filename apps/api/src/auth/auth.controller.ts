@@ -5,11 +5,13 @@ import {
   HttpCode,
   HttpStatus,
   Ip,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { IsString, IsNotEmpty } from 'class-validator';
 import { AuthService } from './auth.service';
 import { PasswordResetService } from './password-reset.service';
+import { TurnstileGuard } from '../common/turnstile.guard';
 import { RegistroDto } from './dto/registro.dto';
 import { LoginDto } from './dto/login.dto';
 import { OlvidePasswordDto } from './dto/olvide-password.dto';
@@ -29,6 +31,7 @@ export class AuthController {
   ) {}
 
   @Post('registro')
+  @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.CREATED)
   registro(@Body() body: RegistroDto) {
@@ -55,6 +58,7 @@ export class AuthController {
   }
 
   @Post('olvide-password')
+  @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 3, ttl: 3_600_000 } })
   @HttpCode(HttpStatus.OK)
   olvidePassword(@Body() body: OlvidePasswordDto, @Ip() ip: string) {

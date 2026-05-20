@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PasswordResetService } from './password-reset.service';
+import { TurnstileGuard } from '../common/turnstile.guard';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -23,7 +24,12 @@ describe('AuthController', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: PasswordResetService, useValue: mockPasswordResetService },
       ],
-    }).compile();
+    })
+      // El captcha se prueba aparte (turnstile.service.spec); aquí el guard
+      // siempre deja pasar.
+      .overrideGuard(TurnstileGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
     jest.clearAllMocks();

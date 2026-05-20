@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
 import { getSupabase } from '../../lib/supabase';
 import Logo from '../../components/Logo';
+import Turnstile, { type TurnstileHandle } from '../auth/_components/Turnstile';
 
 export default function Registro() {
   const router = useRouter();
@@ -12,6 +13,8 @@ export default function Registro() {
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const [mostrarPass, setMostrarPass] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const captchaRef = useRef<TurnstileHandle>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -41,7 +44,7 @@ export default function Registro() {
     setCargando(true);
     setError('');
     try {
-      const res = await api.post('/auth/registro', form);
+      const res = await api.post('/auth/registro', { ...form, captchaToken });
       // Si el correo ya estaba registrado el backend NO devuelve token (para
       // no permitir enumerar cuentas). Redirigimos a login con un mensaje
       // neutro que cubre tanto "nuevo" como "ya existía".
@@ -58,6 +61,9 @@ export default function Registro() {
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
       setError(msg || 'Error al registrarse');
+      // El token de captcha es de un solo uso: tras un envío fallido hay que
+      // pedir uno nuevo o el reintento sería rechazado por duplicado.
+      captchaRef.current?.reset();
     } finally {
       setCargando(false);
     }
@@ -227,6 +233,8 @@ export default function Registro() {
                 {' '}y nuestra{' '}
                 <Link href="/legal/privacidad" className="legal-link">Política de privacidad</Link>.
               </p>
+
+              <Turnstile ref={captchaRef} onToken={setCaptchaToken} />
 
               <button
                 type="submit"

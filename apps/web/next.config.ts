@@ -12,11 +12,15 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      `connect-src 'self' ${API_URL} https://*.supabase.co`,
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // challenges.cloudflare.com en connect-src: el widget Turnstile hace
+      // llamadas XHR a Cloudflare para resolver el challenge.
+      `connect-src 'self' ${API_URL} https://*.supabase.co https://challenges.cloudflare.com`,
+      // challenges.cloudflare.com: script e iframe del captcha Turnstile.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.supabase.co",
+      "frame-src https://challenges.cloudflare.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

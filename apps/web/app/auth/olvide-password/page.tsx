@@ -1,27 +1,42 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import api from '../../../lib/api';
 import Logo from '../../../components/Logo';
 import { AuthCardStyles } from '../_components/AuthCardStyles';
+import Turnstile, { type TurnstileHandle } from '../_components/Turnstile';
 
 export default function OlvidePassword() {
   const [email, setEmail] = useState('');
   const [cargando, setCargando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const captchaRef = useRef<TurnstileHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCargando(true);
     setError('');
     try {
-      await api.post('/auth/olvide-password', { email: email.trim().toLowerCase() });
+      await api.post('/auth/olvide-password', {
+        email: email.trim().toLowerCase(),
+        captchaToken,
+      });
       // Mensaje neutro: se muestra exista o no el correo (anti-enumeración).
       setEnviado(true);
-    } catch {
-      // Aun si el backend falla, no revelamos nada del estado del email.
-      setError('No pudimos procesar la solicitud. Intenta nuevamente en unos minutos.');
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      // El 403 del captcha sí se le informa al usuario (necesita reintentar la
+      // verificación). Cualquier otro error mantiene el mensaje neutro para no
+      // revelar nada del estado del email.
+      if (status === 403) {
+        setError('No pudimos verificar el captcha. Recarga la página e inténtalo de nuevo.');
+      } else {
+        setError('No pudimos procesar la solicitud. Intenta nuevamente en unos minutos.');
+      }
+      // El token de captcha es de un solo uso: pedir uno nuevo tras el fallo.
+      captchaRef.current?.reset();
     } finally {
       setCargando(false);
     }
@@ -77,6 +92,8 @@ export default function OlvidePassword() {
                   className="cp-input"
                 />
               </div>
+
+              <Turnstile ref={captchaRef} onToken={setCaptchaToken} />
 
               <button type="submit" disabled={cargando} className="cp-btn">
                 {cargando ? 'Enviando…' : 'Enviar enlace'}
