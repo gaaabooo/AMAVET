@@ -59,6 +59,14 @@ export class AuthService {
 
     if (usuario.rol !== 'TUTOR') throw new UnauthorizedException('Solo tutores pueden ingresar con Google');
 
+    // Si la cuenta estaba en periodo de gracia de eliminación, autenticarse con
+    // Google (identidad ya probada por Cloudflare/Supabase) la reactiva.
+    const estado = await this.usersService.obtenerEstadoSesion(usuario.id);
+    if (estado?.eliminado) {
+      await this.usersService.reactivar(usuario.id);
+      this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id });
+    }
+
     this.audit.registrar('LOGIN_GOOGLE_OK', {
       userId: usuario.id,
       rol: usuario.rol,
@@ -102,6 +110,14 @@ export class AuthService {
     if (!valido) {
       logFallo();
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    // La cuenta puede estar en periodo de gracia de eliminación. La
+    // reactivación SOLO ocurre aquí, después de comprobar la contraseña: así no
+    // se revela a nadie sin credenciales si una cuenta existe o está eliminada.
+    if (usuario.eliminadoEn) {
+      await this.usersService.reactivar(usuario.id);
+      this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id, ip: ip ?? '?' });
     }
 
     this.audit.registrar('LOGIN_OK', {

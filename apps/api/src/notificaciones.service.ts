@@ -397,4 +397,33 @@ export class NotificacionesService implements OnModuleInit {
       );
     }
   }
+
+  // Confirmación de que la cuenta quedó marcada para eliminación, con el plazo
+  // de gracia durante el cual aún puede recuperarse iniciando sesión.
+  async notificarCuentaEliminada(email: string, diasGracia: number): Promise<void> {
+    const titulo = 'Silvestra Vet · Tu cuenta será eliminada';
+    const html = plantilla({
+      titulo,
+      preheader: `Tu cuenta se eliminará en ${diasGracia} días. Aún puedes recuperarla.`,
+      acento: 'rojo',
+      cuerpoHtml:
+        heading('Tu cuenta será eliminada') +
+        parrafo(
+          `Recibimos tu solicitud para eliminar tu cuenta de Silvestra Vet. Tus datos se conservarán durante <strong>${diasGracia} días</strong> y luego se borrarán de forma definitiva.`,
+        ) +
+        parrafo(
+          'Si cambias de opinión dentro de ese plazo, solo vuelve a iniciar sesión con tu correo y contraseña y tu cuenta se reactivará automáticamente.',
+        ) +
+        nota(
+          'Si no solicitaste esto, inicia sesión cuanto antes para reactivar tu cuenta y cambia tu contraseña.',
+        ),
+    });
+    try {
+      await this.enviar(email, titulo, html);
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar aviso de cuenta eliminada a ${emailEnmascarado(email)}: ${String(err)}`,
+      );
+    }
+  }
 }

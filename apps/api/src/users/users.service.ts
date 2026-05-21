@@ -130,14 +130,21 @@ export class UsersService {
     };
   }
 
-  // Usado por JwtStrategy para validar que el token no fue emitido antes de un
-  // cambio de contraseña. Devuelve null si el usuario ya no existe.
-  async obtenerTokenVersion(id: string): Promise<number | null> {
+  // Usado por JwtStrategy para validar la sesión: que el token no sea anterior
+  // a un cambio de contraseña (tokenVersion) y que la cuenta no esté eliminada.
+  // Devuelve null si el usuario ya no existe.
+  async obtenerEstadoSesion(
+    id: string,
+  ): Promise<{ tokenVersion: number; eliminado: boolean } | null> {
     const usuario = await this.prisma.user.findUnique({
       where: { id },
-      select: { tokenVersion: true },
+      select: { tokenVersion: true, eliminadoEn: true },
     });
-    return usuario?.tokenVersion ?? null;
+    if (!usuario) return null;
+    return {
+      tokenVersion: usuario.tokenVersion,
+      eliminado: usuario.eliminadoEn !== null,
+    };
   }
 
   // Resetea la contraseña SIN exigir la contraseña actual. Lo usa el flujo de
@@ -190,5 +197,37 @@ export class UsersService {
     });
     this.audit.registrar('PASSWORD_CAMBIADA', { userId: id });
     return { ok: true };
+  }
+
+  // Marca la cuenta para soft-delete e invalida sus sesiones. No borra datos.
+  async marcarEliminada(id: string): Promise<void> {
+    const usuario = await this.prisma.user.findUnique({ where: { id } });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    if (usuario.eliminadoEn) {
+      throw new BadRequestException('La cuenta ya está marcada para eliminación');
+    }
+    await this.prisma.user.update({
+      where: { id },
+      // Incrementar tokenVersion cierra todas las sesiones activas de inmediato.
+      data: { eliminadoEn: new Date(), tokenVersion: { increment: 1 } },
+    });
+  }
+
+  // Reactiva una cuenta dentro del periodo de gracia (limpia eliminadoEn).
+  async reactivar(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { eliminadoEn: null },
+    });
+  }
+
+  // Devuelve las cuentas cuyo periodo de gracia ya venció (listas para purgar),
+  // limitadas a un lote para no exceder el timeout de la purga.
+  async listarVencidasParaPurga(antesDe: Date, limite: number) {
+    return this.prisma.user.findMany({
+      where: { eliminadoEn: { not: null, lt: antesDe } },
+      select: { id: true, email: true },
+      take: limite,
+    });
   }
 }

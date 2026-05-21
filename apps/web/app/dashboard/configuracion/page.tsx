@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { getSesion } from '@/lib/session';
+import { getSesion, clearSesion } from '@/lib/session';
 import DashboardNav from '@/components/DashboardNav';
 
 interface Usuario {
@@ -35,6 +35,12 @@ export default function Configuracion() {
   const [guardandoPass, setGuardandoPass] = useState(false);
   const [passOk, setPassOk] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
+
+  // Eliminar cuenta
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [emailConfirma, setEmailConfirma] = useState('');
+  const [eliminando, setEliminando] = useState(false);
+  const [eliminarError, setEliminarError] = useState<string | null>(null);
 
   useEffect(() => {
     const sesion = getSesion();
@@ -123,6 +129,27 @@ export default function Configuracion() {
       setPassError(msg || 'No se pudo actualizar la contraseña.');
     } finally {
       setGuardandoPass(false);
+    }
+  };
+
+  const eliminarCuenta = async () => {
+    if (!usuario) return;
+    setEliminarError(null);
+    // Doble confirmación: el correo escrito debe coincidir con el de la cuenta.
+    if (emailConfirma.trim().toLowerCase() !== usuario.email.toLowerCase()) {
+      setEliminarError('El correo no coincide con el de tu cuenta.');
+      return;
+    }
+    setEliminando(true);
+    try {
+      await api.delete('/cuenta');
+      // La cuenta quedó marcada para eliminación y la sesión, invalidada.
+      clearSesion();
+      router.push('/login?cuenta=eliminada');
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message;
+      setEliminarError(msg || 'No se pudo eliminar la cuenta. Intenta nuevamente.');
+      setEliminando(false);
     }
   };
 
@@ -356,6 +383,73 @@ export default function Configuracion() {
                   Ir a soporte
                 </button>
               </div>
+            </section>
+
+            {/* Eliminar cuenta */}
+            <section id="eliminar" className="cfg-section cfg-section-danger" data-num="04">
+              <div className="cfg-section-head">
+                <span className="cfg-section-num cfg-section-num-danger">§ 04</span>
+                <h2 className="cfg-section-title">Eliminar <em>cuenta</em></h2>
+              </div>
+              <p className="cfg-section-lead">
+                Al eliminar tu cuenta se borrarán tus mascotas, exámenes y citas.
+                Tendrás 30 días para recuperarla: solo vuelve a iniciar sesión
+                dentro de ese plazo y se reactivará. Pasados los 30 días, los
+                datos se borran de forma definitiva.
+              </p>
+
+              {!mostrarConfirmacion ? (
+                <button
+                  type="button"
+                  onClick={() => { setMostrarConfirmacion(true); setEliminarError(null); }}
+                  className="btn-danger"
+                >
+                  Eliminar mi cuenta
+                </button>
+              ) : (
+                <div className="cfg-danger-box">
+                  <p className="cfg-danger-prompt">
+                    Para confirmar, escribe tu correo <strong>{usuario?.email}</strong>:
+                  </p>
+                  <input
+                    type="email"
+                    value={emailConfirma}
+                    onChange={(e) => setEmailConfirma(e.target.value)}
+                    placeholder="tu@correo.com"
+                    autoComplete="off"
+                    className="cfg-input"
+                  />
+                  {eliminarError && (
+                    <p className="cfg-danger-error" role="alert">{eliminarError}</p>
+                  )}
+                  <div className="cfg-danger-actions">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMostrarConfirmacion(false);
+                        setEmailConfirma('');
+                        setEliminarError(null);
+                      }}
+                      className="btn-ghost"
+                      disabled={eliminando}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={eliminarCuenta}
+                      className="btn-danger"
+                      disabled={
+                        eliminando ||
+                        emailConfirma.trim().toLowerCase() !==
+                          (usuario?.email ?? '').toLowerCase()
+                      }
+                    >
+                      {eliminando ? 'Eliminando…' : 'Confirmar eliminación'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
 
           </div>
@@ -706,6 +800,46 @@ function CfgStyles() {
         transition: all .15s ease;
       }
       .dash-bg .btn-ghost:hover { border-color: var(--d-green-mid); background: var(--d-bg-soft); }
+
+      /* Eliminar cuenta (sección de peligro) */
+      .dash-bg .btn-danger {
+        font-family: var(--font-manrope), system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 0.84rem;
+        padding: 0.65rem 1.1rem;
+        border-radius: 12px;
+        border: 1px solid var(--d-rose);
+        background: transparent;
+        color: var(--d-rose);
+        cursor: pointer;
+        transition: all .15s ease;
+      }
+      .dash-bg .btn-danger:hover:not(:disabled) {
+        background: var(--d-rose);
+        color: #fff;
+      }
+      .dash-bg .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+      .dash-bg .cfg-section-num-danger { color: var(--d-rose); }
+      .dash-bg .cfg-danger-box {
+        margin-top: 8px;
+        padding: 18px;
+        background: var(--d-rose-soft);
+        border: 1px solid var(--d-rose);
+        border-radius: 14px;
+      }
+      .dash-bg .cfg-danger-prompt {
+        font-size: 0.9rem;
+        color: var(--d-green-deep);
+        margin: 0 0 12px;
+      }
+      .dash-bg .cfg-danger-error {
+        color: var(--d-rose);
+        font-size: 0.82rem;
+        margin: 8px 0 0;
+      }
+      .dash-bg .cfg-danger-actions {
+        display: flex; gap: 10px; margin-top: 14px;
+      }
 
       /* Email read-only */
       .dash-bg .email-readonly {

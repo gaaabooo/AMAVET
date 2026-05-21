@@ -110,15 +110,54 @@ describe('UsersService', () => {
     });
   });
 
-  describe('obtenerTokenVersion', () => {
-    it('devuelve el tokenVersion del usuario', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ tokenVersion: 5 });
-      expect(await service.obtenerTokenVersion('u-1')).toBe(5);
+  describe('obtenerEstadoSesion', () => {
+    it('devuelve tokenVersion y eliminado=false para una cuenta activa', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ tokenVersion: 5, eliminadoEn: null });
+      expect(await service.obtenerEstadoSesion('u-1')).toEqual({
+        tokenVersion: 5,
+        eliminado: false,
+      });
+    });
+
+    it('devuelve eliminado=true si la cuenta tiene eliminadoEn', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        tokenVersion: 2,
+        eliminadoEn: new Date(),
+      });
+      expect(await service.obtenerEstadoSesion('u-1')).toEqual({
+        tokenVersion: 2,
+        eliminado: true,
+      });
     });
 
     it('devuelve null si el usuario no existe', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
-      expect(await service.obtenerTokenVersion('no-existe')).toBeNull();
+      expect(await service.obtenerEstadoSesion('no-existe')).toBeNull();
+    });
+  });
+
+  describe('marcarEliminada', () => {
+    it('marca eliminadoEn e incrementa tokenVersion', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u-1', eliminadoEn: null });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u-1' });
+      await service.marcarEliminada('u-1');
+      const data = mockPrisma.user.update.mock.calls[0][0].data;
+      expect(data.eliminadoEn).toBeInstanceOf(Date);
+      expect(data.tokenVersion).toEqual({ increment: 1 });
+    });
+
+    it('rechaza si la cuenta ya estaba marcada para eliminación', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u-1', eliminadoEn: new Date() });
+      await expect(service.marcarEliminada('u-1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.marcarEliminada('no-existe')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });

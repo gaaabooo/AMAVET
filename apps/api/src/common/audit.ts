@@ -16,7 +16,10 @@ export type EventoAuditoria =
   | 'PASSWORD_RESET_CONFIRMADO'
   | 'EXAMEN_CREADO'
   | 'EXAMEN_ESTADO_ACTUALIZADO'
-  | 'EXAMEN_ARCHIVO_SUBIDO';
+  | 'EXAMEN_ARCHIVO_SUBIDO'
+  | 'CUENTA_ELIMINADA'
+  | 'CUENTA_REACTIVADA'
+  | 'CUENTA_PURGADA';
 
 // Enmascara un email para no filtrar PII en logs. "gabriel@gmail.com" -> "g***@gmail.com".
 export function emailEnmascarado(email: string | undefined | null): string {

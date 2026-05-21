@@ -32,13 +32,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     // El claim "tv" debe coincidir con el tokenVersion actual del usuario. Si la
     // contraseña se cambió después de emitir este token, tokenVersion en la BD
-    // será mayor y el token queda invalidado. También rechaza si el usuario fue
-    // eliminado.
-    const tokenVersionActual = await this.usersService.obtenerTokenVersion(payload.sub);
-    if (tokenVersionActual === null) {
+    // será mayor y el token queda invalidado. También se rechaza si el usuario
+    // ya no existe o si su cuenta está marcada para eliminación.
+    const estado = await this.usersService.obtenerEstadoSesion(payload.sub);
+    if (estado === null) {
       throw new UnauthorizedException('La cuenta ya no existe');
     }
-    if ((payload.tv ?? 0) !== tokenVersionActual) {
+    if (estado.eliminado) {
+      throw new UnauthorizedException('La cuenta está eliminada');
+    }
+    if ((payload.tv ?? 0) !== estado.tokenVersion) {
       throw new UnauthorizedException('Sesión expirada, vuelve a iniciar sesión');
     }
     return { userId: payload.sub, email: payload.email, rol: payload.rol };

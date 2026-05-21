@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { PetsModule } from './pets/pets.module';
 import { ExamsModule } from './exams/exams.module';
 import { CitasModule } from './citas/citas.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CitasModule } from './citas/citas.module';
     PetsModule,
     ExamsModule,
     CitasModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [

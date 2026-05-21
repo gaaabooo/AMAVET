@@ -10,6 +10,8 @@ const mockUsersService = {
   buscarPorEmail: jest.fn(),
   crear: jest.fn(),
   buscarOCrearGoogle: jest.fn(),
+  obtenerEstadoSesion: jest.fn().mockResolvedValue({ tokenVersion: 0, eliminado: false }),
+  reactivar: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockJwtService = {
@@ -35,6 +37,13 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     jest.clearAllMocks();
+    // Por defecto: cuenta activa y sin cambios de tokenVersion.
+    mockUsersService.obtenerEstadoSesion.mockResolvedValue({
+      tokenVersion: 0,
+      eliminado: false,
+    });
+    mockUsersService.reactivar.mockResolvedValue(undefined);
+    mockJwtService.sign.mockReturnValue('signed-token');
   });
 
   describe('registro', () => {

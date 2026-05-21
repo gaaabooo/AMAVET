@@ -22,12 +22,18 @@ model User {
   // "tv"; si no coincide, JwtStrategy rechaza el token. Permite invalidar
   // sesiones previas sin mantener una lista de tokens emitidos.
   tokenVersion Int      @default(0)
+  // Soft-delete. null = cuenta activa. Cuando el usuario elimina su cuenta se
+  // marca con la fecha; tras 30 días un proceso de purga la borra de forma
+  // definitiva. Durante ese plazo el login está bloqueado pero la cuenta puede
+  // reactivarse iniciando sesión con las credenciales correctas.
+  eliminadoEn DateTime?
   mascotas    Mascota[]
   resetTokens PasswordResetToken[]
   creadoEn    DateTime  @default(now())
   actualizadoEn DateTime @updatedAt
 
   @@index([rol])
+  @@index([eliminadoEn])
 }
 
 model Mascota {

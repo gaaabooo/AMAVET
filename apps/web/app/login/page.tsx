@@ -39,6 +39,12 @@ function LoginContenido() {
         'Tu contraseña fue actualizada. Ingresa con tu nueva contraseña.',
       );
     }
+    // Tras eliminar la cuenta desde Configuración.
+    if (searchParams.get('cuenta') === 'eliminada') {
+      setAviso(
+        'Tu cuenta fue eliminada. Tienes 30 días para recuperarla: solo inicia sesión de nuevo dentro de ese plazo.',
+      );
+    }
   }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
