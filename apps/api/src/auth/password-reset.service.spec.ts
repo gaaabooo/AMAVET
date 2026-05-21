@@ -5,6 +5,8 @@ import { PasswordResetService } from './password-reset.service';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { AuditService } from '../common/audit.service';
+import { mockAuditService } from '../common/audit.mock';
 
 const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
 
@@ -41,6 +43,7 @@ describe('PasswordResetService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: UsersService, useValue: mockUsersService },
         { provide: NotificacionesService, useValue: mockNotificaciones },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 

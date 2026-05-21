@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UsersService, TELEFONO_PENDIENTE } from './users.service';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit.service';
+import { mockAuditService } from '../common/audit.mock';
 import * as bcrypt from 'bcryptjs';
 
 describe('UsersService', () => {
@@ -16,6 +18,7 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 

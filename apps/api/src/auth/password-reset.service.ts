@@ -3,7 +3,8 @@ import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { NotificacionesService } from '../notificaciones.service';
-import { AuditLogger, emailEnmascarado } from '../common/audit';
+import { emailEnmascarado } from '../common/audit';
+import { AuditService } from '../common/audit.service';
 
 // Minutos de validez del token de recuperación.
 const TOKEN_TTL_MINUTOS = 15;
@@ -20,12 +21,11 @@ const MENSAJE_NEUTRO =
 
 @Injectable()
 export class PasswordResetService {
-  private readonly audit = new AuditLogger();
-
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
     private notificaciones: NotificacionesService,
+    private audit: AuditService,
   ) {}
 
   /**

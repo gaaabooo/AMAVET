@@ -1,5 +1,4 @@
-import { Logger } from '@nestjs/common';
-import { AuditLogger, emailEnmascarado } from './audit';
+import { emailEnmascarado, valorSeguro } from './audit';
 
 describe('emailEnmascarado', () => {
   it('enmascara el local part dejando solo la inicial', () => {
@@ -13,44 +12,20 @@ describe('emailEnmascarado', () => {
   });
 });
 
-describe('AuditLogger', () => {
-  let audit: AuditLogger;
-  let logSpy: jest.SpyInstance;
-  let warnSpy: jest.SpyInstance;
-
-  beforeEach(() => {
-    audit = new AuditLogger();
-    logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
-    warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('registrar() emite un log en formato key=value', () => {
-    audit.registrar('LOGIN_OK', { userId: 'abc', rol: 'ADMIN' });
-    expect(logSpy).toHaveBeenCalledWith('evento=LOGIN_OK userId=abc rol=ADMIN');
-  });
-
-  it('alertar() emite un warn', () => {
-    audit.alertar('LOGIN_FALLIDO', { ip: '1.2.3.4' });
-    expect(warnSpy).toHaveBeenCalledWith('evento=LOGIN_FALLIDO ip=1.2.3.4');
-  });
-
-  it('omite los campos undefined o null', () => {
-    audit.registrar('EXAMEN_CREADO', { examenId: 'e1', mascotaId: undefined });
-    expect(logSpy).toHaveBeenCalledWith('evento=EXAMEN_CREADO examenId=e1');
-  });
-
-  it('sanea saltos de línea para evitar inyección de logs (CWE-117)', () => {
-    audit.alertar('LOGIN_FALLIDO', { ip: '1.2.3.4\nevento=LOGIN_OK userId=fake' });
-    const arg = warnSpy.mock.calls[0][0] as string;
-    expect(arg).not.toContain('\n');
+describe('valorSeguro', () => {
+  it('quita saltos de línea (evita inyección de logs, CWE-117)', () => {
+    expect(valorSeguro('1.2.3.4\nevento=LOGIN_OK')).not.toContain('\n');
   });
 
   it('entrecomilla los valores con espacios', () => {
-    audit.registrar('EXAMEN_CREADO', { nota: 'con espacios' });
-    expect(logSpy).toHaveBeenCalledWith('evento=EXAMEN_CREADO nota="con espacios"');
+    expect(valorSeguro('con espacios')).toBe('"con espacios"');
+  });
+
+  it('deja los valores simples sin comillas', () => {
+    expect(valorSeguro('abc123')).toBe('abc123');
+  });
+
+  it('recorta valores muy largos', () => {
+    expect(valorSeguro('x'.repeat(500)).length).toBeLessThanOrEqual(202);
   });
 });

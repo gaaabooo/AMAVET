@@ -4,6 +4,8 @@ import { ExamsService } from './exams.service';
 import { PrismaService } from '../prisma.service';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { AuditService } from '../common/audit.service';
+import { mockAuditService } from '../common/audit.mock';
 
 const mockPrisma = {
   examen: {
@@ -37,6 +39,7 @@ describe('ExamsService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: SupabaseService, useValue: mockSupabase },
         { provide: NotificacionesService, useValue: mockNotificaciones },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 

@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
-import { AuditLogger } from '../common/audit';
+import { AuditService } from '../common/audit.service';
 
 // Días que una cuenta marcada para eliminación permanece recuperable antes de
 // que la purga la borre definitivamente.
@@ -15,13 +15,14 @@ const MAX_PURGA_POR_LOTE = 100;
 
 @Injectable()
 export class AccountService {
-  private readonly audit = new AuditLogger();
+  private readonly logger = new Logger(AccountService.name);
 
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
     private supabase: SupabaseService,
     private notificaciones: NotificacionesService,
+    private audit: AuditService,
   ) {}
 
   /**
@@ -109,12 +110,18 @@ export class AccountService {
         }
       } catch (err) {
         // Si una cuenta falla, se registra y se sigue con las demás: no dejar
-        // que un error puntual bloquee toda la purga.
+        // que un error puntual bloquee toda la purga. Se registra solo el TIPO
+        // de error, no el mensaje crudo: un error de Prisma puede contener
+        // fragmentos de query con datos de fila (PII).
+        const tipoError = err instanceof Error ? err.name : 'Error';
         this.audit.alertar('CUENTA_PURGADA', {
           userId: cuenta.id,
           resultado: 'ERROR',
-          detalle: String(err),
+          tipoError,
         });
+        this.logger.error(
+          `Error al purgar la cuenta ${cuenta.id}: ${String(err)}`,
+        );
       }
     }
     return { purgadas };

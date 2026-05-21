@@ -5,6 +5,8 @@ import { AuthService } from './auth.service';
 import { UsersService, TELEFONO_PENDIENTE } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
 import { LoginLockoutService } from './login-lockout.service';
+import { AuditService } from '../common/audit.service';
+import { mockAuditService } from '../common/audit.mock';
 import * as bcrypt from 'bcryptjs';
 
 const mockUsersService = {
@@ -39,6 +41,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: SupabaseService, useValue: mockSupabaseService },
         { provide: LoginLockoutService, useValue: mockLockout },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 

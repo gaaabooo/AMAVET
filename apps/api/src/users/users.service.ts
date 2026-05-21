@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { AuditLogger } from '../common/audit';
+import { AuditService } from '../common/audit.service';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
@@ -19,9 +19,10 @@ export const TELEFONO_PENDIENTE = 'PENDIENTE';
 
 @Injectable()
 export class UsersService {
-  private readonly audit = new AuditLogger();
-
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   async crear(nombre: string, email: string, telefono: string, password: string) {
     if (!password || password.length < MIN_PASSWORD_LENGTH) {

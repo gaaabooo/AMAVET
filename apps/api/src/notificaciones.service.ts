@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import sgMail from '@sendgrid/mail';
+import { emailEnmascarado } from './common/audit';
 
 function escapeHtml(str: string): string {
   return str
@@ -8,14 +9,6 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
-}
-
-// Enmascara un email para no filtrar PII en logs. "gabriel@gmail.com" -> "g***@gmail.com".
-function emailEnmascarado(email: string): string {
-  if (!email || !email.includes('@')) return '***';
-  const [local, dominio] = email.split('@');
-  const inicial = local[0] ?? '';
-  return `${inicial}***@${dominio}`;
 }
 
 // Paleta de la marca Silvestra Vet.
@@ -424,6 +417,40 @@ export class NotificacionesService implements OnModuleInit {
       this.logger.warn(
         `No se pudo enviar aviso de cuenta eliminada a ${emailEnmascarado(email)}: ${String(err)}`,
       );
+    }
+  }
+
+  // Alerta de seguridad al administrador (fuerza bruta, login admin desde IP
+  // nueva, etc.). El destino es ADMIN_ALERT_EMAIL; si no está configurado, la
+  // alerta solo queda en el log y en el audit trail.
+  // Devuelve true si el correo se envió, false si no (sin destino o fallo) —
+  // así quien llama puede decidir si marca el cooldown.
+  async notificarAlertaSeguridad(titulo: string, detalle: string): Promise<boolean> {
+    const destino = process.env.ADMIN_ALERT_EMAIL;
+    if (!destino) {
+      this.logger.warn(
+        'ADMIN_ALERT_EMAIL no configurada: la alerta de seguridad no se envió por correo.',
+      );
+      return false;
+    }
+    const asunto = `Silvestra Vet · Alerta de seguridad — ${titulo}`;
+    const html = plantilla({
+      titulo: asunto,
+      preheader: detalle,
+      acento: 'rojo',
+      cuerpoHtml:
+        heading('Alerta de seguridad') +
+        parrafo(escapeHtml(detalle)) +
+        nota(
+          'Revisa el panel de auditoría para más detalle. Si confirmas actividad maliciosa, cambia las credenciales afectadas.',
+        ),
+    });
+    try {
+      await this.enviar(destino, asunto, html);
+      return true;
+    } catch (err) {
+      this.logger.warn(`No se pudo enviar la alerta de seguridad: ${String(err)}`);
+      return false;
     }
   }
 }

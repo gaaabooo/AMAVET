@@ -3,18 +3,18 @@ import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
-import { AuditLogger } from '../common/audit';
+import { AuditService } from '../common/audit.service';
 import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ExamsService {
   private readonly logger = new Logger(ExamsService.name);
-  private readonly audit = new AuditLogger();
 
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(SupabaseService) private supabase: SupabaseService,
     @Inject(NotificacionesService) private notificaciones: NotificacionesService,
+    private audit: AuditService,
   ) {}
 
   async crear(tipo: string, mascotaId: string) {

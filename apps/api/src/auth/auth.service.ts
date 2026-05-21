@@ -3,21 +3,27 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
 import { LoginLockoutService } from './login-lockout.service';
-import { AuditLogger, emailEnmascarado } from '../common/audit';
+import { emailEnmascarado } from '../common/audit';
+import { AuditService } from '../common/audit.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
-  private readonly audit = new AuditLogger();
-
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private supabaseService: SupabaseService,
     private lockout: LoginLockoutService,
+    private audit: AuditService,
   ) {}
 
-  async registro(nombre: string, email: string, telefono: string, password: string) {
+  async registro(
+    nombre: string,
+    email: string,
+    telefono: string,
+    password: string,
+    ip?: string,
+  ) {
     const existe = await this.usersService.buscarPorEmail(email);
 
     // Para no permitir enumeración de cuentas, NUNCA revelamos si el email ya
@@ -27,6 +33,7 @@ export class AuthService {
     if (existe) {
       this.audit.alertar('REGISTRO_EMAIL_DUPLICADO', {
         email: emailEnmascarado(email),
+        ip: ip ?? '?',
       });
       return { pendiente: true };
     }
@@ -35,6 +42,7 @@ export class AuthService {
     this.audit.registrar('REGISTRO_OK', {
       userId: usuario.id,
       rol: usuario.rol,
+      ip: ip ?? '?',
     });
     const token = this.jwtService.sign({
       sub: usuario.id,

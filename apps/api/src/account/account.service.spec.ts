@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { AuditService } from '../common/audit.service';
+import { mockAuditService } from '../common/audit.mock';
 
 // Cliente Prisma transaccional simulado.
 const txMock = {
@@ -42,6 +44,7 @@ describe('AccountService', () => {
         { provide: UsersService, useValue: mockUsersService },
         { provide: SupabaseService, useValue: mockSupabase },
         { provide: NotificacionesService, useValue: mockNotificaciones },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 

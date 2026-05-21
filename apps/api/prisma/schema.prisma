@@ -112,6 +112,31 @@ model LoginIntento {
   @@index([creadoEn])
 }
 
+// Bitácora de seguridad persistente. Cada evento auditable (login, registro,
+// cambios de cuenta, etc.) deja una fila aquí además del log a stdout. Permite
+// consultar el historial desde el panel de admin, detectar patrones
+// sospechosos y conservar trazas para análisis forense (retención 90 días).
+model AuditLog {
+  id        String   @id @default(uuid())
+  // Nombre del evento (EventoAuditoria): LOGIN_OK, LOGIN_FALLIDO, etc.
+  evento    String
+  // true para eventos sospechosos/fallidos (alertar), false para eventos OK.
+  alerta    Boolean  @default(false)
+  // userId asociado al evento, si aplica.
+  userId    String?
+  // IP de origen, si aplica.
+  ip        String?
+  // Resto de datos del evento, como JSON (sin PII cruda: emails enmascarados).
+  datos     Json?
+  creadoEn  DateTime @default(now())
+
+  @@index([evento, creadoEn])
+  @@index([userId, creadoEn])
+  @@index([creadoEn])
+  // Para la detección de fuerza bruta, que filtra por ip + evento + ventana.
+  @@index([ip, evento, creadoEn])
+}
+
 enum Rol {
   TUTOR
   ADMIN

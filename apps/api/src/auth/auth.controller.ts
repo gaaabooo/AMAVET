@@ -34,12 +34,13 @@ export class AuthController {
   @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.CREATED)
-  registro(@Body() body: RegistroDto) {
+  registro(@Body() body: RegistroDto, @Ip() ip: string) {
     return this.authService.registro(
       body.nombre,
       body.email,
       body.telefono,
       body.password,
+      ip,
     );
   }
 
