@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit.service';
+import { NotificacionesService } from '../notificaciones.service';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
@@ -22,6 +23,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private notificaciones: NotificacionesService,
   ) {}
 
   async crear(nombre: string, email: string, telefono: string, password: string) {
@@ -197,6 +199,9 @@ export class UsersService {
       data: { password: hash, tokenVersion: { increment: 1 } },
     });
     this.audit.registrar('PASSWORD_CAMBIADA', { userId: id });
+    // Aviso al usuario: si no fue él, es su red de seguridad para reaccionar.
+    // Fire-and-forget: el email no debe bloquear ni romper el cambio.
+    void this.notificaciones.notificarPasswordCambiada(usuario.email);
     return { ok: true };
   }
 

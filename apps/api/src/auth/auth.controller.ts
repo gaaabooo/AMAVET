@@ -54,8 +54,8 @@ export class AuthController {
   @Post('google')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
-  loginGoogle(@Body() body: GoogleLoginDto) {
-    return this.authService.loginConGoogle(body.accessToken);
+  loginGoogle(@Body() body: GoogleLoginDto, @Ip() ip: string) {
+    return this.authService.loginConGoogle(body.accessToken, ip);
   }
 
   @Post('olvide-password')

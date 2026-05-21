@@ -31,6 +31,38 @@ export class AuditService {
     this.procesar(evento, datos, true);
   }
 
+  // Eventos que cuentan como "inicio de sesión" para la detección de IP nueva:
+  // tanto el login con email/password como el de Google.
+  private static readonly EVENTOS_LOGIN = ['LOGIN_OK', 'LOGIN_GOOGLE_OK'];
+
+  /**
+   * Indica si un usuario ya había iniciado sesión antes desde una IP dada
+   * (según el audit trail, incluyendo logins con Google). Útil para avisar de
+   * logins desde ubicaciones nuevas. Devuelve true ante un error de consulta
+   * (fail-safe: no avisar de más por un fallo técnico).
+   */
+  async ipConocidaParaUsuario(userId: string, ip: string): Promise<boolean> {
+    try {
+      const previos = await this.prisma.auditLog.count({
+        where: { evento: { in: AuditService.EVENTOS_LOGIN }, userId, ip },
+      });
+      return previos > 0;
+    } catch {
+      return true;
+    }
+  }
+
+  /** Nº total de inicios de sesión de un usuario en el audit trail. */
+  async loginsPreviosDeUsuario(userId: string): Promise<number> {
+    try {
+      return await this.prisma.auditLog.count({
+        where: { evento: { in: AuditService.EVENTOS_LOGIN }, userId },
+      });
+    } catch {
+      return 0;
+    }
+  }
+
   private procesar(
     evento: EventoAuditoria,
     datos: Record<string, unknown>,

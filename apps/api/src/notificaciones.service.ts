@@ -420,6 +420,69 @@ export class NotificacionesService implements OnModuleInit {
     }
   }
 
+  // Aviso al usuario de un inicio de sesión desde una IP nunca usada antes
+  // para su cuenta. Es su red de seguridad si alguien accedió sin permiso.
+  async notificarLoginNuevaUbicacion(
+    email: string,
+    ip: string,
+    fecha: Date,
+  ): Promise<void> {
+    const titulo = 'Silvestra Vet · Nuevo inicio de sesión en tu cuenta';
+    const html = plantilla({
+      titulo,
+      preheader: 'Detectamos un inicio de sesión desde un lugar nuevo.',
+      cuerpoHtml:
+        heading('Nuevo inicio de sesión') +
+        parrafo(
+          'Detectamos un inicio de sesión en tu cuenta de Silvestra Vet desde una conexión que no habíamos visto antes.',
+        ) +
+        tablaDetalles(
+          detalleFila('Fecha', this.formatearFecha(fecha)) +
+            detalleFila('Hora', this.formatearHora(fecha)) +
+            detalleFila('Dirección IP', escapeHtml(ip)),
+        ) +
+        nota(
+          'Si fuiste tú, puedes ignorar este correo. Si no reconoces este acceso, cambia tu contraseña de inmediato desde tu panel de configuración.',
+        ),
+    });
+    try {
+      await this.enviar(email, titulo, html);
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar aviso de nuevo inicio de sesión a ${emailEnmascarado(email)}: ${String(err)}`,
+      );
+    }
+  }
+
+  // Aviso al usuario de que su cuenta, que estaba marcada para eliminación, fue
+  // reactivada al iniciar sesión dentro del periodo de gracia.
+  async notificarCuentaReactivada(email: string, fecha: Date): Promise<void> {
+    const titulo = 'Silvestra Vet · Tu cuenta fue reactivada';
+    const html = plantilla({
+      titulo,
+      preheader: 'Cancelamos la eliminación de tu cuenta.',
+      cuerpoHtml:
+        heading('Tu cuenta fue reactivada') +
+        parrafo(
+          'Tu cuenta de Silvestra Vet estaba marcada para eliminación. Como volviste a iniciar sesión dentro del plazo de gracia, cancelamos la eliminación: tu cuenta y tus datos siguen activos con normalidad.',
+        ) +
+        tablaDetalles(
+          detalleFila('Fecha', this.formatearFecha(fecha)) +
+            detalleFila('Hora', this.formatearHora(fecha)),
+        ) +
+        nota(
+          'Si no fuiste tú quien inició sesión, cambia tu contraseña de inmediato y contacta a soporte.',
+        ),
+    });
+    try {
+      await this.enviar(email, titulo, html);
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar aviso de cuenta reactivada a ${emailEnmascarado(email)}: ${String(err)}`,
+      );
+    }
+  }
+
   // Alerta de seguridad al administrador (fuerza bruta, login admin desde IP
   // nueva, etc.). El destino es ADMIN_ALERT_EMAIL; si no está configurado, la
   // alerta solo queda en el log y en el audit trail.

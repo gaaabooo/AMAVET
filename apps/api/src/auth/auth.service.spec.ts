@@ -7,6 +7,7 @@ import { SupabaseService } from '../supabase.service';
 import { LoginLockoutService } from './login-lockout.service';
 import { AuditService } from '../common/audit.service';
 import { mockAuditService } from '../common/audit.mock';
+import { NotificacionesService } from '../notificaciones.service';
 import * as bcrypt from 'bcryptjs';
 
 const mockUsersService = {
@@ -30,6 +31,11 @@ const mockLockout = {
   registrarIntento: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockNotificaciones = {
+  notificarLoginNuevaUbicacion: jest.fn().mockResolvedValue(undefined),
+  notificarCuentaReactivada: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -42,11 +48,16 @@ describe('AuthService', () => {
         { provide: SupabaseService, useValue: mockSupabaseService },
         { provide: LoginLockoutService, useValue: mockLockout },
         { provide: AuditService, useValue: mockAuditService },
+        { provide: NotificacionesService, useValue: mockNotificaciones },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jest.clearAllMocks();
+    // El audit mock: por defecto IP conocida y con historial → sin avisos de
+    // login desde ubicación nueva (los tests que lo prueban lo sobrescriben).
+    mockAuditService.ipConocidaParaUsuario.mockResolvedValue(true);
+    mockAuditService.loginsPreviosDeUsuario.mockResolvedValue(5);
     // Por defecto: cuenta activa y sin cambios de tokenVersion.
     mockUsersService.obtenerEstadoSesion.mockResolvedValue({
       tokenVersion: 0,
@@ -116,6 +127,49 @@ describe('AuthService', () => {
       await expect(service.login('noexiste@test.cl', 'pass')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
+    });
+
+    it('avisa al usuario si inicia sesión desde una IP nueva (con historial)', async () => {
+      const hash = await bcrypt.hash('Password1!', 12);
+      mockUsersService.buscarPorEmail.mockResolvedValue({
+        id: 'uuid-1', email: 'test@test.cl', rol: 'TUTOR', password: hash,
+        tokenVersion: 0, eliminadoEn: null,
+      });
+      mockAuditService.ipConocidaParaUsuario.mockResolvedValue(false);
+      mockAuditService.loginsPreviosDeUsuario.mockResolvedValue(3);
+
+      await service.login('test@test.cl', 'Password1!', '9.9.9.9');
+
+      expect(mockNotificaciones.notificarLoginNuevaUbicacion).toHaveBeenCalledTimes(1);
+    });
+
+    it('NO avisa de IP nueva en el primer login de la cuenta (sin historial)', async () => {
+      const hash = await bcrypt.hash('Password1!', 12);
+      mockUsersService.buscarPorEmail.mockResolvedValue({
+        id: 'uuid-1', email: 'test@test.cl', rol: 'TUTOR', password: hash,
+        tokenVersion: 0, eliminadoEn: null,
+      });
+      mockAuditService.ipConocidaParaUsuario.mockResolvedValue(false);
+      mockAuditService.loginsPreviosDeUsuario.mockResolvedValue(0);
+
+      await service.login('test@test.cl', 'Password1!', '9.9.9.9');
+
+      expect(mockNotificaciones.notificarLoginNuevaUbicacion).not.toHaveBeenCalled();
+    });
+
+    it('NO avisa de IP nueva si la cuenta acaba de reactivarse (envía solo el aviso de reactivación)', async () => {
+      const hash = await bcrypt.hash('Password1!', 12);
+      mockUsersService.buscarPorEmail.mockResolvedValue({
+        id: 'uuid-1', email: 'test@test.cl', rol: 'TUTOR', password: hash,
+        tokenVersion: 0, eliminadoEn: new Date(),
+      });
+      mockAuditService.ipConocidaParaUsuario.mockResolvedValue(false);
+      mockAuditService.loginsPreviosDeUsuario.mockResolvedValue(3);
+
+      await service.login('test@test.cl', 'Password1!', '9.9.9.9');
+
+      expect(mockNotificaciones.notificarCuentaReactivada).toHaveBeenCalledTimes(1);
+      expect(mockNotificaciones.notificarLoginNuevaUbicacion).not.toHaveBeenCalled();
     });
 
     it('registra el fallo en el lockout cuando las credenciales son inválidas', async () => {

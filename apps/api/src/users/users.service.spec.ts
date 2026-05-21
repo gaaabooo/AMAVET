@@ -4,6 +4,7 @@ import { UsersService, TELEFONO_PENDIENTE } from './users.service';
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit.service';
 import { mockAuditService } from '../common/audit.mock';
+import { NotificacionesService } from '../notificaciones.service';
 import * as bcrypt from 'bcryptjs';
 
 describe('UsersService', () => {
@@ -13,12 +14,17 @@ describe('UsersService', () => {
     user: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
   };
 
+  const mockNotificaciones = {
+    notificarPasswordCambiada: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AuditService, useValue: mockAuditService },
+        { provide: NotificacionesService, useValue: mockNotificaciones },
       ],
     }).compile();
 
@@ -110,6 +116,18 @@ describe('UsersService', () => {
       await service.cambiarPassword('u-1', 'Actual1234!', 'Nueva12345!');
       const updateArg = mockPrisma.user.update.mock.calls[0][0];
       expect(updateArg.data.tokenVersion).toEqual({ increment: 1 });
+    });
+
+    it('notifica al usuario por email tras un cambio de contraseña exitoso', async () => {
+      const hash = await bcrypt.hash('Actual1234!', 12);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u-1', password: hash, email: 'ana@test.cl',
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u-1' });
+      await service.cambiarPassword('u-1', 'Actual1234!', 'Nueva12345!');
+      expect(mockNotificaciones.notificarPasswordCambiada).toHaveBeenCalledWith(
+        'ana@test.cl',
+      );
     });
   });
 

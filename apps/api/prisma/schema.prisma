@@ -135,6 +135,9 @@ model AuditLog {
   @@index([creadoEn])
   // Para la detección de fuerza bruta, que filtra por ip + evento + ventana.
   @@index([ip, evento, creadoEn])
+  // Para la detección de login desde IP nueva, que cuenta logins de un usuario
+  // por evento (y opcionalmente por ip).
+  @@index([userId, evento, ip])
 }
 
 enum Rol {

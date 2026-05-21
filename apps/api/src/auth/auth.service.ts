@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
 import { LoginLockoutService } from './login-lockout.service';
+import { NotificacionesService } from '../notificaciones.service';
 import { emailEnmascarado } from '../common/audit';
 import { AuditService } from '../common/audit.service';
 import * as bcrypt from 'bcryptjs';
@@ -15,6 +16,7 @@ export class AuthService {
     private supabaseService: SupabaseService,
     private lockout: LoginLockoutService,
     private audit: AuditService,
+    private notificaciones: NotificacionesService,
   ) {}
 
   async registro(
@@ -61,7 +63,7 @@ export class AuthService {
     };
   }
 
-  async loginConGoogle(accessToken: string) {
+  async loginConGoogle(accessToken: string, ip?: string) {
     // No lleva lockout de credenciales: no hay contraseña que adivinar, la
     // identidad la prueba Google/Supabase al validar el accessToken. El abuso
     // de volumen lo cubre el @Throttle del controlador.
@@ -75,14 +77,35 @@ export class AuthService {
     // Si la cuenta estaba en periodo de gracia de eliminación, autenticarse con
     // Google (identidad ya probada por Cloudflare/Supabase) la reactiva.
     const estado = await this.usersService.obtenerEstadoSesion(usuario.id);
-    if (estado?.eliminado) {
+    const reactivada = estado?.eliminado ?? false;
+    if (reactivada) {
       await this.usersService.reactivar(usuario.id);
-      this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id });
+      this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id, ip: ip ?? '?' });
+      void this.notificaciones.notificarCuentaReactivada(usuario.email, new Date());
+    }
+
+    // Aviso de inicio de sesión desde una IP nueva. Igual que en login(): se
+    // evalúa antes de registrar el evento, no se avisa en el primer login, y
+    // se omite si la cuenta acaba de reactivarse (ese aviso ya cumple la
+    // función de alerta).
+    if (ip && !reactivada) {
+      const [ipConocida, loginsPrevios] = await Promise.all([
+        this.audit.ipConocidaParaUsuario(usuario.id, ip),
+        this.audit.loginsPreviosDeUsuario(usuario.id),
+      ]);
+      if (!ipConocida && loginsPrevios > 0) {
+        void this.notificaciones.notificarLoginNuevaUbicacion(
+          usuario.email,
+          ip,
+          new Date(),
+        );
+      }
     }
 
     this.audit.registrar('LOGIN_GOOGLE_OK', {
       userId: usuario.id,
       rol: usuario.rol,
+      ip: ip ?? '?',
     });
     const token = this.jwtService.sign({
       sub: usuario.id,
@@ -142,9 +165,29 @@ export class AuthService {
     // La cuenta puede estar en periodo de gracia de eliminación. La
     // reactivación SOLO ocurre aquí, después de comprobar la contraseña: así no
     // se revela a nadie sin credenciales si una cuenta existe o está eliminada.
-    if (usuario.eliminadoEn) {
+    const reactivada = usuario.eliminadoEn !== null;
+    if (reactivada) {
       await this.usersService.reactivar(usuario.id);
       this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id, ip: ip ?? '?' });
+      void this.notificaciones.notificarCuentaReactivada(usuario.email, new Date());
+    }
+
+    // Aviso de inicio de sesión desde una IP nueva. Se evalúa ANTES de
+    // registrar el LOGIN_OK actual (que dejaría la IP marcada como conocida).
+    // No se avisa en el primer login de la cuenta (sin historial, toda IP es
+    // "nueva") ni si la cuenta acaba de reactivarse (ese aviso ya alerta).
+    if (ip && !reactivada) {
+      const [ipConocida, loginsPrevios] = await Promise.all([
+        this.audit.ipConocidaParaUsuario(usuario.id, ip),
+        this.audit.loginsPreviosDeUsuario(usuario.id),
+      ]);
+      if (!ipConocida && loginsPrevios > 0) {
+        void this.notificaciones.notificarLoginNuevaUbicacion(
+          usuario.email,
+          ip,
+          new Date(),
+        );
+      }
     }
 
     this.audit.registrar('LOGIN_OK', {

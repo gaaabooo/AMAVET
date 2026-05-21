@@ -3,4 +3,8 @@
 export const mockAuditService = {
   registrar: jest.fn(),
   alertar: jest.fn(),
+  // Por defecto: IP conocida y con logins previos → no dispara avisos de
+  // "login desde IP nueva" en los tests que no lo prueban específicamente.
+  ipConocidaParaUsuario: jest.fn().mockResolvedValue(true),
+  loginsPreviosDeUsuario: jest.fn().mockResolvedValue(5),
 };
