@@ -28,6 +28,15 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
 
+  // En producción la API corre detrás del proxy de Render: sin "trust proxy"
+  // Express ve la IP del proxy, no la del cliente, y el rate-limiting por IP
+  // agruparía a todos los usuarios bajo una sola IP. TRUST_PROXY indica cuántos
+  // saltos de proxy confiar (Render = 1). Se confía en un número exacto, NO en
+  // "true": así un cliente no puede falsear su IP con la cabecera
+  // X-Forwarded-For. En local (sin proxy) debe quedar en 0.
+  const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
+  app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
+
   app.use(
     helmet({
       // La API solo sirve JSON, no HTML: una CSP aquí no aporta (no se
