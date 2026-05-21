@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
+import { LoginLockoutService } from './login-lockout.service';
 import { AuditLogger, emailEnmascarado } from '../common/audit';
 import * as bcrypt from 'bcryptjs';
 
@@ -13,6 +14,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private supabaseService: SupabaseService,
+    private lockout: LoginLockoutService,
   ) {}
 
   async registro(nombre: string, email: string, telefono: string, password: string) {
@@ -52,6 +54,9 @@ export class AuthService {
   }
 
   async loginConGoogle(accessToken: string) {
+    // No lleva lockout de credenciales: no hay contraseña que adivinar, la
+    // identidad la prueba Google/Supabase al validar el accessToken. El abuso
+    // de volumen lo cubre el @Throttle del controlador.
     const datosGoogle = await this.supabaseService.verificarTokenAcceso(accessToken);
     if (!datosGoogle) throw new UnauthorizedException('Token de Google inválido');
 
@@ -81,36 +86,50 @@ export class AuthService {
   }
 
   async login(email: string, password: string, ip?: string) {
+    // Email e ip normalizados para el lockout: así "Test@x.cl" y "test@x.cl"
+    // cuentan como la misma combinación, y un ip ausente no rompe el conteo.
+    const emailNorm = email.trim().toLowerCase();
+    const ipNorm = ip ?? '?';
+
+    // Lockout escalonado: si esta combinación email+ip acumula demasiados
+    // fallos recientes, se rechaza con 429 ANTES de tocar la BD o bcrypt.
+    await this.lockout.verificarBloqueo(emailNorm, ipNorm);
+
     const usuario = await this.usersService.buscarPorEmail(email);
 
     // Evento único en logs para no permitir enumeración de cuentas desde Render
     // logs (mismo evento si el usuario no existe, si el hash está corrupto o si
-    // la password no coincide).
-    const logFallo = () =>
+    // la password no coincide). Cada fallo también se registra para el lockout.
+    const fallar = async () => {
+      await this.lockout.registrarIntento(emailNorm, ipNorm, false);
       this.audit.alertar('LOGIN_FALLIDO', {
         email: emailEnmascarado(email),
-        ip: ip ?? '?',
+        ip: ipNorm,
       });
+    };
 
     // Defensa contra timing attacks: si el usuario no existe, hacemos un compare
     // dummy para que la latencia sea similar al caso "usuario existe pero pwd mala".
     if (!usuario) {
       await bcrypt.compare(password, '$2b$12$invalidsaltinvalidsaltinvalidsaltinvalidsaltinvalidsaltinv');
-      logFallo();
+      await fallar();
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     // Defensa contra hashes vacíos o corruptos en BD.
     if (!usuario.password || usuario.password.length < 60) {
-      logFallo();
+      await fallar();
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const valido = await bcrypt.compare(password, usuario.password);
     if (!valido) {
-      logFallo();
+      await fallar();
       throw new UnauthorizedException('Credenciales inválidas');
     }
+
+    // Login correcto: se limpian los fallos previos de esta combinación.
+    await this.lockout.registrarIntento(emailNorm, ipNorm, true);
 
     // La cuenta puede estar en periodo de gracia de eliminación. La
     // reactivación SOLO ocurre aquí, después de comprobar la contraseña: así no

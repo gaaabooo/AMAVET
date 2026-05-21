@@ -97,6 +97,21 @@ model PasswordResetToken {
   @@index([expiraEn])
 }
 
+// Registro de intentos de login para el lockout escalonado. Cada fallo deja una
+// fila; el bloqueo se evalúa por la combinación email+ip. Un login exitoso
+// borra los intentos de esa combinación. Las filas viejas se purgan de forma
+// oportunista al consultar.
+model LoginIntento {
+  id        String   @id @default(uuid())
+  email     String
+  ip        String
+  exitoso   Boolean
+  creadoEn  DateTime @default(now())
+
+  @@index([email, ip, creadoEn])
+  @@index([creadoEn])
+}
+
 enum Rol {
   TUTOR
   ADMIN

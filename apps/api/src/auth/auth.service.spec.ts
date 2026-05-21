@@ -4,6 +4,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService, TELEFONO_PENDIENTE } from '../users/users.service';
 import { SupabaseService } from '../supabase.service';
+import { LoginLockoutService } from './login-lockout.service';
 import * as bcrypt from 'bcryptjs';
 
 const mockUsersService = {
@@ -22,6 +23,11 @@ const mockSupabaseService = {
   verificarTokenAcceso: jest.fn(),
 };
 
+const mockLockout = {
+  verificarBloqueo: jest.fn().mockResolvedValue(undefined),
+  registrarIntento: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -32,6 +38,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: SupabaseService, useValue: mockSupabaseService },
+        { provide: LoginLockoutService, useValue: mockLockout },
       ],
     }).compile();
 
@@ -44,6 +51,9 @@ describe('AuthService', () => {
     });
     mockUsersService.reactivar.mockResolvedValue(undefined);
     mockJwtService.sign.mockReturnValue('signed-token');
+    // Por defecto: sin bloqueo de lockout.
+    mockLockout.verificarBloqueo.mockResolvedValue(undefined);
+    mockLockout.registrarIntento.mockResolvedValue(undefined);
   });
 
   describe('registro', () => {
@@ -91,6 +101,10 @@ describe('AuthService', () => {
       expect(mockJwtService.sign).toHaveBeenCalledWith(
         expect.objectContaining({ tv: 3 }),
       );
+      // Un login exitoso limpia los fallos previos del lockout.
+      expect(mockLockout.registrarIntento).toHaveBeenCalledWith(
+        'test@test.cl', '?', true,
+      );
     });
 
     it('lanza UnauthorizedException si el usuario no existe', async () => {
@@ -99,6 +113,22 @@ describe('AuthService', () => {
       await expect(service.login('noexiste@test.cl', 'pass')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
+    });
+
+    it('registra el fallo en el lockout cuando las credenciales son inválidas', async () => {
+      mockUsersService.buscarPorEmail.mockResolvedValue(null);
+
+      await expect(service.login('test@test.cl', 'mala', '1.2.3.4')).rejects.toThrow();
+      expect(mockLockout.registrarIntento).toHaveBeenCalledWith(
+        'test@test.cl', '1.2.3.4', false,
+      );
+    });
+
+    it('si el lockout bloquea, no se consulta la BD ni se valida la contraseña', async () => {
+      mockLockout.verificarBloqueo.mockRejectedValue(new Error('bloqueado'));
+
+      await expect(service.login('test@test.cl', 'pass', '1.2.3.4')).rejects.toThrow();
+      expect(mockUsersService.buscarPorEmail).not.toHaveBeenCalled();
     });
 
     it('lanza UnauthorizedException si la contraseña es incorrecta', async () => {
