@@ -23,7 +23,9 @@ export class RegistroDto {
 
   @IsString()
   @Length(7, 20)
-  @Matches(/^\+?[0-9 ()-]+$/, { message: 'telefono contiene caracteres inválidos' })
+  @Matches(/^\+?[0-9 ()-]+$/, {
+    message: 'telefono contiene caracteres inválidos',
+  })
   telefono!: string;
 
   @IsString()

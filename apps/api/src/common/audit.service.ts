@@ -22,7 +22,10 @@ export class AuditService {
   ) {}
 
   /** Evento de seguridad normal (login OK, cambio de password, acción admin). */
-  registrar(evento: EventoAuditoria, datos: Record<string, unknown> = {}): void {
+  registrar(
+    evento: EventoAuditoria,
+    datos: Record<string, unknown> = {},
+  ): void {
     this.procesar(evento, datos, false);
   }
 
@@ -112,7 +115,9 @@ export class AuditService {
     } catch (err) {
       // Si la persistencia falla, el evento ya quedó en stdout: no se pierde
       // del todo. No propagar.
-      this.logger.error(`No se pudo persistir el evento de auditoría: ${String(err)}`);
+      this.logger.error(
+        `No se pudo persistir el evento de auditoría: ${String(err)}`,
+      );
       return;
     }
 
@@ -123,7 +128,10 @@ export class AuditService {
     });
   }
 
-  private formatear(evento: EventoAuditoria, datos: Record<string, unknown>): string {
+  private formatear(
+    evento: EventoAuditoria,
+    datos: Record<string, unknown>,
+  ): string {
     const pares = Object.entries(datos)
       .filter(([, v]) => v !== undefined && v !== null)
       .map(([k, v]) => `${k}=${valorSeguro(v)}`)

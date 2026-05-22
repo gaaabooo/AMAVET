@@ -1,4 +1,11 @@
-import { IsOptional, IsString, Length, Matches, MinLength, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class ActualizarPerfilDto {
@@ -12,6 +19,8 @@ export class ActualizarPerfilDto {
   @IsOptional()
   @IsString()
   @Length(7, 20)
-  @Matches(/^\+?[0-9 ()-]+$/, { message: 'telefono contiene caracteres inválidos' })
+  @Matches(/^\+?[0-9 ()-]+$/, {
+    message: 'telefono contiene caracteres inválidos',
+  })
   telefono?: string;
 }

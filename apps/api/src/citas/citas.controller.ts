@@ -30,12 +30,22 @@ export class CitasController {
   @Post()
   async crear(@Req() req: RequestConUsuario, @Body() body: CrearCitaDto) {
     if (req.user.rol !== 'ADMIN') {
-      const esDueno = await this.citasService.esDuenoDeMascota(body.mascotaId, req.user.userId);
+      const esDueno = await this.citasService.esDuenoDeMascota(
+        body.mascotaId,
+        req.user.userId,
+      );
       if (!esDueno) {
-        throw new ForbiddenException('Solo puedes agendar citas para tus propias mascotas');
+        throw new ForbiddenException(
+          'Solo puedes agendar citas para tus propias mascotas',
+        );
       }
     }
-    return this.citasService.crear(body.fecha, body.direccion, body.servicios, body.mascotaId);
+    return this.citasService.crear(
+      body.fecha,
+      body.direccion,
+      body.servicios,
+      body.mascotaId,
+    );
   }
 
   @Get()
@@ -51,7 +61,10 @@ export class CitasController {
     @Param('mascotaId', new ParseUUIDPipe()) mascotaId: string,
   ) {
     if (req.user.rol !== 'ADMIN') {
-      const esDueno = await this.citasService.esDuenoDeMascota(mascotaId, req.user.userId);
+      const esDueno = await this.citasService.esDuenoDeMascota(
+        mascotaId,
+        req.user.userId,
+      );
       if (!esDueno) {
         throw new ForbiddenException('No tienes acceso a estas citas');
       }

@@ -57,8 +57,12 @@ export class ExamsController {
     @Param('mascotaId', new ParseUUIDPipe()) mascotaId: string,
   ) {
     if (req.user.rol !== 'ADMIN') {
-      const esDueno = await this.examsService.esDuenoMascota(mascotaId, req.user.userId);
-      if (!esDueno) throw new ForbiddenException('No tienes acceso a estos exámenes');
+      const esDueno = await this.examsService.esDuenoMascota(
+        mascotaId,
+        req.user.userId,
+      );
+      if (!esDueno)
+        throw new ForbiddenException('No tienes acceso a estos exámenes');
     }
     return this.examsService.listarPorMascota(mascotaId);
   }
@@ -77,7 +81,10 @@ export class ExamsController {
   ) {
     const examen = await this.examsService.buscarPorId(id);
     if (!examen) throw new NotFoundException('Examen no encontrado');
-    if (req.user.rol !== 'ADMIN' && examen.mascota.tutorId !== req.user.userId) {
+    if (
+      req.user.rol !== 'ADMIN' &&
+      examen.mascota.tutorId !== req.user.userId
+    ) {
       throw new ForbiddenException('No tienes acceso a este examen');
     }
     return examen;
@@ -90,7 +97,10 @@ export class ExamsController {
   ) {
     const examen = await this.examsService.buscarPorId(id);
     if (!examen) throw new NotFoundException('Examen no encontrado');
-    if (req.user.rol !== 'ADMIN' && examen.mascota.tutorId !== req.user.userId) {
+    if (
+      req.user.rol !== 'ADMIN' &&
+      examen.mascota.tutorId !== req.user.userId
+    ) {
       throw new ForbiddenException('No tienes acceso a este examen');
     }
     const url = await this.examsService.generarUrlDescarga(id);
@@ -110,7 +120,9 @@ export class ExamsController {
   @Post(':id/subir')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  @UseInterceptors(FileInterceptor('archivo', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
+  @UseInterceptors(
+    FileInterceptor('archivo', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }),
+  )
   async subirArchivo(
     @Param('id', new ParseUUIDPipe()) id: string,
     @UploadedFile(

@@ -24,11 +24,15 @@ export class TurnstileGuard implements CanActivate {
     }>();
 
     const token =
-      typeof req.body?.captchaToken === 'string' ? req.body.captchaToken : undefined;
+      typeof req.body?.captchaToken === 'string'
+        ? req.body.captchaToken
+        : undefined;
 
     const valido = await this.turnstile.verificar(token);
     if (!valido) {
-      throw new ForbiddenException('Verificación de captcha fallida. Recarga la página e inténtalo de nuevo.');
+      throw new ForbiddenException(
+        'Verificación de captcha fallida. Recarga la página e inténtalo de nuevo.',
+      );
     }
     return true;
   }

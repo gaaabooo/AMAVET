@@ -64,7 +64,9 @@ export class LoginLockoutService {
       creadoEn: { gte: desde },
     };
 
-    const numeroFallos = await this.prisma.loginIntento.count({ where: filtroFallos });
+    const numeroFallos = await this.prisma.loginIntento.count({
+      where: filtroFallos,
+    });
     if (numeroFallos < UMBRAL_FALLOS) return;
 
     // El bloqueo se mide desde el fallo más reciente.
@@ -75,7 +77,8 @@ export class LoginLockoutService {
     });
     if (!ultimo) return;
 
-    const finBloqueo = ultimo.creadoEn.getTime() + duracionBloqueoMs(numeroFallos);
+    const finBloqueo =
+      ultimo.creadoEn.getTime() + duracionBloqueoMs(numeroFallos);
     if (Date.now() < finBloqueo) {
       // Mensaje genérico: no se revela el tiempo exacto restante para no dar
       // al atacante telemetría del tramo de escalado en que se encuentra.
@@ -91,7 +94,11 @@ export class LoginLockoutService {
    * previos de esa combinación email+ip (el contador se reinicia) y se deja una
    * fila de éxito — útil para análisis posterior de patrones de acceso.
    */
-  async registrarIntento(email: string, ip: string, exitoso: boolean): Promise<void> {
+  async registrarIntento(
+    email: string,
+    ip: string,
+    exitoso: boolean,
+  ): Promise<void> {
     try {
       if (exitoso) {
         await this.prisma.loginIntento.deleteMany({
@@ -109,7 +116,9 @@ export class LoginLockoutService {
       // Registrar el intento nunca debe romper el flujo de login: si fallara,
       // un fallo de credenciales devolvería 500 en vez de 401, lo que sería
       // distinguible por un atacante. Se loguea y se continúa.
-      this.logger.error(`No se pudo registrar el intento de login: ${String(err)}`);
+      this.logger.error(
+        `No se pudo registrar el intento de login: ${String(err)}`,
+      );
     }
   }
 }

@@ -66,7 +66,9 @@ export class AccountController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     if (req.user.rol !== 'ADMIN') {
-      throw new ForbiddenException('Solo un administrador puede eliminar otras cuentas');
+      throw new ForbiddenException(
+        'Solo un administrador puede eliminar otras cuentas',
+      );
     }
     if (id === req.user.userId) {
       throw new ForbiddenException(
@@ -76,7 +78,9 @@ export class AccountController {
     // Un admin no puede eliminar la cuenta de otro admin por esta vía.
     const rolObjetivo = await this.accountService.obtenerRol(id);
     if (rolObjetivo === 'ADMIN') {
-      throw new ForbiddenException('No puedes eliminar la cuenta de otro administrador');
+      throw new ForbiddenException(
+        'No puedes eliminar la cuenta de otro administrador',
+      );
     }
     return this.accountService.eliminarCuenta(id);
   }

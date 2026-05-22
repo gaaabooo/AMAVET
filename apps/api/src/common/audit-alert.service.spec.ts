@@ -24,13 +24,17 @@ describe('AuditAlertService', () => {
     it('alerta si hay 10 o más LOGIN_FALLIDO desde la misma IP', async () => {
       mockPrisma.auditLog.count.mockResolvedValue(10);
       await service.evaluar('LOGIN_FALLIDO', { ip: '1.2.3.4' });
-      expect(mockNotificaciones.notificarAlertaSeguridad).toHaveBeenCalledTimes(1);
+      expect(mockNotificaciones.notificarAlertaSeguridad).toHaveBeenCalledTimes(
+        1,
+      );
     });
 
     it('no alerta por debajo del umbral', async () => {
       mockPrisma.auditLog.count.mockResolvedValue(4);
       await service.evaluar('LOGIN_FALLIDO', { ip: '1.2.3.4' });
-      expect(mockNotificaciones.notificarAlertaSeguridad).not.toHaveBeenCalled();
+      expect(
+        mockNotificaciones.notificarAlertaSeguridad,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -45,7 +49,9 @@ describe('AuditAlertService', () => {
         ip: '9.9.9.9',
         rol: 'ADMIN',
       });
-      expect(mockNotificaciones.notificarAlertaSeguridad).toHaveBeenCalledTimes(1);
+      expect(mockNotificaciones.notificarAlertaSeguridad).toHaveBeenCalledTimes(
+        1,
+      );
     });
 
     it('NO alerta en el primer login de un admin nuevo (sin historial)', async () => {
@@ -56,7 +62,9 @@ describe('AuditAlertService', () => {
         ip: '9.9.9.9',
         rol: 'ADMIN',
       });
-      expect(mockNotificaciones.notificarAlertaSeguridad).not.toHaveBeenCalled();
+      expect(
+        mockNotificaciones.notificarAlertaSeguridad,
+      ).not.toHaveBeenCalled();
     });
 
     it('no alerta si el admin ya había entrado desde esa IP', async () => {
@@ -67,7 +75,9 @@ describe('AuditAlertService', () => {
         ip: '1.2.3.4',
         rol: 'ADMIN',
       });
-      expect(mockNotificaciones.notificarAlertaSeguridad).not.toHaveBeenCalled();
+      expect(
+        mockNotificaciones.notificarAlertaSeguridad,
+      ).not.toHaveBeenCalled();
     });
 
     it('no evalúa la regla de admin para un login de TUTOR', async () => {
@@ -86,7 +96,9 @@ describe('AuditAlertService', () => {
       await service.evaluar('LOGIN_FALLIDO', { ip: '1.2.3.4' });
       await service.evaluar('LOGIN_FALLIDO', { ip: '1.2.3.4' });
       // La segunda cae dentro del cooldown.
-      expect(mockNotificaciones.notificarAlertaSeguridad).toHaveBeenCalledTimes(1);
+      expect(mockNotificaciones.notificarAlertaSeguridad).toHaveBeenCalledTimes(
+        1,
+      );
     });
   });
 

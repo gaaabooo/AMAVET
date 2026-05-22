@@ -27,8 +27,9 @@ function ocultarNumeroSiTutor<T extends { numero?: number } | null>(
   mascota: T,
 ): T {
   if (rol === 'ADMIN' || mascota == null) return mascota;
-  const { numero: _numero, ...resto } = mascota;
-  return resto as T;
+  const copia = { ...mascota };
+  delete copia.numero;
+  return copia;
 }
 
 @Controller('mascotas')
@@ -43,7 +44,13 @@ export class PetsController {
     const tutorId =
       req.user.rol === 'ADMIN' && body.tutorId ? body.tutorId : req.user.userId;
     return this.petsService
-      .crear(body.nombre, body.tipo, body.raza ?? null, body.edad ?? null, tutorId)
+      .crear(
+        body.nombre,
+        body.tipo,
+        body.raza ?? null,
+        body.edad ?? null,
+        tutorId,
+      )
       .then((m) => ocultarNumeroSiTutor(req.user.rol, m));
   }
 

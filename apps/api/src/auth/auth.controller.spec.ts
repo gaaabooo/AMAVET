@@ -40,9 +40,19 @@ describe('AuthController', () => {
   });
 
   it('login delega en authService.login con la IP del request', async () => {
-    mockAuthService.login.mockResolvedValue({ token: 't', usuario: { id: 'u-1' } });
-    const result = await controller.login({ email: 'a@b.cl', password: 'pass' }, '127.0.0.1');
+    mockAuthService.login.mockResolvedValue({
+      token: 't',
+      usuario: { id: 'u-1' },
+    });
+    const result = await controller.login(
+      { email: 'a@b.cl', password: 'pass' },
+      '127.0.0.1',
+    );
     expect(result.token).toBe('t');
-    expect(mockAuthService.login).toHaveBeenCalledWith('a@b.cl', 'pass', '127.0.0.1');
+    expect(mockAuthService.login).toHaveBeenCalledWith(
+      'a@b.cl',
+      'pass',
+      '127.0.0.1',
+    );
   });
 });

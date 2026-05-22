@@ -1,6 +1,7 @@
 import { setDefaultResultOrder } from 'dns';
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import type { Application } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
@@ -11,10 +12,17 @@ import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 setDefaultResultOrder('ipv4first');
 
 function assertRequiredEnv() {
-  const required = ['JWT_SECRET', 'DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+  const required = [
+    'JWT_SECRET',
+    'DATABASE_URL',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_KEY',
+  ];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length) {
-    throw new Error(`Faltan variables de entorno requeridas: ${missing.join(', ')}`);
+    throw new Error(
+      `Faltan variables de entorno requeridas: ${missing.join(', ')}`,
+    );
   }
   if ((process.env.JWT_SECRET ?? '').length < 32) {
     throw new Error('JWT_SECRET debe tener al menos 32 caracteres');
@@ -35,7 +43,8 @@ async function bootstrap() {
   // "true": así un cliente no puede falsear su IP con la cabecera
   // X-Forwarded-For. En local (sin proxy) debe quedar en 0.
   const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
-  app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
+  const expressApp = app.getHttpAdapter().getInstance() as Application;
+  expressApp.set('trust proxy', trustProxy);
 
   app.use(
     helmet({
@@ -56,10 +65,16 @@ async function bootstrap() {
 
   // La API solo devuelve datos privados y autenticados (PII, datos clínicos,
   // URLs firmadas). Nunca debe cachearse: ni en el navegador ni en proxies.
-  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
-    res.setHeader('Cache-Control', 'no-store');
-    next();
-  });
+  app.use(
+    (
+      _req: unknown,
+      res: { setHeader: (k: string, v: string) => void },
+      next: () => void,
+    ) => {
+      res.setHeader('Cache-Control', 'no-store');
+      next();
+    },
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -78,19 +93,25 @@ async function bootstrap() {
   const allowedOrigins = [
     'http://localhost:3000',
     ...(process.env.FRONTEND_URL
-      ? process.env.FRONTEND_URL.split(',').map((u) => u.trim()).filter(Boolean)
+      ? process.env.FRONTEND_URL.split(',')
+          .map((u) => u.trim())
+          .filter(Boolean)
       : []),
   ];
 
   const allowedVercelPattern = process.env.ALLOWED_VERCEL_PATTERN;
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (allowedVercelPattern) {
         try {
-          if (new RegExp(allowedVercelPattern).test(origin)) return callback(null, true);
+          if (new RegExp(allowedVercelPattern).test(origin))
+            return callback(null, true);
         } catch {
           // patrón inválido — ignorar y continuar
         }
@@ -108,7 +129,8 @@ async function bootstrap() {
   Logger.log(`API escuchando en puerto ${port}`, 'Bootstrap');
 }
 
-bootstrap().catch((err) => {
-  Logger.error(`Error iniciando la aplicación: ${err.message}`, 'Bootstrap');
+bootstrap().catch((err: unknown) => {
+  const mensaje = err instanceof Error ? err.message : String(err);
+  Logger.error(`Error iniciando la aplicación: ${mensaje}`, 'Bootstrap');
   process.exit(1);
 });

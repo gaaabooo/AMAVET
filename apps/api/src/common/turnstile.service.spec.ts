@@ -45,19 +45,22 @@ describe('TurnstileService', () => {
     });
 
     it('devuelve true si Cloudflare responde success', async () => {
-      jest
-        .spyOn(global, 'fetch')
-        .mockResolvedValue({ ok: true, json: async () => ({ success: true }) } as Response);
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      } as Response);
       expect(await service.verificar('token-valido')).toBe(true);
     });
 
     it('devuelve false si Cloudflare responde success: false', async () => {
-      jest
-        .spyOn(global, 'fetch')
-        .mockResolvedValue({
-          ok: true,
-          json: async () => ({ success: false, 'error-codes': ['invalid-input-response'] }),
-        } as Response);
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            'error-codes': ['invalid-input-response'],
+          }),
+      } as Response);
       expect(await service.verificar('token-malo')).toBe(false);
     });
 
@@ -77,7 +80,8 @@ describe('TurnstileService', () => {
       process.env.TURNSTILE_EXPECTED_HOSTNAME = 'amavet.cl';
       jest.spyOn(global, 'fetch').mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true, hostname: 'sitio-atacante.com' }),
+        json: () =>
+          Promise.resolve({ success: true, hostname: 'sitio-atacante.com' }),
       } as Response);
       expect(await service.verificar('token')).toBe(false);
       delete process.env.TURNSTILE_EXPECTED_HOSTNAME;
@@ -87,7 +91,7 @@ describe('TurnstileService', () => {
       process.env.TURNSTILE_EXPECTED_HOSTNAME = 'amavet.cl';
       jest.spyOn(global, 'fetch').mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true, hostname: 'amavet.cl' }),
+        json: () => Promise.resolve({ success: true, hostname: 'amavet.cl' }),
       } as Response);
       expect(await service.verificar('token')).toBe(true);
       delete process.env.TURNSTILE_EXPECTED_HOSTNAME;

@@ -40,7 +40,12 @@ export class AuthService {
       return { pendiente: true };
     }
 
-    const usuario = await this.usersService.crear(nombre, email, telefono, password);
+    const usuario = await this.usersService.crear(
+      nombre,
+      email,
+      telefono,
+      password,
+    );
     this.audit.registrar('REGISTRO_OK', {
       userId: usuario.id,
       rol: usuario.rol,
@@ -67,12 +72,20 @@ export class AuthService {
     // No lleva lockout de credenciales: no hay contraseña que adivinar, la
     // identidad la prueba Google/Supabase al validar el accessToken. El abuso
     // de volumen lo cubre el @Throttle del controlador.
-    const datosGoogle = await this.supabaseService.verificarTokenAcceso(accessToken);
-    if (!datosGoogle) throw new UnauthorizedException('Token de Google inválido');
+    const datosGoogle =
+      await this.supabaseService.verificarTokenAcceso(accessToken);
+    if (!datosGoogle)
+      throw new UnauthorizedException('Token de Google inválido');
 
-    const usuario = await this.usersService.buscarOCrearGoogle(datosGoogle.email, datosGoogle.nombre);
+    const usuario = await this.usersService.buscarOCrearGoogle(
+      datosGoogle.email,
+      datosGoogle.nombre,
+    );
 
-    if (usuario.rol !== 'TUTOR') throw new UnauthorizedException('Solo tutores pueden ingresar con Google');
+    if (usuario.rol !== 'TUTOR')
+      throw new UnauthorizedException(
+        'Solo tutores pueden ingresar con Google',
+      );
 
     // Si la cuenta estaba en periodo de gracia de eliminación, autenticarse con
     // Google (identidad ya probada por Cloudflare/Supabase) la reactiva.
@@ -80,8 +93,14 @@ export class AuthService {
     const reactivada = estado?.eliminado ?? false;
     if (reactivada) {
       await this.usersService.reactivar(usuario.id);
-      this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id, ip: ip ?? '?' });
-      void this.notificaciones.notificarCuentaReactivada(usuario.email, new Date());
+      this.audit.registrar('CUENTA_REACTIVADA', {
+        userId: usuario.id,
+        ip: ip ?? '?',
+      });
+      void this.notificaciones.notificarCuentaReactivada(
+        usuario.email,
+        new Date(),
+      );
     }
 
     // Aviso de inicio de sesión desde una IP nueva. Igual que en login(): se
@@ -142,7 +161,10 @@ export class AuthService {
     // Defensa contra timing attacks: si el usuario no existe, hacemos un compare
     // dummy para que la latencia sea similar al caso "usuario existe pero pwd mala".
     if (!usuario) {
-      await bcrypt.compare(password, '$2b$12$invalidsaltinvalidsaltinvalidsaltinvalidsaltinvalidsaltinv');
+      await bcrypt.compare(
+        password,
+        '$2b$12$invalidsaltinvalidsaltinvalidsaltinvalidsaltinvalidsaltinv',
+      );
       await fallar();
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -168,8 +190,14 @@ export class AuthService {
     const reactivada = usuario.eliminadoEn !== null;
     if (reactivada) {
       await this.usersService.reactivar(usuario.id);
-      this.audit.registrar('CUENTA_REACTIVADA', { userId: usuario.id, ip: ip ?? '?' });
-      void this.notificaciones.notificarCuentaReactivada(usuario.email, new Date());
+      this.audit.registrar('CUENTA_REACTIVADA', {
+        userId: usuario.id,
+        ip: ip ?? '?',
+      });
+      void this.notificaciones.notificarCuentaReactivada(
+        usuario.email,
+        new Date(),
+      );
     }
 
     // Aviso de inicio de sesión desde una IP nueva. Se evalúa ANTES de

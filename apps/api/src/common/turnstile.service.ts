@@ -58,7 +58,9 @@ export class TurnstileService {
 
       // Fail-closed ante respuestas HTTP no exitosas de Cloudflare (5xx, 429...).
       if (!resp.ok) {
-        this.logger.error(`Cloudflare siteverify respondió HTTP ${resp.status}`);
+        this.logger.error(
+          `Cloudflare siteverify respondió HTTP ${resp.status}`,
+        );
         return false;
       }
 
@@ -86,7 +88,9 @@ export class TurnstileService {
       return true;
     } catch (err) {
       // Fail-closed: si no podemos verificar el captcha, rechazamos.
-      this.logger.error(`Error al verificar captcha con Cloudflare: ${String(err)}`);
+      this.logger.error(
+        `Error al verificar captcha con Cloudflare: ${String(err)}`,
+      );
       return false;
     }
   }

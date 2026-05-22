@@ -21,7 +21,9 @@ describe('PrismaExceptionFilter', () => {
   // accedemos al método privado traducir con un cast acotado.
   const filter = new PrismaExceptionFilter({} as never);
   const traducir = (e: Prisma.PrismaClientKnownRequestError): HttpException =>
-    (filter as unknown as { traducir: (e: unknown) => HttpException }).traducir(e);
+    (filter as unknown as { traducir: (e: unknown) => HttpException }).traducir(
+      e,
+    );
 
   it('mapea P2002 (unique) a 409 Conflict', () => {
     expect(traducir(prismaError('P2002'))).toBeInstanceOf(ConflictException);
@@ -40,11 +42,15 @@ describe('PrismaExceptionFilter', () => {
   });
 
   it('mapea un código desconocido a 500 Internal Server Error', () => {
-    expect(traducir(prismaError('P9999'))).toBeInstanceOf(InternalServerErrorException);
+    expect(traducir(prismaError('P9999'))).toBeInstanceOf(
+      InternalServerErrorException,
+    );
   });
 
   it('no expone el mensaje interno de Prisma en la respuesta', () => {
     const httpError = traducir(prismaError('P2002'));
-    expect(JSON.stringify(httpError.getResponse())).not.toContain('mensaje interno');
+    expect(JSON.stringify(httpError.getResponse())).not.toContain(
+      'mensaje interno',
+    );
   });
 });

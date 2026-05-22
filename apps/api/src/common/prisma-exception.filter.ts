@@ -51,12 +51,18 @@ export class PrismaExceptionFilter
       // Violación de clave foránea / restricción.
       case 'P2003':
       case 'P2004':
-        return new BadRequestException('La operación viola una restricción de datos');
+        return new BadRequestException(
+          'La operación viola una restricción de datos',
+        );
       // Valor demasiado largo para la columna.
       case 'P2000':
-        return new BadRequestException('Uno de los valores enviados es demasiado largo');
+        return new BadRequestException(
+          'Uno de los valores enviados es demasiado largo',
+        );
       default:
-        return new InternalServerErrorException('Error al procesar la solicitud');
+        return new InternalServerErrorException(
+          'Error al procesar la solicitud',
+        );
     }
   }
 }

@@ -79,7 +79,9 @@ describe('AccountService', () => {
         },
         data: { estado: 'CANCELADA' },
       });
-      expect(mockNotificaciones.notificarCuentaEliminada).toHaveBeenCalledTimes(1);
+      expect(mockNotificaciones.notificarCuentaEliminada).toHaveBeenCalledTimes(
+        1,
+      );
     });
   });
 
@@ -147,7 +149,9 @@ describe('AccountService', () => {
       mockPrisma.examen.findMany.mockResolvedValue([]);
       mockPrisma.$transaction
         .mockRejectedValueOnce(new Error('fallo BD'))
-        .mockImplementationOnce((cb: (tx: typeof txMock) => unknown) => cb(txMock));
+        .mockImplementationOnce((cb: (tx: typeof txMock) => unknown) =>
+          cb(txMock),
+        );
 
       const res = await service.purgarCuentasVencidas();
 

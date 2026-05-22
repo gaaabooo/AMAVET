@@ -22,7 +22,9 @@ const mockPrisma = {
 const mockSupabase = {
   subirArchivo: jest.fn(),
   borrarArchivo: jest.fn().mockResolvedValue(undefined),
-  generarUrlFirmada: jest.fn().mockResolvedValue('https://signed-url.example.com/file.pdf'),
+  generarUrlFirmada: jest
+    .fn()
+    .mockResolvedValue('https://signed-url.example.com/file.pdf'),
 };
 
 const mockNotificaciones = {
@@ -50,7 +52,10 @@ describe('ExamsService', () => {
   describe('actualizarEstado', () => {
     it('actualiza el estado si el examen existe', async () => {
       mockPrisma.examen.findUnique.mockResolvedValue({ id: 'ex-1' });
-      mockPrisma.examen.update.mockResolvedValue({ id: 'ex-1', estado: 'EN_PROCESO' });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'EN_PROCESO',
+      });
 
       const result = await service.actualizarEstado('ex-1', 'EN_PROCESO');
 
@@ -68,7 +73,11 @@ describe('ExamsService', () => {
 
     it('incluye archivoUrl en la actualización si se provee', async () => {
       mockPrisma.examen.findUnique.mockResolvedValue({ id: 'ex-1' });
-      mockPrisma.examen.update.mockResolvedValue({ id: 'ex-1', estado: 'DISPONIBLE', archivoUrl: 'ruta/archivo.pdf' });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+        archivoUrl: 'ruta/archivo.pdf',
+      });
 
       await service.actualizarEstado('ex-1', 'DISPONIBLE', 'ruta/archivo.pdf');
 
@@ -81,24 +90,36 @@ describe('ExamsService', () => {
 
   describe('generarUrlDescarga', () => {
     it('genera una URL firmada si el examen tiene archivo', async () => {
-      mockPrisma.examen.findUnique.mockResolvedValue({ id: 'ex-1', archivoUrl: 'ruta/archivo.pdf' });
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        archivoUrl: 'ruta/archivo.pdf',
+      });
 
       const url = await service.generarUrlDescarga('ex-1');
 
       expect(url).toBe('https://signed-url.example.com/file.pdf');
-      expect(mockSupabase.generarUrlFirmada).toHaveBeenCalledWith('ruta/archivo.pdf');
+      expect(mockSupabase.generarUrlFirmada).toHaveBeenCalledWith(
+        'ruta/archivo.pdf',
+      );
     });
 
     it('lanza NotFoundException si el examen no existe', async () => {
       mockPrisma.examen.findUnique.mockResolvedValue(null);
 
-      await expect(service.generarUrlDescarga('no-existe')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.generarUrlDescarga('no-existe'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('lanza NotFoundException si el examen no tiene archivo', async () => {
-      mockPrisma.examen.findUnique.mockResolvedValue({ id: 'ex-1', archivoUrl: null });
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        archivoUrl: null,
+      });
 
-      await expect(service.generarUrlDescarga('ex-1')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.generarUrlDescarga('ex-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 
@@ -125,10 +146,16 @@ describe('ExamsService', () => {
       mockPrisma.examen.findUnique
         .mockResolvedValueOnce(examenMock)
         .mockResolvedValueOnce(examenMock);
-      mockPrisma.examen.update.mockResolvedValue({ id: 'ex-1', estado: 'DISPONIBLE' });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+      });
       mockSupabase.subirArchivo.mockResolvedValue(undefined);
 
-      const archivo = { buffer: Buffer.from('pdf'), size: 3 } as Express.Multer.File;
+      const archivo = {
+        buffer: Buffer.from('pdf'),
+        size: 3,
+      } as Express.Multer.File;
       await service.subirArchivo('ex-1', archivo);
 
       expect(mockSupabase.subirArchivo).toHaveBeenCalledTimes(1);
@@ -148,12 +175,22 @@ describe('ExamsService', () => {
       mockPrisma.examen.findUnique
         .mockResolvedValueOnce(examenMock)
         .mockResolvedValueOnce(examenMock);
-      mockPrisma.examen.update.mockResolvedValue({ id: 'ex-1', estado: 'DISPONIBLE' });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+      });
       mockSupabase.subirArchivo.mockResolvedValue(undefined);
-      mockNotificaciones.notificarExamenDisponible.mockRejectedValue(new Error('SMTP down'));
+      mockNotificaciones.notificarExamenDisponible.mockRejectedValue(
+        new Error('SMTP down'),
+      );
 
-      const archivo = { buffer: Buffer.from('pdf'), size: 3 } as Express.Multer.File;
-      await expect(service.subirArchivo('ex-1', archivo)).resolves.toBeDefined();
+      const archivo = {
+        buffer: Buffer.from('pdf'),
+        size: 3,
+      } as Express.Multer.File;
+      await expect(
+        service.subirArchivo('ex-1', archivo),
+      ).resolves.toBeDefined();
     });
 
     it('borra el archivo de Storage si falla el guardado en BD (compensación M-1)', async () => {
@@ -169,9 +206,14 @@ describe('ExamsService', () => {
       // El guardado en BD falla después de que el archivo ya subió a Storage.
       mockPrisma.examen.update.mockRejectedValue(new Error('BD caída'));
 
-      const archivo = { buffer: Buffer.from('pdf'), size: 3 } as Express.Multer.File;
+      const archivo = {
+        buffer: Buffer.from('pdf'),
+        size: 3,
+      } as Express.Multer.File;
 
-      await expect(service.subirArchivo('ex-1', archivo)).rejects.toThrow('BD caída');
+      await expect(service.subirArchivo('ex-1', archivo)).rejects.toThrow(
+        'BD caída',
+      );
       // El archivo huérfano se borra para que un reintento parta limpio.
       expect(mockSupabase.borrarArchivo).toHaveBeenCalledTimes(1);
     });

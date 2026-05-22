@@ -13,7 +13,8 @@ export class ExamsService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(SupabaseService) private supabase: SupabaseService,
-    @Inject(NotificacionesService) private notificaciones: NotificacionesService,
+    @Inject(NotificacionesService)
+    private notificaciones: NotificacionesService,
     private audit: AuditService,
   ) {}
 
@@ -44,7 +45,11 @@ export class ExamsService {
     });
   }
 
-  async actualizarEstado(id: string, estado: EstadoExamen, archivoUrl?: string | null) {
+  async actualizarEstado(
+    id: string,
+    estado: EstadoExamen,
+    archivoUrl?: string | null,
+  ) {
     const examen = await this.prisma.examen.findUnique({ where: { id } });
     if (!examen) throw new NotFoundException('Examen no encontrado');
     const actualizado = await this.prisma.examen.update({
@@ -72,7 +77,11 @@ export class ExamsService {
     // Nombre opaco e impredecible. Guardamos la RUTA, no una URL pública.
     const rutaArchivo = `${examen.id}/${randomUUID()}.pdf`;
 
-    await this.supabase.subirArchivo(archivo.buffer, rutaArchivo, 'application/pdf');
+    await this.supabase.subirArchivo(
+      archivo.buffer,
+      rutaArchivo,
+      'application/pdf',
+    );
 
     this.audit.registrar('EXAMEN_ARCHIVO_SUBIDO', {
       examenId: id,
@@ -85,7 +94,11 @@ export class ExamsService {
     // propagar el error para que un reintento parta limpio.
     let resultado: Awaited<ReturnType<typeof this.actualizarEstado>>;
     try {
-      resultado = await this.actualizarEstado(id, EstadoExamen.DISPONIBLE, rutaArchivo);
+      resultado = await this.actualizarEstado(
+        id,
+        EstadoExamen.DISPONIBLE,
+        rutaArchivo,
+      );
     } catch (err) {
       await this.supabase.borrarArchivo(rutaArchivo);
       throw err;
@@ -122,7 +135,8 @@ export class ExamsService {
   async generarUrlDescarga(id: string): Promise<string> {
     const examen = await this.prisma.examen.findUnique({ where: { id } });
     if (!examen) throw new NotFoundException('Examen no encontrado');
-    if (!examen.archivoUrl) throw new NotFoundException('Este examen no tiene archivo');
+    if (!examen.archivoUrl)
+      throw new NotFoundException('Este examen no tiene archivo');
 
     return this.supabase.generarUrlFirmada(examen.archivoUrl);
   }

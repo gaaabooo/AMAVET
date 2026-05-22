@@ -22,12 +22,16 @@ describe('AuditQueryService', () => {
   it('purga eventos vencidos antes de consultar', async () => {
     await service.listar({});
     expect(mockPrisma.auditLog.deleteMany).toHaveBeenCalledTimes(1);
-    const where = mockPrisma.auditLog.deleteMany.mock.calls[0][0].where;
-    expect(where.creadoEn.lt).toBeInstanceOf(Date);
+    const calls = mockPrisma.auditLog.deleteMany.mock.calls as unknown[][];
+    const args = calls[0][0] as { where: { creadoEn: { lt: unknown } } };
+    expect(args.where.creadoEn.lt).toBeInstanceOf(Date);
   });
 
   it('aplica los filtros de evento, usuario y soloAlertas', async () => {
-    mockPrisma.$transaction.mockResolvedValue([2, [{ id: 'e1' }, { id: 'e2' }]]);
+    mockPrisma.$transaction.mockResolvedValue([
+      2,
+      [{ id: 'e1' }, { id: 'e2' }],
+    ]);
     const res = await service.listar({
       evento: 'LOGIN_FALLIDO',
       userId: 'u-1',

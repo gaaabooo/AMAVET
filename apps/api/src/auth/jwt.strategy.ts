@@ -42,7 +42,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('La cuenta está eliminada');
     }
     if ((payload.tv ?? 0) !== estado.tokenVersion) {
-      throw new UnauthorizedException('Sesión expirada, vuelve a iniciar sesión');
+      throw new UnauthorizedException(
+        'Sesión expirada, vuelve a iniciar sesión',
+      );
     }
     return { userId: payload.sub, email: payload.email, rol: payload.rol };
   }

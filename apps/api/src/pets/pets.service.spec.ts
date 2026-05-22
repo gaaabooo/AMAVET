@@ -27,10 +27,22 @@ describe('PetsService', () => {
 
   it('crear delega en prisma.mascota.create', async () => {
     mockPrisma.mascota.create.mockResolvedValue({ id: 'm-1' });
-    const result = await service.crear('Firulais', 'perro', 'mestizo', 3, 'tutor-1');
+    const result = await service.crear(
+      'Firulais',
+      'perro',
+      'mestizo',
+      3,
+      'tutor-1',
+    );
     expect(result).toEqual({ id: 'm-1' });
     expect(mockPrisma.mascota.create).toHaveBeenCalledWith({
-      data: { nombre: 'Firulais', tipo: 'perro', raza: 'mestizo', edad: 3, tutorId: 'tutor-1' },
+      data: {
+        nombre: 'Firulais',
+        tipo: 'perro',
+        raza: 'mestizo',
+        edad: 3,
+        tutorId: 'tutor-1',
+      },
     });
   });
 });

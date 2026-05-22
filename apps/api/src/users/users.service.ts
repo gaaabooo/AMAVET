@@ -26,7 +26,12 @@ export class UsersService {
     private notificaciones: NotificacionesService,
   ) {}
 
-  async crear(nombre: string, email: string, telefono: string, password: string) {
+  async crear(
+    nombre: string,
+    email: string,
+    telefono: string,
+    password: string,
+  ) {
     if (!password || password.length < MIN_PASSWORD_LENGTH) {
       throw new BadRequestException(
         `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
@@ -52,38 +57,64 @@ export class UsersService {
   async buscarPorId(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, nombre: true, email: true, telefono: true, rol: true, creadoEn: true },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        rol: true,
+        creadoEn: true,
+      },
     });
   }
 
   async listarTutores() {
     return this.prisma.user.findMany({
       where: { rol: 'TUTOR' },
-      select: { id: true, nombre: true, email: true, telefono: true, creadoEn: true },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        creadoEn: true,
+      },
       orderBy: { nombre: 'asc' },
     });
   }
 
-  async actualizarPerfil(id: string, data: { nombre?: string; telefono?: string }) {
+  async actualizarPerfil(
+    id: string,
+    data: { nombre?: string; telefono?: string },
+  ) {
     const usuario = await this.prisma.user.findUnique({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
 
     const update: { nombre?: string; telefono?: string } = {};
     if (typeof data.nombre === 'string') {
       const nombre = data.nombre.trim();
-      if (nombre.length < 2) throw new BadRequestException('El nombre debe tener al menos 2 caracteres');
+      if (nombre.length < 2)
+        throw new BadRequestException(
+          'El nombre debe tener al menos 2 caracteres',
+        );
       update.nombre = nombre;
     }
     if (typeof data.telefono === 'string') {
       const telefono = data.telefono.trim();
-      if (telefono.length < 6) throw new BadRequestException('El teléfono no es válido');
+      if (telefono.length < 6)
+        throw new BadRequestException('El teléfono no es válido');
       update.telefono = telefono;
     }
 
     return this.prisma.user.update({
       where: { id },
       data: update,
-      select: { id: true, nombre: true, email: true, telefono: true, rol: true },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        telefono: true,
+        rol: true,
+      },
     });
   }
 
@@ -99,7 +130,9 @@ export class UsersService {
     tokenVersion: number;
   }> {
     const emailNorm = email.trim().toLowerCase();
-    const existente = await this.prisma.user.findUnique({ where: { email: emailNorm } });
+    const existente = await this.prisma.user.findUnique({
+      where: { email: emailNorm },
+    });
     if (existente) {
       return {
         id: existente.id,
@@ -112,7 +145,10 @@ export class UsersService {
     }
     // Hash de un valor aleatorio impredecible: satisface el constraint de la DB
     // (password no vacío) y nadie puede hacer login con email/password — solo Google.
-    const passwordBloqueada = await bcrypt.hash(randomBytes(32).toString('hex'), BCRYPT_ROUNDS);
+    const passwordBloqueada = await bcrypt.hash(
+      randomBytes(32).toString('hex'),
+      BCRYPT_ROUNDS,
+    );
     const nuevo = await this.prisma.user.create({
       data: {
         nombre: nombre.trim(),
@@ -171,9 +207,15 @@ export class UsersService {
     return { ok: true };
   }
 
-  async cambiarPassword(id: string, passwordActual: string, passwordNueva: string) {
+  async cambiarPassword(
+    id: string,
+    passwordActual: string,
+    passwordNueva: string,
+  ) {
     if (!passwordActual || !passwordNueva) {
-      throw new BadRequestException('Debes ingresar la contraseña actual y la nueva');
+      throw new BadRequestException(
+        'Debes ingresar la contraseña actual y la nueva',
+      );
     }
     if (passwordNueva.length < MIN_PASSWORD_LENGTH) {
       throw new BadRequestException(
@@ -181,14 +223,17 @@ export class UsersService {
       );
     }
     if (passwordActual === passwordNueva) {
-      throw new BadRequestException('La nueva contraseña debe ser distinta de la actual');
+      throw new BadRequestException(
+        'La nueva contraseña debe ser distinta de la actual',
+      );
     }
 
     const usuario = await this.prisma.user.findUnique({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
 
     const valido = await bcrypt.compare(passwordActual, usuario.password);
-    if (!valido) throw new UnauthorizedException('La contraseña actual no es correcta');
+    if (!valido)
+      throw new UnauthorizedException('La contraseña actual no es correcta');
 
     const hash = await bcrypt.hash(passwordNueva, BCRYPT_ROUNDS);
     // Incrementar tokenVersion invalida todos los JWT emitidos antes de este
@@ -210,7 +255,9 @@ export class UsersService {
     const usuario = await this.prisma.user.findUnique({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
     if (usuario.eliminadoEn) {
-      throw new BadRequestException('La cuenta ya está marcada para eliminación');
+      throw new BadRequestException(
+        'La cuenta ya está marcada para eliminación',
+      );
     }
     await this.prisma.user.update({
       where: { id },

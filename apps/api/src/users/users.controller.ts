@@ -59,6 +59,10 @@ export class UsersController {
     if (req.user.userId !== id) {
       throw new ForbiddenException('Solo puedes cambiar tu propia contraseña');
     }
-    return this.usersService.cambiarPassword(id, body.passwordActual, body.passwordNueva);
+    return this.usersService.cambiarPassword(
+      id,
+      body.passwordActual,
+      body.passwordNueva,
+    );
   }
 }

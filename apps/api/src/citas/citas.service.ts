@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { NotificacionesService } from '../notificaciones.service';
 import { EstadoCita } from '@prisma/client';
@@ -26,13 +30,22 @@ export class CitasService {
     private notificaciones: NotificacionesService,
   ) {}
 
-  async crear(fecha: string, direccion: string, servicios: string[], mascotaId: string) {
+  async crear(
+    fecha: string,
+    direccion: string,
+    servicios: string[],
+    mascotaId: string,
+  ) {
     const fechaDate = new Date(fecha);
-    if (isNaN(fechaDate.getTime())) throw new BadRequestException('Fecha inválida');
+    if (isNaN(fechaDate.getTime()))
+      throw new BadRequestException('Fecha inválida');
     const ahora = new Date();
-    if (fechaDate < ahora) throw new BadRequestException('No puedes agendar en el pasado');
+    if (fechaDate < ahora)
+      throw new BadRequestException('No puedes agendar en el pasado');
 
-    const limiteFuturo = new Date(ahora.getTime() + MAX_DIAS_FUTURO * 24 * 60 * 60 * 1000);
+    const limiteFuturo = new Date(
+      ahora.getTime() + MAX_DIAS_FUTURO * 24 * 60 * 60 * 1000,
+    );
     if (fechaDate > limiteFuturo) {
       throw new BadRequestException(
         `No puedes agendar con más de ${MAX_DIAS_FUTURO} días de anticipación`,

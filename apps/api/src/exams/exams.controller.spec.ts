@@ -49,11 +49,16 @@ describe('ExamsController', () => {
 
   it('descargar retorna la url firmada para un admin', async () => {
     mockExamsService.buscarPorId.mockResolvedValue({
-      id: 'ex-1', mascota: { tutorId: 'tutor-1' },
+      id: 'ex-1',
+      mascota: { tutorId: 'tutor-1' },
     });
-    mockExamsService.generarUrlDescarga.mockResolvedValue('https://signed.example.com/f.pdf');
+    mockExamsService.generarUrlDescarga.mockResolvedValue(
+      'https://signed.example.com/f.pdf',
+    );
 
-    const req = { user: { userId: 'admin-1', email: 'a@b.cl', rol: 'ADMIN' as const } };
+    const req = {
+      user: { userId: 'admin-1', email: 'a@b.cl', rol: 'ADMIN' as const },
+    };
     const result = await controller.descargar(req, 'ex-1');
 
     expect(result).toEqual({ url: 'https://signed.example.com/f.pdf' });
@@ -64,9 +69,9 @@ describe('ExamsController', () => {
       // Content-Type "application/pdf" pero el contenido es HTML.
       const noPdf = archivoFake(Buffer.from('<html><body>fake</body></html>'));
 
-      await expect(controller.subirArchivo('ex-1', noPdf)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        controller.subirArchivo('ex-1', noPdf),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(mockExamsService.subirArchivo).not.toHaveBeenCalled();
     });
 

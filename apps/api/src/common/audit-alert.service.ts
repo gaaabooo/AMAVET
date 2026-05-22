@@ -54,7 +54,12 @@ export class AuditAlertService {
       if (evento === 'LOGIN_FALLIDO' && contexto.ip) {
         await this.detectarFuerzaBruta(contexto.ip);
       }
-      if (evento === 'LOGIN_OK' && contexto.rol === 'ADMIN' && contexto.userId && contexto.ip) {
+      if (
+        evento === 'LOGIN_OK' &&
+        contexto.rol === 'ADMIN' &&
+        contexto.userId &&
+        contexto.ip
+      ) {
         await this.detectarLoginAdminIpNueva(contexto.userId, contexto.ip);
       }
       if (evento === 'REGISTRO_OK' || evento === 'REGISTRO_EMAIL_DUPLICADO') {
@@ -64,7 +69,9 @@ export class AuditAlertService {
         await this.detectarPasswordRafaga(contexto.userId);
       }
     } catch (err) {
-      this.logger.error(`Fallo al evaluar alertas de auditoría: ${String(err)}`);
+      this.logger.error(
+        `Fallo al evaluar alertas de auditoría: ${String(err)}`,
+      );
     }
   }
 
@@ -82,7 +89,10 @@ export class AuditAlertService {
     }
   }
 
-  private async detectarLoginAdminIpNueva(userId: string, ip: string): Promise<void> {
+  private async detectarLoginAdminIpNueva(
+    userId: string,
+    ip: string,
+  ): Promise<void> {
     // Si el admin no tiene NINGÚN login previo, es su primer acceso (cuenta
     // recién creada): no hay IP "conocida" contra la que comparar, así que no
     // se alerta — sería un falso positivo de bootstrap.
@@ -154,13 +164,20 @@ export class AuditAlertService {
    * escalara a varias instancias o el proceso se reinicia, el cooldown se
    * reinicia con él. Aceptable: el peor caso es algún email de más, no de menos.
    */
-  private async notificar(tipo: TipoAlerta, titulo: string, detalle: string): Promise<void> {
+  private async notificar(
+    tipo: TipoAlerta,
+    titulo: string,
+    detalle: string,
+  ): Promise<void> {
     const ahora = Date.now();
     const ultima = this.ultimaAlerta.get(tipo) ?? 0;
     if (ahora - ultima < COOLDOWN_ALERTA_MS) return;
 
     this.logger.warn(`Alerta de seguridad: ${tipo} — ${detalle}`);
-    const enviado = await this.notificaciones.notificarAlertaSeguridad(titulo, detalle);
+    const enviado = await this.notificaciones.notificarAlertaSeguridad(
+      titulo,
+      detalle,
+    );
     // El cooldown se marca solo si el correo se envió: si SendGrid falló, la
     // próxima detección reintentará en vez de quedar silenciada 30 minutos.
     if (enviado) {

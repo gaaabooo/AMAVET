@@ -1,12 +1,21 @@
-import { Injectable, InternalServerErrorException, Logger, OnModuleInit } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
+import { createClient } from '@supabase/supabase-js';
 
 const SIGNED_URL_TTL_SECONDS = 86_400; // 24 horas (coincide con el texto del email)
+
+// El tipo del cliente se infiere de createClient para evitar desajustes entre
+// la firma genérica de la librería y un SupabaseClient declarado a mano.
+type ClienteSupabase = ReturnType<typeof createClient>;
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
   private readonly logger = new Logger(SupabaseService.name);
-  private client!: SupabaseClient;
+  private client!: ClienteSupabase;
 
   onModuleInit() {
     const url = process.env.SUPABASE_URL;
@@ -19,7 +28,11 @@ export class SupabaseService implements OnModuleInit {
     });
   }
 
-  async subirArchivo(buffer: Buffer, nombreArchivo: string, mimeType: string): Promise<string> {
+  async subirArchivo(
+    buffer: Buffer,
+    nombreArchivo: string,
+    mimeType: string,
+  ): Promise<string> {
     if (mimeType !== 'application/pdf') {
       throw new InternalServerErrorException('Tipo de archivo no permitido');
     }
@@ -50,7 +63,9 @@ export class SupabaseService implements OnModuleInit {
    * menor frente a propagar el error original de la operación.
    */
   async borrarArchivo(rutaArchivo: string): Promise<void> {
-    const { error } = await this.client.storage.from('Examenes').remove([rutaArchivo]);
+    const { error } = await this.client.storage
+      .from('Examenes')
+      .remove([rutaArchivo]);
     if (error) {
       this.logger.error(
         `No se pudo borrar el archivo huérfano ${rutaArchivo}: ${error.message}`,
@@ -64,13 +79,17 @@ export class SupabaseService implements OnModuleInit {
       .createSignedUrl(rutaArchivo, SIGNED_URL_TTL_SECONDS);
 
     if (error || !data?.signedUrl) {
-      throw new InternalServerErrorException('No se pudo generar la URL del archivo');
+      throw new InternalServerErrorException(
+        'No se pudo generar la URL del archivo',
+      );
     }
 
     return data.signedUrl;
   }
 
-  async verificarTokenAcceso(accessToken: string): Promise<{ email: string; nombre: string } | null> {
+  async verificarTokenAcceso(
+    accessToken: string,
+  ): Promise<{ email: string; nombre: string } | null> {
     try {
       const { data, error } = await this.client.auth.getUser(accessToken);
       if (error || !data.user?.email) return null;

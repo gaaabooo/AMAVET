@@ -393,7 +393,10 @@ export class NotificacionesService implements OnModuleInit {
 
   // Confirmación de que la cuenta quedó marcada para eliminación, con el plazo
   // de gracia durante el cual aún puede recuperarse iniciando sesión.
-  async notificarCuentaEliminada(email: string, diasGracia: number): Promise<void> {
+  async notificarCuentaEliminada(
+    email: string,
+    diasGracia: number,
+  ): Promise<void> {
     const titulo = 'Silvestra Vet · Tu cuenta será eliminada';
     const html = plantilla({
       titulo,
@@ -488,7 +491,10 @@ export class NotificacionesService implements OnModuleInit {
   // alerta solo queda en el log y en el audit trail.
   // Devuelve true si el correo se envió, false si no (sin destino o fallo) —
   // así quien llama puede decidir si marca el cooldown.
-  async notificarAlertaSeguridad(titulo: string, detalle: string): Promise<boolean> {
+  async notificarAlertaSeguridad(
+    titulo: string,
+    detalle: string,
+  ): Promise<boolean> {
     const destino = process.env.ADMIN_ALERT_EMAIL;
     if (!destino) {
       this.logger.warn(
@@ -512,7 +518,9 @@ export class NotificacionesService implements OnModuleInit {
       await this.enviar(destino, asunto, html);
       return true;
     } catch (err) {
-      this.logger.warn(`No se pudo enviar la alerta de seguridad: ${String(err)}`);
+      this.logger.warn(
+        `No se pudo enviar la alerta de seguridad: ${String(err)}`,
+      );
       return false;
     }
   }

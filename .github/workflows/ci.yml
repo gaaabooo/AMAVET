@@ -1,0 +1,86 @@
+name: CI
+
+# Red de seguridad automática: corre en cada push a main y en cada PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api:
+    name: API (NestJS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      # npm ci instala exactamente lo del package-lock (build reproducible).
+      - name: Instalar dependencias
+        run: npm ci
+
+      # El cliente Prisma debe generarse antes de compilar/testear (TypeScript
+      # necesita sus tipos). No requiere conexión a la base de datos.
+      - name: Generar cliente Prisma
+        run: npx prisma generate
+
+      # eslint directo (no `npm run lint`, que lleva --fix y modificaría
+      # archivos: en CI la validación debe ser de solo lectura).
+      - name: Lint
+        run: npx eslint "src/**/*.ts"
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Falla solo ante vulnerabilidades high/critical: las moderate conocidas
+      # provienen de dependencias transitivas sin fix disponible (ver RM-3).
+      - name: Auditoría de dependencias
+        run: npm audit --audit-level=high
+
+  web:
+    name: Web (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          # Valores ficticios: el build no contacta servicios, solo compila.
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+
+      - name: Auditoría de dependencias
+        run: npm audit --audit-level=high
