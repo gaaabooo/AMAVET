@@ -7,10 +7,9 @@ import {
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit.service';
 import { NotificacionesService } from '../notificaciones.service';
-import * as bcrypt from 'bcryptjs';
+import { hashPassword, verifyPassword } from '../common/password';
 import { randomBytes } from 'crypto';
 
-const BCRYPT_ROUNDS = 12;
 const MIN_PASSWORD_LENGTH = 8;
 
 // Sentinel para usuarios creados por Google que aún no han ingresado su teléfono.
@@ -37,7 +36,7 @@ export class UsersService {
         `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
       );
     }
-    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const hash = await hashPassword(password);
     return this.prisma.user.create({
       data: {
         nombre: nombre.trim(),
@@ -145,9 +144,8 @@ export class UsersService {
     }
     // Hash de un valor aleatorio impredecible: satisface el constraint de la DB
     // (password no vacío) y nadie puede hacer login con email/password — solo Google.
-    const passwordBloqueada = await bcrypt.hash(
+    const passwordBloqueada = await hashPassword(
       randomBytes(32).toString('hex'),
-      BCRYPT_ROUNDS,
     );
     const nuevo = await this.prisma.user.create({
       data: {
@@ -199,12 +197,44 @@ export class UsersService {
     const usuario = await this.prisma.user.findUnique({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
 
-    const hash = await bcrypt.hash(passwordNueva, BCRYPT_ROUNDS);
+    const hash = await hashPassword(passwordNueva);
     await this.prisma.user.update({
       where: { id },
       data: { password: hash, tokenVersion: { increment: 1 } },
     });
     return { ok: true };
+  }
+
+  /**
+   * Re-hashea la contraseña de un usuario a Argon2id durante el login, para
+   * cuentas que aún tienen un hash bcrypt heredado. NO incrementa tokenVersion:
+   * la contraseña no cambió, solo su algoritmo de almacenamiento, así que las
+   * sesiones existentes siguen siendo válidas. No lanza: una migración fallida
+   * no debe afectar al login (se reintentará en el siguiente).
+   *
+   * El update se condiciona a que la contraseña almacenada SIGA siendo el hash
+   * legacy original: si entre el login y este punto el usuario cambió su
+   * contraseña por otra vía, el update afecta 0 filas y la migración se omite
+   * (evita pisar la contraseña nueva con el hash de la vieja).
+   */
+  async migrarHashPassword(
+    id: string,
+    passwordEnClaro: string,
+    hashLegacy: string,
+  ): Promise<void> {
+    try {
+      const hash = await hashPassword(passwordEnClaro);
+      await this.prisma.user.updateMany({
+        where: { id, password: hashLegacy },
+        data: { password: hash },
+      });
+    } catch (err) {
+      this.audit.alertar('PASSWORD_CAMBIADA', {
+        userId: id,
+        resultado: 'REHASH_FALLIDO',
+        detalle: err instanceof Error ? err.name : 'Error',
+      });
+    }
   }
 
   async cambiarPassword(
@@ -231,11 +261,11 @@ export class UsersService {
     const usuario = await this.prisma.user.findUnique({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
 
-    const valido = await bcrypt.compare(passwordActual, usuario.password);
+    const valido = await verifyPassword(usuario.password, passwordActual);
     if (!valido)
       throw new UnauthorizedException('La contraseña actual no es correcta');
 
-    const hash = await bcrypt.hash(passwordNueva, BCRYPT_ROUNDS);
+    const hash = await hashPassword(passwordNueva);
     // Incrementar tokenVersion invalida todos los JWT emitidos antes de este
     // cambio: si la contraseña se cambió por sospecha de robo, las sesiones
     // del atacante dejan de ser válidas de inmediato.

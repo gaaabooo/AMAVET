@@ -18,6 +18,7 @@ const mockUsersService = {
     .fn()
     .mockResolvedValue({ tokenVersion: 0, eliminado: false }),
   reactivar: jest.fn().mockResolvedValue(undefined),
+  migrarHashPassword: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockJwtService = {
@@ -143,6 +144,44 @@ describe('AuthService', () => {
         '?',
         true,
       );
+    });
+
+    it('re-hashea a Argon2id si la cuenta tiene un hash bcrypt heredado', async () => {
+      const hashBcrypt = await bcrypt.hash('Password1!', 12);
+      mockUsersService.buscarPorEmail.mockResolvedValue({
+        id: 'uuid-1',
+        email: 'test@test.cl',
+        rol: 'TUTOR',
+        password: hashBcrypt,
+        tokenVersion: 0,
+        eliminadoEn: null,
+      });
+
+      await service.login('test@test.cl', 'Password1!');
+
+      // Se pasa también el hash legacy, para que el update se condicione a él.
+      expect(mockUsersService.migrarHashPassword).toHaveBeenCalledWith(
+        'uuid-1',
+        'Password1!',
+        hashBcrypt,
+      );
+    });
+
+    it('NO re-hashea si la cuenta ya tiene un hash Argon2id', async () => {
+      const { hashPassword } = await import('../common/password');
+      const hashArgon = await hashPassword('Password1!');
+      mockUsersService.buscarPorEmail.mockResolvedValue({
+        id: 'uuid-1',
+        email: 'test@test.cl',
+        rol: 'TUTOR',
+        password: hashArgon,
+        tokenVersion: 0,
+        eliminadoEn: null,
+      });
+
+      await service.login('test@test.cl', 'Password1!');
+
+      expect(mockUsersService.migrarHashPassword).not.toHaveBeenCalled();
     });
 
     it('lanza UnauthorizedException si el usuario no existe', async () => {

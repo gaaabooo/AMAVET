@@ -124,7 +124,7 @@ export class PasswordResetService {
     });
     if (!usuario) throw enlaceInvalido();
 
-    // resetearPassword valida la longitud, hashea con bcrypt 12 e incrementa
+    // resetearPassword valida la longitud, hashea con Argon2id e incrementa
     // tokenVersion. El reset del token y el borrado de los demás van junto a
     // ello dentro de la misma transacción.
     await this.prisma.$transaction(async () => {

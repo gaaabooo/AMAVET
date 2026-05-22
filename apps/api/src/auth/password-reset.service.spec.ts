@@ -71,7 +71,7 @@ describe('PasswordResetService', () => {
 
       expect(mockPrisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
         where: {
-          OR: [{ usado: true }, { expiraEn: { lt: expect.any(Date) } }],
+          OR: [{ usado: true }, { expiraEn: { lt: expect.any(Date) as Date } }],
         },
       });
     });

@@ -6,7 +6,11 @@ import { LoginLockoutService } from './login-lockout.service';
 import { NotificacionesService } from '../notificaciones.service';
 import { emailEnmascarado } from '../common/audit';
 import { AuditService } from '../common/audit.service';
-import * as bcrypt from 'bcryptjs';
+import {
+  verifyPassword,
+  necesitaRehash,
+  verificacionDummy,
+} from '../common/password';
 
 @Injectable()
 export class AuthService {
@@ -142,7 +146,8 @@ export class AuthService {
     const ipNorm = ip ?? '?';
 
     // Lockout escalonado: si esta combinación email+ip acumula demasiados
-    // fallos recientes, se rechaza con 429 ANTES de tocar la BD o bcrypt.
+    // fallos recientes, se rechaza con 429 ANTES de tocar la BD o de verificar
+    // la contraseña.
     await this.lockout.verificarBloqueo(emailNorm, ipNorm);
 
     const usuario = await this.usersService.buscarPorEmail(email);
@@ -158,13 +163,11 @@ export class AuthService {
       });
     };
 
-    // Defensa contra timing attacks: si el usuario no existe, hacemos un compare
-    // dummy para que la latencia sea similar al caso "usuario existe pero pwd mala".
+    // Defensa contra timing attacks: si el usuario no existe, hacemos una
+    // verificación dummy (Argon2id real) para que la latencia sea similar al
+    // caso "usuario existe pero pwd mala".
     if (!usuario) {
-      await bcrypt.compare(
-        password,
-        '$2b$12$invalidsaltinvalidsaltinvalidsaltinvalidsaltinvalidsaltinv',
-      );
+      await verificacionDummy(password);
       await fallar();
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -175,10 +178,21 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const valido = await bcrypt.compare(password, usuario.password);
+    const valido = await verifyPassword(usuario.password, password);
     if (!valido) {
       await fallar();
       throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    // Migración gradual a Argon2id: si la cuenta todavía tiene un hash bcrypt
+    // heredado, se re-hashea ahora que tenemos la contraseña en claro y ya se
+    // verificó. Es transparente para el usuario. Fire-and-forget: un fallo al
+    // re-hashear no debe impedir el login (el .catch defensivo evita un
+    // unhandled rejection si la migración cambiara en el futuro).
+    if (necesitaRehash(usuario.password)) {
+      void this.usersService
+        .migrarHashPassword(usuario.id, password, usuario.password)
+        .catch(() => undefined);
     }
 
     // Login correcto: se limpian los fallos previos de esta combinación.

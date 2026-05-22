@@ -5,6 +5,7 @@ import type { Application } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { smokeTestArgon2 } from './common/password';
 
 // Render no tiene conectividad IPv6 saliente. Forzamos que la resolución DNS
 // devuelva direcciones IPv4 primero para evitar ENETUNREACH al conectar a
@@ -31,6 +32,11 @@ function assertRequiredEnv() {
 
 async function bootstrap() {
   assertRequiredEnv();
+
+  // Verifica que el binario nativo de Argon2 funciona antes de aceptar
+  // tráfico: si falla, es mejor no arrancar que rechazar todas las
+  // contraseñas en producción de forma silenciosa.
+  await smokeTestArgon2();
 
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],

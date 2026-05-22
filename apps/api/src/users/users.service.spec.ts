@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit.service';
 import { mockAuditService } from '../common/audit.mock';
 import { NotificacionesService } from '../notificaciones.service';
+import { verifyPassword } from '../common/password';
 import * as bcrypt from 'bcryptjs';
 
 // Extrae, ya tipado, el primer argumento de la primera llamada a un mock de
@@ -27,6 +28,7 @@ describe('UsersService', () => {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
 
@@ -67,7 +69,9 @@ describe('UsersService', () => {
       ).data;
       expect(arg.email).toBe('test@test.cl');
       expect(arg.password).not.toBe('Password1!');
-      expect(await bcrypt.compare('Password1!', arg.password)).toBe(true);
+      // El hash debe ser Argon2id y verificar contra la contraseña original.
+      expect(arg.password.startsWith('$argon2')).toBe(true);
+      expect(await verifyPassword(arg.password, 'Password1!')).toBe(true);
     });
   });
 
@@ -134,7 +138,8 @@ describe('UsersService', () => {
       expect(data.rol).toBe('TUTOR');
       // La cuenta creada vía Google se marca con proveedor GOOGLE.
       expect(data.proveedor).toBe('GOOGLE');
-      // El constraint de la DB exige >= 60 chars; un hash bcrypt mide 60.
+      // La password bloqueada se guarda hasheada (Argon2id, ~95 chars); el
+      // constraint de la DB exige >= 60.
       expect(data.password.length).toBeGreaterThanOrEqual(60);
       expect(result.telefono).toBe(TELEFONO_PENDIENTE);
       expect(result.tokenVersion).toBe(0);
@@ -186,6 +191,33 @@ describe('UsersService', () => {
       expect(mockNotificaciones.notificarPasswordCambiada).toHaveBeenCalledWith(
         'ana@test.cl',
       );
+    });
+  });
+
+  describe('migrarHashPassword', () => {
+    it('re-hashea condicionado al hash legacy y NO toca tokenVersion', async () => {
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.migrarHashPassword('u-1', 'Password1!', '$2b$12$hashViejo');
+
+      const arg = primerArg<{
+        where: { id: string; password: string };
+        data: { password: string; tokenVersion?: unknown };
+      }>(mockPrisma.user.updateMany);
+      // El update se condiciona al hash legacy original (anti-TOCTOU).
+      expect(arg.where).toEqual({ id: 'u-1', password: '$2b$12$hashViejo' });
+      // El nuevo hash es Argon2id.
+      expect(arg.data.password.startsWith('$argon2')).toBe(true);
+      // Clave: NO se incrementa tokenVersion (la contraseña no cambió).
+      expect(arg.data.tokenVersion).toBeUndefined();
+    });
+
+    it('no lanza si el update falla (la migración nunca rompe el login)', async () => {
+      mockPrisma.user.updateMany.mockRejectedValue(new Error('BD caída'));
+
+      await expect(
+        service.migrarHashPassword('u-1', 'Password1!', '$2b$12$hashViejo'),
+      ).resolves.toBeUndefined();
     });
   });
 
