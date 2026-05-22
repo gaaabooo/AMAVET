@@ -22,6 +22,7 @@ const mockPrisma = {
     update: jest.fn(),
     count: jest.fn(),
   },
+  examen: { createMany: jest.fn() },
   // $transaction ejecuta el callback de inmediato pasándole el propio mock
   // como cliente transaccional (sin transacción real). La implementación se
   // (re)aplica en beforeEach porque clearAllMocks la borra.
@@ -64,13 +65,51 @@ describe('CitasService', () => {
       const result = await service.crear(
         fechaFutura,
         'Av. Test 123',
-        ['Consulta'],
+        ['Control Médico'],
         'mascota-1',
       );
 
       expect(result).toEqual({ id: 'cita-1' });
       expect(mockPrisma.cita.create).toHaveBeenCalledTimes(1);
       expect(mockNotificaciones.notificarCitaAgendada).toHaveBeenCalledTimes(1);
+    });
+
+    it('no crea exámenes si los servicios son solo consultas generales', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(0);
+      mockPrisma.cita.findFirst.mockResolvedValue(null);
+      mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
+
+      await service.crear(fechaFutura, 'Av. Test', ['Control Médico'], 'mascota-1');
+
+      expect(mockPrisma.examen.createMany).not.toHaveBeenCalled();
+    });
+
+    it('crea un examen PENDIENTE por cada servicio de laboratorio/test', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(0);
+      mockPrisma.cita.findFirst.mockResolvedValue(null);
+      mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
+
+      await service.crear(
+        fechaFutura,
+        'Av. Test',
+        ['Control Médico', 'Examen Hemograma', 'Test de Parvovirus'],
+        'mascota-1',
+      );
+
+      expect(mockPrisma.examen.createMany).toHaveBeenCalledTimes(1);
+      const data = (
+        mockPrisma.examen.createMany.mock.calls[0][0] as {
+          data: { tipo: string; citaId: string; mascotaId: string }[];
+        }
+      ).data;
+      // Solo los 2 servicios-examen, no la consulta general.
+      expect(data.map((d) => d.tipo).sort()).toEqual([
+        'Examen Hemograma',
+        'Test de Parvovirus',
+      ]);
+      expect(data.every((d) => d.citaId === 'cita-1')).toBe(true);
     });
 
     it('rechaza la cita si el tutor ya tiene el máximo de citas activas (D-2)', async () => {

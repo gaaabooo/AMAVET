@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { getSesion } from '@/lib/session';
-import { SERVICIOS_CON_PDF } from '@/lib/utils/animals';
 import Logo from '@/components/Logo';
 
 interface Usuario {
@@ -25,16 +24,18 @@ interface Mascota {
   examenes: Examen[];
 }
 
+type EstadoCita = 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA';
+
 interface Examen {
   id: string;
   tipo: string;
   estado: 'PENDIENTE' | 'EN_PROCESO' | 'DISPONIBLE';
   archivoUrl: string | null;
   creadoEn: string;
+  citaId: string;
   mascota?: { id: string; nombre: string; tipo: string; tutor: { nombre: string } };
+  cita?: { id: string; fecha: string; direccion: string; estado: EstadoCita };
 }
-
-type EstadoCita = 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA';
 
 interface Cita {
   id: string;
@@ -128,8 +129,7 @@ export default function Admin() {
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
-  const [uploadMascotaId, setUploadMascotaId] = useState('');
-  const [uploadTipo, setUploadTipo] = useState('');
+  const [uploadExamenId, setUploadExamenId] = useState('');
   const [uploadArchivo, setUploadArchivo] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
@@ -190,32 +190,22 @@ export default function Admin() {
     }
   };
 
-  const esExamen = SERVICIOS_CON_PDF.has(uploadTipo);
-
   const subirResultado = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadMascotaId || !uploadTipo) return;
-    if (esExamen && !uploadArchivo) return;
+    if (!uploadExamenId || !uploadArchivo) return;
     setSubiendo(true);
     try {
-      if (esExamen && uploadArchivo) {
-        const { data: examen } = await api.post('/examenes', { tipo: uploadTipo, mascotaId: uploadMascotaId });
-        const formData = new FormData();
-        formData.append('archivo', uploadArchivo);
-        await api.post(`/examenes/${examen.id}/subir`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        mostrarMensaje('ok', 'Resultado subido. El tutor fue notificado por correo.');
-      } else {
-        await api.post('/examenes', { tipo: uploadTipo, mascotaId: uploadMascotaId });
-        mostrarMensaje('ok', 'Servicio registrado correctamente.');
-      }
-      setUploadMascotaId('');
-      setUploadTipo('');
+      const formData = new FormData();
+      formData.append('archivo', uploadArchivo);
+      await api.post(`/examenes/${uploadExamenId}/subir`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      mostrarMensaje('ok', 'Resultado subido. El tutor fue notificado por correo.');
+      setUploadExamenId('');
       setUploadArchivo(null);
       await cargarDatos();
     } catch (err) {
-      mostrarMensaje('error', mensajeError(err, 'Error al registrar el servicio'));
+      mostrarMensaje('error', mensajeError(err, 'Error al subir el resultado'));
     } finally {
       setSubiendo(false);
     }
@@ -284,37 +274,21 @@ export default function Admin() {
     return result;
   }, [mascotas, mascotaOrden, mascotaBusqueda]);
 
+  // Cada examen pertenece a una cita y la DB garantiza @@unique([citaId, tipo]):
+  // no hay duplicados que filtrar. En el panel del admin solo interesan los
+  // exámenes de citas CONFIRMADA o COMPLETADA: una cita aún PENDIENTE de
+  // aceptar — o ya CANCELADA — no debe generar trabajo de laboratorio.
   const examenesReales = useMemo(
-    () => examenes.filter(e => SERVICIOS_EXAMEN.has(e.tipo)),
+    () => examenes.filter(
+      e =>
+        SERVICIOS_EXAMEN.has(e.tipo) &&
+        (e.cita?.estado === 'CONFIRMADA' || e.cita?.estado === 'COMPLETADA'),
+    ),
     [examenes]
   );
 
-  const examenesDeduplicados = useMemo(() => {
-    const ordenados = [...examenesReales].sort(
-      (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
-    );
-    const grupos = new Map<string, Examen[]>();
-    for (const ex of ordenados) {
-      const key = `${ex.mascota?.id ?? 'sin-mascota'}|${ex.tipo}`;
-      const lista = grupos.get(key) ?? [];
-      lista.push(ex);
-      grupos.set(key, lista);
-    }
-    const resultado: Examen[] = [];
-    for (const lista of grupos.values()) {
-      const procesados: Examen[] = [];
-      for (const ex of lista) {
-        const t = new Date(ex.creadoEn).getTime();
-        const yaRepresentado = procesados.some(p => Math.abs(new Date(p.creadoEn).getTime() - t) < 24 * 60 * 60 * 1000);
-        if (!yaRepresentado) procesados.push(ex);
-      }
-      resultado.push(...procesados);
-    }
-    return resultado;
-  }, [examenesReales]);
-
   const examenesFiltrados = useMemo(() => {
-    let result = [...examenesDeduplicados];
+    let result = [...examenesReales];
     if (examenEstado !== 'TODOS') result = result.filter(e => e.estado === examenEstado);
     if (examenBusqueda.trim()) {
       const q = examenBusqueda.toLowerCase().trim();
@@ -324,11 +298,17 @@ export default function Admin() {
         e.mascota?.tutor?.nombre.toLowerCase().includes(q)
       );
     }
-    result.sort((a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime());
+    // Ordena por la fecha de la cita (la más reciente primero), que es lo que
+    // se muestra en la columna FECHA.
+    result.sort(
+      (a, b) =>
+        new Date(b.cita?.fecha ?? b.creadoEn).getTime() -
+        new Date(a.cita?.fecha ?? a.creadoEn).getTime(),
+    );
     return result;
-  }, [examenesDeduplicados, examenEstado, examenBusqueda]);
+  }, [examenesReales, examenEstado, examenBusqueda]);
 
-  const pendientes = examenesDeduplicados.filter(e => e.estado !== 'DISPONIBLE').length;
+  const pendientes = examenesReales.filter(e => e.estado !== 'DISPONIBLE').length;
   const sinAtender = useMemo(() => mascotas.filter(m => !fueAtendida(m)).length, [mascotas]);
 
   if (cargando) {
@@ -351,7 +331,7 @@ export default function Admin() {
   const titulos: Record<Vista, { titulo: string; sub: string }> = {
     dashboard: { titulo: `${(() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'; })()}, ${usuario?.nombre?.split(' ')[0] ?? ''}`, sub: new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
     mascotas: { titulo: 'Mis pacientes', sub: `${mascotas.length} mascotas registradas` },
-    examenes: { titulo: 'Registro de exámenes', sub: `${examenesDeduplicados.length} registros en total` },
+    examenes: { titulo: 'Registro de exámenes', sub: `${examenesReales.length} registros en total` },
     agenda: { titulo: 'Agenda de consultas', sub: '' },
     configuracion: { titulo: 'Mi cuenta', sub: 'Perfil · Seguridad · Sesión' },
     ayuda: { titulo: '', sub: '' },
@@ -482,10 +462,9 @@ export default function Admin() {
                 const h = new Date();
                 return f.getFullYear() === h.getFullYear() && f.getMonth() === h.getMonth() && f.getDate() === h.getDate();
               }).length}
-              uploadMascotaId={uploadMascotaId}
-              setUploadMascotaId={setUploadMascotaId}
-              uploadTipo={uploadTipo}
-              setUploadTipo={setUploadTipo}
+              examenes={examenes}
+              uploadExamenId={uploadExamenId}
+              setUploadExamenId={setUploadExamenId}
               uploadArchivo={uploadArchivo}
               setUploadArchivo={setUploadArchivo}
               dragging={dragging}
@@ -681,14 +660,13 @@ function PetEmojiCircle({ tipo, size = 'md' }: { tipo?: string; size?: 'sm' | 'm
 interface DashboardViewProps {
   mascotas: Mascota[];
   citas: Cita[];
+  examenes: Examen[];
   recentMascotas: Mascota[];
   pendientes: number;
   sinAtender: number;
   citasHoy: number;
-  uploadMascotaId: string;
-  setUploadMascotaId: (v: string) => void;
-  uploadTipo: string;
-  setUploadTipo: (v: string) => void;
+  uploadExamenId: string;
+  setUploadExamenId: (v: string) => void;
   uploadArchivo: File | null;
   setUploadArchivo: (f: File | null) => void;
   dragging: boolean;
@@ -700,29 +678,18 @@ interface DashboardViewProps {
 }
 
 function DashboardView({
-  mascotas, citas, recentMascotas, pendientes, sinAtender, citasHoy,
-  uploadMascotaId, setUploadMascotaId, uploadTipo, setUploadTipo,
+  mascotas, citas, examenes, recentMascotas, pendientes, sinAtender, citasHoy,
+  uploadExamenId, setUploadExamenId,
   uploadArchivo, setUploadArchivo, dragging, setDragging,
   subiendo, fileInputRef, subirResultado, actualizarEstadoCita,
 }: DashboardViewProps) {
-  const esExamen = SERVICIOS_CON_PDF.has(uploadTipo);
-
-  const serviciosSolicitados: string[] = uploadMascotaId
-    ? (() => {
-        const mascota = mascotas.find(m => m.id === uploadMascotaId);
-        const citasActivas = citas.filter(c => c.mascotaId === uploadMascotaId && c.estado !== 'CANCELADA');
-        const pend: string[] = [];
-        for (const c of citasActivas) {
-          for (const s of c.servicios) {
-            if (SERVICIOS_CON_PDF.has(s)) {
-              const yaSubido = mascota?.examenes.some(ex => ex.tipo === s && ex.estado === 'DISPONIBLE');
-              if (!yaSubido) pend.push(s);
-            }
-          }
-        }
-        return Array.from(new Set(pend)).sort();
-      })()
-    : [];
+  // Solo exámenes PENDIENTE de citas ya aceptadas (CONFIRMADA o COMPLETADA):
+  // no se publican resultados de citas sin confirmar o canceladas.
+  const examenesPendientes = examenes.filter(
+    e =>
+      e.estado === 'PENDIENTE' &&
+      (e.cita?.estado === 'CONFIRMADA' || e.cita?.estado === 'COMPLETADA'),
+  );
 
   return (
     <div className="px-10 pt-8 pb-14">
@@ -739,63 +706,63 @@ function DashboardView({
         <Card delay={0.32}>
           <CardHead><CardTitle>Publicar resultado</CardTitle></CardHead>
           <div className="p-6">
-            <form onSubmit={subirResultado}>
-              <Field label="Mascota">
-                <select required value={uploadMascotaId} onChange={e => { setUploadMascotaId(e.target.value); setUploadTipo(''); }} className="admin-input">
-                  <option value="">Buscar mascota…</option>
-                  {mascotas.map(m => <option key={m.id} value={m.id}>{emojiMascota(m.tipo)} {m.nombre} — {m.tutor?.nombre}</option>)}
-                </select>
-              </Field>
+            {examenesPendientes.length === 0 ? (
+              <p className="text-[0.84rem]" style={{ color: 'rgba(20,36,26,0.55)' }}>
+                No hay exámenes pendientes de resultado. Los exámenes se generan al agendar una cita.
+              </p>
+            ) : (
+              <form onSubmit={subirResultado}>
+                <Field label="Examen pendiente">
+                  <select required value={uploadExamenId} onChange={e => setUploadExamenId(e.target.value)} className="admin-input">
+                    <option value="">Seleccionar examen…</option>
+                    {examenesPendientes.map(ex => (
+                      <option key={ex.id} value={ex.id}>
+                        {emojiMascota(ex.mascota?.tipo)} {ex.mascota?.nombre ?? 'Mascota'} — {ex.tipo}
+                        {ex.cita?.fecha ? ` · ${fechaCorta(ex.cita.fecha)}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
 
-              <Field label="Tipo de examen" hint={uploadMascotaId ? (serviciosSolicitados.length === 0 ? 'No hay exámenes con PDF pendientes para esta mascota.' : 'Solo se muestran los servicios solicitados por el tutor.') : undefined}>
-                <select required value={uploadTipo} onChange={e => setUploadTipo(e.target.value)} disabled={!uploadMascotaId || serviciosSolicitados.length === 0} className="admin-input">
-                  <option value="">{!uploadMascotaId ? 'Primero selecciona mascota' : serviciosSolicitados.length === 0 ? 'Sin servicios solicitados' : 'Seleccionar servicio…'}</option>
-                  {serviciosSolicitados.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </Field>
+                <label className="block font-[family-name:var(--font-dm-mono)] text-[0.6rem] uppercase mb-1.5" style={{ letterSpacing: '0.14em', color: 'rgba(20,36,26,0.42)' }}>Archivo PDF</label>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e: React.DragEvent) => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(e: React.DragEvent) => {
+                    e.preventDefault(); setDragging(false);
+                    const file = e.dataTransfer.files[0];
+                    if (file?.type === 'application/pdf') setUploadArchivo(file);
+                  }}
+                  className="admin-dropzone relative text-center cursor-pointer transition-all my-3 overflow-hidden"
+                  style={{ borderRadius: 11, padding: '2rem 1.5rem', background: dragging ? 'rgba(216,233,200,0.45)' : 'rgba(216,233,200,0.18)' }}
+                >
+                  {uploadArchivo ? (
+                    <div className="relative z-10 flex items-center gap-3 justify-center rounded-lg py-3 px-4" style={{ background: 'var(--admin-glow)' }}>
+                      <span>📄</span>
+                      <span className="text-[0.82rem] font-semibold flex-1 truncate text-left" style={{ color: 'var(--admin-green-deep)' }}>{uploadArchivo.name}</span>
+                      <span className="font-[family-name:var(--font-dm-mono)] text-[0.62rem]" style={{ color: 'var(--admin-green-leaf)' }}>{(uploadArchivo.size / 1024).toFixed(0)} KB</span>
+                      <button type="button" onClick={e => { e.stopPropagation(); setUploadArchivo(null); }} className="leading-none text-base" style={{ color: 'var(--admin-green-leaf)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                    </div>
+                  ) : (
+                    <div className="relative z-10">
+                      <div className="text-3xl mb-2">📄</div>
+                      <p className="text-[0.84rem]" style={{ color: 'rgba(20,36,26,0.55)' }}><strong style={{ color: 'var(--admin-green-leaf)' }}>Arrastra el PDF aquí</strong> o haz clic</p>
+                      <p className="font-[family-name:var(--font-dm-mono)] text-[0.6rem] mt-1" style={{ color: 'rgba(20,36,26,0.32)' }}>PDF · máx. 10 MB</p>
+                    </div>
+                  )}
+                  <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={e => e.target.files && setUploadArchivo(e.target.files[0])} />
+                </div>
 
-              {esExamen && (
-                <>
-                  <label className="block font-[family-name:var(--font-dm-mono)] text-[0.6rem] uppercase mb-1.5" style={{ letterSpacing: '0.14em', color: 'rgba(20,36,26,0.42)' }}>Archivo PDF</label>
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e: React.DragEvent) => { e.preventDefault(); setDragging(true); }}
-                    onDragLeave={() => setDragging(false)}
-                    onDrop={(e: React.DragEvent) => {
-                      e.preventDefault(); setDragging(false);
-                      const file = e.dataTransfer.files[0];
-                      if (file?.type === 'application/pdf') setUploadArchivo(file);
-                    }}
-                    className="admin-dropzone relative text-center cursor-pointer transition-all my-3 overflow-hidden"
-                    style={{ borderRadius: 11, padding: '2rem 1.5rem', background: dragging ? 'rgba(216,233,200,0.45)' : 'rgba(216,233,200,0.18)' }}
-                  >
-                    {uploadArchivo ? (
-                      <div className="relative z-10 flex items-center gap-3 justify-center rounded-lg py-3 px-4" style={{ background: 'var(--admin-glow)' }}>
-                        <span>📄</span>
-                        <span className="text-[0.82rem] font-semibold flex-1 truncate text-left" style={{ color: 'var(--admin-green-deep)' }}>{uploadArchivo.name}</span>
-                        <span className="font-[family-name:var(--font-dm-mono)] text-[0.62rem]" style={{ color: 'var(--admin-green-leaf)' }}>{(uploadArchivo.size / 1024).toFixed(0)} KB</span>
-                        <button type="button" onClick={e => { e.stopPropagation(); setUploadArchivo(null); }} className="leading-none text-base" style={{ color: 'var(--admin-green-leaf)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-                      </div>
-                    ) : (
-                      <div className="relative z-10">
-                        <div className="text-3xl mb-2">📄</div>
-                        <p className="text-[0.84rem]" style={{ color: 'rgba(20,36,26,0.55)' }}><strong style={{ color: 'var(--admin-green-leaf)' }}>Arrastra el PDF aquí</strong> o haz clic</p>
-                        <p className="font-[family-name:var(--font-dm-mono)] text-[0.6rem] mt-1" style={{ color: 'rgba(20,36,26,0.32)' }}>PDF · máx. 10 MB</p>
-                      </div>
-                    )}
-                    <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={e => e.target.files && setUploadArchivo(e.target.files[0])} />
-                  </div>
-                </>
-              )}
-
-              <button type="submit" disabled={subiendo || !uploadMascotaId || !uploadTipo || (esExamen && !uploadArchivo)}
-                className="w-full flex items-center justify-center gap-2 rounded-lg font-bold text-[0.85rem] transition-all mt-1"
-                style={{ padding: '0.85rem', background: 'var(--admin-gold)', color: 'var(--admin-green-deep)', border: 'none', cursor: subiendo ? 'wait' : 'pointer', opacity: (subiendo || !uploadMascotaId || !uploadTipo || (esExamen && !uploadArchivo)) ? 0.45 : 1 }}
-                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#e2d490'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--admin-gold)'; }}>
-                {subiendo ? 'Procesando…' : esExamen ? 'Publicar resultado →' : 'Registrar servicio →'}
-              </button>
-            </form>
+                <button type="submit" disabled={subiendo || !uploadExamenId || !uploadArchivo}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg font-bold text-[0.85rem] transition-all mt-1"
+                  style={{ padding: '0.85rem', background: 'var(--admin-gold)', color: 'var(--admin-green-deep)', border: 'none', cursor: subiendo ? 'wait' : 'pointer', opacity: (subiendo || !uploadExamenId || !uploadArchivo) ? 0.45 : 1 }}
+                  onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#e2d490'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--admin-gold)'; }}>
+                  {subiendo ? 'Procesando…' : 'Publicar resultado →'}
+                </button>
+              </form>
+            )}
           </div>
         </Card>
 
@@ -1040,7 +1007,7 @@ function ExamenesView({ examenes, estado, setEstado, busqueda, setBusqueda, actu
                     <div className="font-[family-name:var(--font-dm-mono)] text-[0.62rem] uppercase mt-0.5" style={{ letterSpacing: '0.08em', color: 'rgba(20,36,26,0.4)' }}>tutor</div>
                   </td>
                   <td className="px-4 py-3.5 text-[0.85rem]" style={{ color: 'var(--admin-ink)' }}>{ex.tipo}</td>
-                  <td className="px-4 py-3.5 font-[family-name:var(--font-dm-mono)] text-[0.76rem]" style={{ color: 'rgba(20,36,26,0.6)' }}>{fechaCorta(ex.creadoEn)}</td>
+                  <td className="px-4 py-3.5 font-[family-name:var(--font-dm-mono)] text-[0.76rem]" style={{ color: 'rgba(20,36,26,0.6)' }}>{fechaCorta(ex.cita?.fecha)}</td>
                   <td className="px-4 py-3.5"><ExamBadge estado={ex.estado} /></td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2.5">

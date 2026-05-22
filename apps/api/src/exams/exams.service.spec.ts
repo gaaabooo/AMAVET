@@ -66,10 +66,26 @@ describe('ExamsService', () => {
       expect(mockPrisma.examen.update).toHaveBeenCalledTimes(1);
     });
 
-    it('rechaza una transición inválida (DISPONIBLE no vuelve a PENDIENTE)', async () => {
+    it('permite volver de DISPONIBLE a PENDIENTE (corregir un PDF mal subido)', async () => {
       mockPrisma.examen.findUnique.mockResolvedValue({
         id: 'ex-1',
         estado: 'DISPONIBLE',
+      });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'PENDIENTE',
+      });
+
+      const result = await service.actualizarEstado('ex-1', 'PENDIENTE');
+
+      expect(result.estado).toBe('PENDIENTE');
+      expect(mockPrisma.examen.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('rechaza una transición inválida (EN_PROCESO no vuelve a PENDIENTE)', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'EN_PROCESO',
       });
 
       await expect(

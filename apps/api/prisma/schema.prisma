@@ -60,10 +60,16 @@ model Examen {
   archivoUrl    String?
   mascotaId     String
   mascota       Mascota      @relation(fields: [mascotaId], references: [id], onDelete: Cascade)
+  // Cada examen pertenece a la cita que lo solicitó. Se crea automáticamente
+  // al agendar la cita, uno por cada servicio que requiere examen.
+  citaId        String
+  cita          Cita         @relation(fields: [citaId], references: [id], onDelete: Cascade)
   creadoEn      DateTime     @default(now())
   actualizadoEn DateTime     @updatedAt
 
+  @@unique([citaId, tipo])
   @@index([mascotaId])
+  @@index([citaId])
   @@index([estado])
 }
 
@@ -75,6 +81,7 @@ model Cita {
   estado        EstadoCita @default(PENDIENTE)
   mascotaId     String
   mascota       Mascota    @relation(fields: [mascotaId], references: [id], onDelete: Cascade)
+  examenes      Examen[]
   creadoEn      DateTime   @default(now())
   actualizadoEn DateTime   @updatedAt
 

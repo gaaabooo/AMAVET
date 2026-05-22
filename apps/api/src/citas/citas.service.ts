@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { NotificacionesService } from '../notificaciones.service';
+import { serviciosQueGeneranExamen } from './servicios';
 import { EstadoCita } from '@prisma/client';
 
 // Estados que cuentan como "activos" (la cita aún ocupa agenda).
@@ -91,10 +92,26 @@ export class CitasService {
         );
       }
 
-      return tx.cita.create({
+      const citaCreada = await tx.cita.create({
         data: { fecha: fechaDate, direccion, servicios, mascotaId },
         include: { mascota: { include: { tutor: true } } },
       });
+
+      // Cada servicio de laboratorio o test rápido genera un examen PENDIENTE
+      // ligado a esta cita. El admin solo subirá el PDF después; nunca crea
+      // exámenes a mano, así no pueden duplicarse dentro de la misma cita.
+      const tiposExamen = serviciosQueGeneranExamen(servicios);
+      if (tiposExamen.length > 0) {
+        await tx.examen.createMany({
+          data: tiposExamen.map((tipo) => ({
+            tipo,
+            mascotaId,
+            citaId: citaCreada.id,
+          })),
+        });
+      }
+
+      return citaCreada;
     });
 
     // Fire-and-forget: el envío del email no debe bloquear ni demorar la

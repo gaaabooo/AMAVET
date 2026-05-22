@@ -68,6 +68,7 @@ export class AuthService {
         nombre: usuario.nombre,
         email: usuario.email,
         rol: usuario.rol,
+        telefono: usuario.telefono,
       },
     };
   }
@@ -250,6 +251,9 @@ export class AuthService {
         nombre: usuario.nombre,
         email: usuario.email,
         rol: usuario.rol,
+        // Incluir telefono evita que el guard del dashboard redirija a
+        // /auth/completar-perfil a tutores que ya lo tienen registrado.
+        telefono: usuario.telefono,
       },
     };
   }

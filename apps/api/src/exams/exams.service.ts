@@ -12,14 +12,14 @@ import { NotificacionesService } from '../notificaciones.service';
 import { AuditService } from '../common/audit.service';
 import { randomUUID } from 'crypto';
 
-// Transiciones de estado válidas de un examen. El flujo avanza:
-// PENDIENTE -> EN_PROCESO -> DISPONIBLE. Un examen ya DISPONIBLE no retrocede
-// (un resultado entregado no vuelve a pendiente), pero sí admite quedarse en
-// DISPONIBLE — para permitir re-subir un archivo corregido.
+// Transiciones de estado válidas de un examen. El flujo normal avanza:
+// PENDIENTE -> EN_PROCESO -> DISPONIBLE. Se permite además volver de DISPONIBLE
+// a PENDIENTE: si el equipo subió un PDF equivocado, "borrar PDF" devuelve el
+// examen a PENDIENTE para resubir el archivo correcto.
 const TRANSICIONES_EXAMEN: Record<EstadoExamen, EstadoExamen[]> = {
   PENDIENTE: ['PENDIENTE', 'EN_PROCESO', 'DISPONIBLE'],
   EN_PROCESO: ['EN_PROCESO', 'DISPONIBLE'],
-  DISPONIBLE: ['DISPONIBLE'],
+  DISPONIBLE: ['DISPONIBLE', 'PENDIENTE'],
 };
 
 @Injectable()
@@ -34,28 +34,17 @@ export class ExamsService {
     private audit: AuditService,
   ) {}
 
-  async crear(tipo: string, mascotaId: string) {
-    const examen = await this.prisma.examen.create({
-      data: { tipo, mascotaId },
-    });
-    this.audit.registrar('EXAMEN_CREADO', {
-      examenId: examen.id,
-      mascotaId,
-    });
-    return examen;
-  }
-
   async listarPorMascota(mascotaId: string) {
     return this.prisma.examen.findMany({
       where: { mascotaId },
-      include: { mascota: true },
+      include: { mascota: true, cita: true },
       orderBy: { creadoEn: 'desc' },
     });
   }
 
   async listarTodos() {
     return this.prisma.examen.findMany({
-      include: { mascota: { include: { tutor: true } } },
+      include: { mascota: { include: { tutor: true } }, cita: true },
       orderBy: { creadoEn: 'desc' },
       take: 500,
     });

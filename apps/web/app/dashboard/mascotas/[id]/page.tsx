@@ -147,38 +147,23 @@ export default function PerfilMascota() {
 
   const icon = getAnimalIcon(mascota.tipo);
 
-  // Deduplicación de exámenes (misma lógica original)
-  const ordenados = [...mascota.examenes].sort(
+  // Cada examen pertenece a una cita concreta y la base de datos garantiza que
+  // no haya duplicados dentro de una misma cita. Exámenes del mismo tipo de
+  // citas distintas son registros legítimos: se muestran todos, solo ordenados
+  // del más reciente al más antiguo.
+  const examenesOrdenados = [...mascota.examenes].sort(
     (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
   );
-  const grupos = new Map<string, Examen[]>();
-  for (const ex of ordenados) {
-    const lista = grupos.get(ex.tipo) ?? [];
-    lista.push(ex);
-    grupos.set(ex.tipo, lista);
-  }
-  const examenesDeduplicados: Examen[] = [];
-  for (const lista of grupos.values()) {
-    const conservados: Examen[] = [];
-    for (const ex of lista) {
-      const muyCercano = conservados.some(c =>
-        Math.abs(new Date(c.creadoEn).getTime() - new Date(ex.creadoEn).getTime()) < 24 * 60 * 60 * 1000
-      );
-      if (!muyCercano) conservados.push(ex);
-    }
-    examenesDeduplicados.push(...conservados);
-  }
-  examenesDeduplicados.sort((a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime());
 
   // Stats
-  const totalExamenes = examenesDeduplicados.length;
-  const disponibles = examenesDeduplicados.filter(e => e.estado === 'DISPONIBLE').length;
+  const totalExamenes = examenesOrdenados.length;
+  const disponibles = examenesOrdenados.filter(e => e.estado === 'DISPONIBLE').length;
   const visitasRealizadas = citas.filter(c => c.estado === 'COMPLETADA').length;
   const proximaCita = citasFuturas[0];
 
   // Agrupar exámenes por mes
   const examenesPorMes = new Map<string, Examen[]>();
-  for (const ex of examenesDeduplicados) {
+  for (const ex of examenesOrdenados) {
     const f = new Date(ex.creadoEn);
     const key = `${f.getFullYear()}-${f.getMonth()}`;
     const lista = examenesPorMes.get(key) ?? [];

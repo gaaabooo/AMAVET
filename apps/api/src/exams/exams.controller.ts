@@ -20,7 +20,6 @@ import { ExamsService } from './exams.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { CrearExamenDto } from './dto/crear-examen.dto';
 import { ActualizarEstadoExamenDto } from './dto/actualizar-estado.dto';
 
 interface RequestConUsuario {
@@ -44,12 +43,9 @@ function pareceArchivoPdf(buffer: Buffer): boolean {
 export class ExamsController {
   constructor(private examsService: ExamsService) {}
 
-  @Post()
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN')
-  crear(@Body() body: CrearExamenDto) {
-    return this.examsService.crear(body.tipo, body.mascotaId);
-  }
+  // Los exámenes ya no se crean a mano: se generan automáticamente al agendar
+  // una cita (uno por cada servicio de laboratorio/test rápido). El admin solo
+  // sube el PDF del resultado a un examen ya existente.
 
   @Get('mascota/:mascotaId')
   async listarPorMascota(
