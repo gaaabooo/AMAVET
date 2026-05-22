@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { PrismaService } from '../prisma.service';
 import { SupabaseService } from '../supabase.service';
@@ -50,8 +50,11 @@ describe('ExamsService', () => {
   });
 
   describe('actualizarEstado', () => {
-    it('actualiza el estado si el examen existe', async () => {
-      mockPrisma.examen.findUnique.mockResolvedValue({ id: 'ex-1' });
+    it('actualiza el estado si la transición es válida', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'PENDIENTE',
+      });
       mockPrisma.examen.update.mockResolvedValue({
         id: 'ex-1',
         estado: 'EN_PROCESO',
@@ -63,6 +66,18 @@ describe('ExamsService', () => {
       expect(mockPrisma.examen.update).toHaveBeenCalledTimes(1);
     });
 
+    it('rechaza una transición inválida (DISPONIBLE no vuelve a PENDIENTE)', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+      });
+
+      await expect(
+        service.actualizarEstado('ex-1', 'PENDIENTE'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.examen.update).not.toHaveBeenCalled();
+    });
+
     it('lanza NotFoundException si el examen no existe', async () => {
       mockPrisma.examen.findUnique.mockResolvedValue(null);
 
@@ -72,7 +87,10 @@ describe('ExamsService', () => {
     });
 
     it('incluye archivoUrl en la actualización si se provee', async () => {
-      mockPrisma.examen.findUnique.mockResolvedValue({ id: 'ex-1' });
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'EN_PROCESO',
+      });
       mockPrisma.examen.update.mockResolvedValue({
         id: 'ex-1',
         estado: 'DISPONIBLE',
@@ -141,6 +159,7 @@ describe('ExamsService', () => {
     it('sube el archivo, actualiza el estado, y envía notificación', async () => {
       const examenMock = {
         id: 'ex-1',
+        estado: 'EN_PROCESO',
         mascota: { nombre: 'Firulais', tutor: { email: 'tutor@test.cl' } },
       };
       mockPrisma.examen.findUnique
@@ -170,6 +189,7 @@ describe('ExamsService', () => {
     it('no falla si la notificación lanza error', async () => {
       const examenMock = {
         id: 'ex-1',
+        estado: 'EN_PROCESO',
         mascota: { nombre: 'Firulais', tutor: { email: 'tutor@test.cl' } },
       };
       mockPrisma.examen.findUnique
@@ -196,6 +216,7 @@ describe('ExamsService', () => {
     it('borra el archivo de Storage si falla el guardado en BD (compensación M-1)', async () => {
       const examenMock = {
         id: 'ex-1',
+        estado: 'EN_PROCESO',
         mascota: { nombre: 'Firulais', tutor: { email: 'tutor@test.cl' } },
       };
       // findUnique: 1ª vez en buscarPorId (subirArchivo), 2ª en actualizarEstado.

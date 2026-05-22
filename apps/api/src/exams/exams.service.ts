@@ -1,10 +1,26 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EstadoExamen } from '@prisma/client';
 import { SupabaseService } from '../supabase.service';
 import { NotificacionesService } from '../notificaciones.service';
 import { AuditService } from '../common/audit.service';
 import { randomUUID } from 'crypto';
+
+// Transiciones de estado válidas de un examen. El flujo avanza:
+// PENDIENTE -> EN_PROCESO -> DISPONIBLE. Un examen ya DISPONIBLE no retrocede
+// (un resultado entregado no vuelve a pendiente), pero sí admite quedarse en
+// DISPONIBLE — para permitir re-subir un archivo corregido.
+const TRANSICIONES_EXAMEN: Record<EstadoExamen, EstadoExamen[]> = {
+  PENDIENTE: ['PENDIENTE', 'EN_PROCESO', 'DISPONIBLE'],
+  EN_PROCESO: ['EN_PROCESO', 'DISPONIBLE'],
+  DISPONIBLE: ['DISPONIBLE'],
+};
 
 @Injectable()
 export class ExamsService {
@@ -52,6 +68,15 @@ export class ExamsService {
   ) {
     const examen = await this.prisma.examen.findUnique({ where: { id } });
     if (!examen) throw new NotFoundException('Examen no encontrado');
+
+    // Solo se permiten transiciones de estado válidas: el flujo del examen
+    // avanza y no retrocede (un resultado DISPONIBLE no vuelve a PENDIENTE).
+    if (!TRANSICIONES_EXAMEN[examen.estado].includes(estado)) {
+      throw new BadRequestException(
+        `No se puede pasar un examen de ${examen.estado} a ${estado}`,
+      );
+    }
+
     const actualizado = await this.prisma.examen.update({
       where: { id },
       data: { estado, ...(archivoUrl !== undefined && { archivoUrl }) },
