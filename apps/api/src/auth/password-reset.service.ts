@@ -35,6 +35,17 @@ export class PasswordResetService {
    * distinto (no tienen contraseña que restablecer).
    */
   async solicitarReset(email: string, ip?: string) {
+    // Limpieza oportunista: los tokens ya usados o vencidos no sirven de nada y
+    // la tabla crecería sin límite. Se borran al solicitar un reset nuevo.
+    // Fire-and-forget: la limpieza nunca debe romper el flujo.
+    void this.prisma.passwordResetToken
+      .deleteMany({
+        where: {
+          OR: [{ usado: true }, { expiraEn: { lt: new Date() } }],
+        },
+      })
+      .catch(() => undefined);
+
     const usuario = await this.usersService.buscarPorEmail(email);
 
     if (!usuario) {

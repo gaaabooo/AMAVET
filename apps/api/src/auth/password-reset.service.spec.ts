@@ -49,6 +49,8 @@ describe('PasswordResetService', () => {
 
     service = module.get<PasswordResetService>(PasswordResetService);
     jest.clearAllMocks();
+    // deleteMany se invoca también en la purga oportunista de tokens viejos.
+    mockPrisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 });
   });
 
   describe('solicitarReset', () => {
@@ -60,6 +62,18 @@ describe('PasswordResetService', () => {
       expect(res).toHaveProperty('mensaje');
       expect(mockPrisma.passwordResetToken.create).not.toHaveBeenCalled();
       expect(mockNotificaciones.notificarResetPassword).not.toHaveBeenCalled();
+    });
+
+    it('purga los tokens usados o vencidos al solicitar un reset', async () => {
+      mockUsersService.buscarPorEmail.mockResolvedValue(null);
+
+      await service.solicitarReset('quien@test.cl', '1.2.3.4');
+
+      expect(mockPrisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
+        where: {
+          OR: [{ usado: true }, { expiraEn: { lt: expect.any(Date) } }],
+        },
+      });
     });
 
     it('genera token y envía email si el email existe', async () => {
