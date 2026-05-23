@@ -808,11 +808,15 @@ function DashboardView({
                         {citaMasReciente && examenesDeCita.length > 0 && (
                           <ul className="space-y-1">
                             {examenesDeCita.map(tipoEx => {
-                              const exsMismotipo = m.examenes.filter(e => e.tipo === tipoEx);
+                              // El estado se busca en el examen de ESTA cita concreta, no en
+                              // cualquier examen del mismo tipo de la mascota: si la mascota
+                              // tuvo el mismo examen en una cita anterior ya DISPONIBLE, eso
+                              // no implica que el de la cita actual ya esté listo.
+                              const examenDeCita = m.examenes.find(
+                                e => e.tipo === tipoEx && e.citaId === citaMasReciente.id,
+                              );
                               const cancelado = citaMasReciente.estado === 'CANCELADA';
-                              const prioridad = (s: string) => s === 'DISPONIBLE' ? 2 : s === 'EN_PROCESO' ? 1 : 0;
-                              const mejor = exsMismotipo.sort((a, b) => prioridad(b.estado) - prioridad(a.estado))[0];
-                              const estadoChip = cancelado ? 'cancelado' : (mejor?.estado ?? 'PENDIENTE');
+                              const estadoChip = cancelado ? 'cancelado' : (examenDeCita?.estado ?? 'PENDIENTE');
                               return (
                                 <li key={tipoEx} className="flex items-center justify-between gap-2 text-xs" style={{ color: 'var(--admin-ink)' }}>
                                   <span className="truncate">{tipoEx}</span>
