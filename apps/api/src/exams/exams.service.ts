@@ -87,7 +87,13 @@ export class ExamsService {
     });
     this.audit.registrar('EXAMEN_ESTADO_ACTUALIZADO', {
       examenId: id,
+      estadoAnterior: examen.estado,
       estado,
+      // Marca explícita cuando se "borró el PDF" (DISPONIBLE -> PENDIENTE): así
+      // el evento se lee solo en auditoría forense sin tener que correlacionar
+      // con la transición previa.
+      ...(estado === 'PENDIENTE' &&
+        examen.estado === 'DISPONIBLE' && { subidoEnLimpiado: true }),
     });
     return actualizado;
   }
