@@ -34,13 +34,13 @@ export class PetsService {
   async listarPorTutor(tutorId: string) {
     return this.prisma.mascota.findMany({
       where: { tutorId },
-      include: { examenes: true },
+      include: { examenes: { include: { cita: true } } },
     });
   }
 
   async listarTodas() {
     return this.prisma.mascota.findMany({
-      include: { tutor: true, examenes: true },
+      include: { tutor: true, examenes: { include: { cita: true } } },
       orderBy: { creadoEn: 'desc' },
       take: 500,
     });
@@ -49,7 +49,7 @@ export class PetsService {
   async buscarPorId(id: string) {
     return this.prisma.mascota.findUnique({
       where: { id },
-      include: { tutor: true, examenes: true },
+      include: { tutor: true, examenes: { include: { cita: true } } },
     });
   }
 }

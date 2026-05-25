@@ -58,6 +58,10 @@ model Examen {
   tipo          String
   estado        EstadoExamen @default(PENDIENTE)
   archivoUrl    String?
+  // Marca de cuándo se subió el PDF (paso a DISPONIBLE). Distinta de creadoEn:
+  // el examen se crea con la cita, pero el resultado puede llegar días después.
+  // Vuelve a null si se "borra el PDF" (DISPONIBLE -> PENDIENTE).
+  subidoEn      DateTime?
   mascotaId     String
   mascota       Mascota      @relation(fields: [mascotaId], references: [id], onDelete: Cascade)
   // Cada examen pertenece a la cita que lo solicitó. Se crea automáticamente

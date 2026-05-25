@@ -31,6 +31,21 @@ const mockNotificaciones = {
   notificarExamenDisponible: jest.fn(),
 };
 
+// Helper para extraer el primer argumento del último update llamado, con un
+// tipo razonable (los mocks de jest sin genéricos pierden el tipo del arg).
+interface UpdateArg {
+  where: { id: string };
+  data: {
+    estado: string;
+    archivoUrl?: string | null;
+    subidoEn?: Date | null;
+  };
+}
+function leerArgUpdate(): UpdateArg {
+  const calls = mockPrisma.examen.update.mock.calls as unknown as UpdateArg[][];
+  return calls[0][0];
+}
+
 describe('ExamsService', () => {
   let service: ExamsService;
 
@@ -115,10 +130,45 @@ describe('ExamsService', () => {
 
       await service.actualizarEstado('ex-1', 'DISPONIBLE', 'ruta/archivo.pdf');
 
-      expect(mockPrisma.examen.update).toHaveBeenCalledWith({
-        where: { id: 'ex-1' },
-        data: { estado: 'DISPONIBLE', archivoUrl: 'ruta/archivo.pdf' },
+      const updateArg = leerArgUpdate();
+      expect(updateArg.where).toEqual({ id: 'ex-1' });
+      expect(updateArg.data.estado).toBe('DISPONIBLE');
+      expect(updateArg.data.archivoUrl).toBe('ruta/archivo.pdf');
+      expect(updateArg.data.subidoEn).toBeInstanceOf(Date);
+    });
+
+    it('marca subidoEn al pasar EN_PROCESO -> DISPONIBLE', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'EN_PROCESO',
       });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+      });
+
+      await service.actualizarEstado('ex-1', 'DISPONIBLE');
+
+      const updateArg = leerArgUpdate();
+      expect(updateArg.data.estado).toBe('DISPONIBLE');
+      expect(updateArg.data.subidoEn).toBeInstanceOf(Date);
+    });
+
+    it('limpia subidoEn al volver DISPONIBLE -> PENDIENTE (borrar PDF)', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+      });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'PENDIENTE',
+      });
+
+      await service.actualizarEstado('ex-1', 'PENDIENTE');
+
+      const updateArg = leerArgUpdate();
+      expect(updateArg.data.estado).toBe('PENDIENTE');
+      expect(updateArg.data.subidoEn).toBeNull();
     });
   });
 

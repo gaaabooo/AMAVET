@@ -12,6 +12,9 @@ interface Examen {
   estado: 'PENDIENTE' | 'EN_PROCESO' | 'DISPONIBLE';
   archivoUrl: string | null;
   creadoEn: string;
+  subidoEn: string | null;
+  citaId: string;
+  cita?: { id: string; fecha: string };
 }
 
 interface Cita {
@@ -149,10 +152,13 @@ export default function PerfilMascota() {
 
   // Cada examen pertenece a una cita concreta y la base de datos garantiza que
   // no haya duplicados dentro de una misma cita. Exámenes del mismo tipo de
-  // citas distintas son registros legítimos: se muestran todos, solo ordenados
-  // del más reciente al más antiguo.
+  // citas distintas son registros legítimos: se muestran todos. La fecha que
+  // importa para el tutor es la fecha de la cita, no la creación del registro.
+  const fechaDeExamen = (ex: Examen): Date =>
+    new Date(ex.cita?.fecha ?? ex.creadoEn);
+
   const examenesOrdenados = [...mascota.examenes].sort(
-    (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
+    (a, b) => fechaDeExamen(b).getTime() - fechaDeExamen(a).getTime()
   );
 
   // Stats
@@ -161,14 +167,42 @@ export default function PerfilMascota() {
   const visitasRealizadas = citas.filter(c => c.estado === 'COMPLETADA').length;
   const proximaCita = citasFuturas[0];
 
-  // Agrupar exámenes por mes
-  const examenesPorMes = new Map<string, Examen[]>();
+  // Agrupar exámenes: mes → citas → exámenes de esa cita. El "más reciente
+  // arriba" se respeta tanto entre meses como entre citas dentro del mes.
+  interface GrupoCita {
+    citaId: string;
+    fecha: Date;
+    examenes: Examen[];
+  }
+  interface GrupoMes {
+    key: string;
+    anio: number;
+    mes: number;
+    citas: GrupoCita[];
+  }
+  const mesesMap = new Map<string, GrupoMes>();
   for (const ex of examenesOrdenados) {
-    const f = new Date(ex.creadoEn);
-    const key = `${f.getFullYear()}-${f.getMonth()}`;
-    const lista = examenesPorMes.get(key) ?? [];
-    lista.push(ex);
-    examenesPorMes.set(key, lista);
+    const f = fechaDeExamen(ex);
+    const mesKey = `${f.getFullYear()}-${f.getMonth()}`;
+    const mes = mesesMap.get(mesKey) ?? {
+      key: mesKey,
+      anio: f.getFullYear(),
+      mes: f.getMonth(),
+      citas: [],
+    };
+    let cita = mes.citas.find(c => c.citaId === ex.citaId);
+    if (!cita) {
+      cita = { citaId: ex.citaId, fecha: f, examenes: [] };
+      mes.citas.push(cita);
+    }
+    cita.examenes.push(ex);
+    mesesMap.set(mesKey, mes);
+  }
+  const examenesPorMes = Array.from(mesesMap.values()).sort(
+    (a, b) => b.anio - a.anio || b.mes - a.mes,
+  );
+  for (const m of examenesPorMes) {
+    m.citas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
   }
 
   const fechaUltimaVisita = citasPasadas.length > 0
@@ -313,7 +347,9 @@ export default function PerfilMascota() {
                   onClick={() => router.push('/dashboard/agendar')}
                   className="btn-ghost"
                 >
-                  Agendar primera visita
+                  {/* "Primera visita" solo si la mascota nunca ha tenido una cita;
+                     si ya hubo (aunque sea pasada o cancelada), es una "nueva cita". */}
+                  {citas.length === 0 ? 'Agendar primera visita' : 'Agendar nueva cita'}
                 </button>
               </div>
             ) : (
@@ -382,52 +418,64 @@ export default function PerfilMascota() {
               </div>
             ) : (
               <div>
-                {Array.from(examenesPorMes.entries()).map(([key, exs]) => {
-                  const [anio, mes] = key.split('-').map(Number);
-                  const label = `${NOMBRES_MES[mes]} ${anio}`;
+                {examenesPorMes.map((m) => {
+                  const labelMes = `${NOMBRES_MES[m.mes]} ${m.anio}`;
                   return (
-                    <div key={key}>
-                      <div className="month-divider">{label}</div>
-                      <ul className="exam-list">
-                        {exs.map((ex) => {
-                          const estadoCls = ex.estado.toLowerCase();
-                          return (
-                            <li key={ex.id} className="exam">
-                              <div className={`exam-icon exam-icon-${estadoCls}`}>
-                                {getExamIcon(ex.tipo)}
-                              </div>
-                              <div className="exam-info">
-                                <div className="exam-title">{ex.tipo}</div>
-                                <div className="exam-date">{fechaCorta(ex.creadoEn)}</div>
-                              </div>
-                              <span className={`exam-badge exam-badge-${estadoCls}`}>
-                                {ex.estado === 'EN_PROCESO' ? 'En proceso' : ex.estado.charAt(0) + ex.estado.slice(1).toLowerCase()}
-                              </span>
-                              {ex.archivoUrl ? (
-                                <button
-                                  onClick={() => descargarExamen(ex.id)}
-                                  disabled={descargando === ex.id}
-                                  className="exam-download"
-                                  title="Ver resultado"
-                                  aria-label="Ver resultado"
-                                >
-                                  {descargando === ex.id ? (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-                                      <circle cx="12" cy="12" r="10" />
-                                    </svg>
-                                  ) : (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                                    </svg>
-                                  )}
-                                </button>
-                              ) : (
-                                <span style={{ width: 36 }} />
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
+                    <div key={m.key}>
+                      <div className="month-divider">{labelMes}</div>
+                      {m.citas.map((c) => {
+                        const labelCita = `Cita ${c.fecha.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+                        return (
+                          <div key={c.citaId} className="cita-group">
+                            <div className="cita-divider">{labelCita}</div>
+                            <ul className="exam-list">
+                              {c.examenes.map((ex) => {
+                                const estadoCls = ex.estado.toLowerCase();
+                                return (
+                                  <li key={ex.id} className="exam">
+                                    <div className={`exam-icon exam-icon-${estadoCls}`}>
+                                      {getExamIcon(ex.tipo)}
+                                    </div>
+                                    <div className="exam-info">
+                                      <div className="exam-title">{ex.tipo}</div>
+                                      <div className="exam-date">{fechaCorta(ex.cita?.fecha ?? ex.creadoEn)}</div>
+                                      {ex.subidoEn && (
+                                        <div className="exam-uploaded">
+                                          Subido {fechaCorta(ex.subidoEn)}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span className={`exam-badge exam-badge-${estadoCls}`}>
+                                      {ex.estado === 'EN_PROCESO' ? 'En proceso' : ex.estado.charAt(0) + ex.estado.slice(1).toLowerCase()}
+                                    </span>
+                                    {ex.archivoUrl ? (
+                                      <button
+                                        onClick={() => descargarExamen(ex.id)}
+                                        disabled={descargando === ex.id}
+                                        className="exam-download"
+                                        title="Ver resultado"
+                                        aria-label="Ver resultado"
+                                      >
+                                        {descargando === ex.id ? (
+                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                                            <circle cx="12" cy="12" r="10" />
+                                          </svg>
+                                        ) : (
+                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                          </svg>
+                                        )}
+                                      </button>
+                                    ) : (
+                                      <span style={{ width: 36 }} />
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -883,6 +931,26 @@ function DashStyles() {
         content: ""; flex: 1; height: 1px; background: var(--d-rule);
       }
       .month-divider:first-child { margin-top: 0; }
+
+      /* Separador visual por cita: agrupa los exámenes de una misma visita
+         para que el tutor distinga cuáles vinieron juntos. Más sutil que el
+         divisor de mes para mantener la jerarquía mes → cita → examen. */
+      .cita-group {
+        margin-top: 0.5rem;
+        padding-left: 0.85rem;
+        border-left: 2px solid var(--d-green-mist);
+      }
+      .cita-group + .cita-group { margin-top: 0.9rem; }
+      .cita-divider {
+        font-family: var(--font-dm-mono), ui-monospace, monospace;
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--d-green-mid);
+        margin-bottom: 0.2rem;
+        padding-left: 0.1rem;
+      }
+
       .exam-list { list-style: none; padding: 0; margin: 0; }
       .exam {
         display: grid;
@@ -931,6 +999,13 @@ function DashStyles() {
         font-size: 0.7rem;
         color: var(--d-ink-mute);
         margin-top: 0.15rem;
+        letter-spacing: 0.05em;
+      }
+      .exam-uploaded {
+        font-family: var(--font-dm-mono), ui-monospace, monospace;
+        font-size: 0.62rem;
+        color: var(--d-green-leaf);
+        margin-top: 0.1rem;
         letter-spacing: 0.05em;
       }
       .exam-badge {

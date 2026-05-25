@@ -32,6 +32,7 @@ interface Examen {
   estado: 'PENDIENTE' | 'EN_PROCESO' | 'DISPONIBLE';
   archivoUrl: string | null;
   creadoEn: string;
+  subidoEn?: string | null;
   citaId: string;
   mascota?: { id: string; nombre: string; tipo: string; tutor: { nombre: string } };
   cita?: { id: string; fecha: string; direccion: string; estado: EstadoCita };
@@ -144,6 +145,12 @@ export default function Admin() {
   const [citas, setCitas] = useState<Cita[]>([]);
   const [mesActual, setMesActual] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
+
+  // Id de la mascota cuyo historial completo de citas se está viendo en el
+  // drawer lateral de la vista de Pacientes. null = drawer cerrado. Guardamos
+  // el id (no el objeto) para que el drawer refleje siempre el estado fresco
+  // de `mascotas` cuando se recargan datos.
+  const [historialPacienteId, setHistorialPacienteId] = useState<string | null>(null);
 
   const mostrarMensaje = useCallback((tipo: 'ok' | 'error', texto: string) => {
     setMensaje({ tipo, texto });
@@ -321,7 +328,7 @@ export default function Admin() {
 
   const navItems: { v: Vista; label: string; icon: React.ReactNode }[] = [
     { v: 'dashboard', label: 'Dashboard', icon: <IconGrid /> },
-    { v: 'mascotas', label: 'Mascotas', icon: <IconPets /> },
+    { v: 'mascotas', label: 'Pacientes', icon: <IconPets /> },
     { v: 'examenes', label: 'Exámenes', icon: <IconExams /> },
     { v: 'agenda', label: 'Agenda', icon: <IconCalendar /> },
     { v: 'configuracion', label: 'Configuración', icon: <IconSettings /> },
@@ -330,7 +337,7 @@ export default function Admin() {
 
   const titulos: Record<Vista, { titulo: string; sub: string }> = {
     dashboard: { titulo: `${(() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'; })()}, ${usuario?.nombre?.split(' ')[0] ?? ''}`, sub: new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
-    mascotas: { titulo: 'Mis pacientes', sub: `${mascotas.length} mascotas registradas` },
+    mascotas: { titulo: 'Mis pacientes', sub: `${mascotas.length} ${mascotas.length === 1 ? 'paciente registrado' : 'pacientes registrados'}` },
     examenes: { titulo: 'Registro de exámenes', sub: `${examenesReales.length} registros en total` },
     agenda: { titulo: 'Agenda de consultas', sub: '' },
     configuracion: { titulo: 'Mi cuenta', sub: 'Perfil · Seguridad · Sesión' },
@@ -392,7 +399,7 @@ export default function Admin() {
               return (
                 <button
                   key={item.v}
-                  onClick={() => { setVista(item.v); setCitaSeleccionada(null); }}
+                  onClick={() => { setVista(item.v); setCitaSeleccionada(null); setHistorialPacienteId(null); }}
                   className={`admin-nav-item w-full flex items-center gap-3.5 py-2.5 text-left text-[0.875rem] font-medium transition-all duration-200 ${active ? 'is-active' : ''}`}
                   style={{
                     paddingLeft: '1.5rem', paddingRight: '1.5rem',
@@ -483,6 +490,10 @@ export default function Admin() {
               setOrden={setMascotaOrden}
               busqueda={mascotaBusqueda}
               setBusqueda={setMascotaBusqueda}
+              citas={citas}
+              historialPaciente={mascotas.find(m => m.id === historialPacienteId) ?? null}
+              abrirHistorial={(m) => setHistorialPacienteId(m.id)}
+              cerrarHistorial={() => setHistorialPacienteId(null)}
             />
           )}
 
@@ -891,8 +902,9 @@ function ThEditorial({ children }: { children: React.ReactNode }) {
 
 type MascotaOrden = 'fecha' | 'tipo' | 'atendido' | 'sin-atender';
 
-function MascotasView({ mascotas, orden, setOrden, busqueda, setBusqueda }: {
+function MascotasView({ mascotas, orden, setOrden, busqueda, setBusqueda, citas, historialPaciente, abrirHistorial, cerrarHistorial }: {
   mascotas: Mascota[]; orden: MascotaOrden; setOrden: (o: MascotaOrden) => void; busqueda: string; setBusqueda: (s: string) => void;
+  citas: Cita[]; historialPaciente: Mascota | null; abrirHistorial: (m: Mascota) => void; cerrarHistorial: () => void;
 }) {
   return (
     <div className="px-10 pt-8 pb-14">
@@ -920,6 +932,24 @@ function MascotasView({ mascotas, orden, setOrden, busqueda, setBusqueda }: {
           {mascotas.map((m, i) => {
             const ue = ultimoExamen(m);
             const atendida = fueAtendida(m);
+            const totalExamenes = m.examenes.length;
+            const subidos = m.examenes.filter(e => e.estado === 'DISPONIBLE').length;
+            const faltan = totalExamenes - subidos;
+            // Texto de progreso de subida del PDF de cada examen:
+            //  - Sin examenes registrados: no aplica (se omite la linea).
+            //  - Ninguno subido: "Sin examen(es) subido(s)".
+            //  - Todos subidos: "N examen(es) subido(s)".
+            //  - Parcial: "X examenes subidos, faltan Y".
+            let progresoTexto: string | null = null;
+            if (totalExamenes > 0) {
+              if (subidos === 0) {
+                progresoTexto = `Sin ${totalExamenes === 1 ? 'examen subido' : 'exámenes subidos'}`;
+              } else if (faltan === 0) {
+                progresoTexto = `${subidos} ${subidos === 1 ? 'examen subido' : 'exámenes subidos'}`;
+              } else {
+                progresoTexto = `${subidos} ${subidos === 1 ? 'examen subido' : 'exámenes subidos'}, ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`}`;
+              }
+            }
             return (
               <div key={m.id} className="admin-rise flex flex-col overflow-hidden" style={{ background: 'var(--admin-card)', borderRadius: 14, border: '1px solid rgba(20,36,26,0.07)', boxShadow: '0 1px 3px rgba(20,36,26,0.04)', animationDelay: `${0.04 * i}s` }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 16px 36px rgba(20,36,26,0.12)'; }}
@@ -937,26 +967,215 @@ function MascotasView({ mascotas, orden, setOrden, busqueda, setBusqueda }: {
                   <div className="font-[family-name:var(--font-dm-mono)] text-[0.66rem] mt-0.5" style={{ color: 'rgba(20,36,26,0.42)' }}>{m.tutor?.telefono || m.tutor?.email}</div>
                 </div>
                 <GoldRule />
-                <div className="px-5 py-3.5 flex items-center justify-between">
-                  {atendida ? <ExamBadge estado="DISPONIBLE" /> : (
+                <div className="px-5 py-3.5">
+                  {atendida ? (
+                    <span className="inline-flex items-center gap-1.5 font-[family-name:var(--font-dm-mono)] text-[0.58rem] font-medium rounded-full" style={{ padding: '0.28rem 0.6rem', letterSpacing: '0.1em', background: 'rgba(177,240,206,0.4)', color: 'var(--admin-green-mid)' }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--admin-green-leaf)' }} />ATENDIDO
+                    </span>
+                  ) : (
                     <span className="inline-flex items-center gap-1.5 font-[family-name:var(--font-dm-mono)] text-[0.58rem] font-medium rounded-full" style={{ padding: '0.28rem 0.6rem', letterSpacing: '0.1em', background: 'rgba(20,36,26,0.05)', color: 'rgba(20,36,26,0.5)' }}>
                       <span style={{ width: 5, height: 5, borderRadius: '50%', border: '1.5px solid rgba(20,36,26,0.32)' }} />SIN ATENDER
                     </span>
                   )}
-                  <span className="font-[family-name:var(--font-dm-mono)] text-[0.62rem]" style={{ color: 'rgba(20,36,26,0.38)' }}>{m.examenes.length} examen{m.examenes.length !== 1 ? 'es' : ''}</span>
+                  {progresoTexto && (
+                    <div className="font-[family-name:var(--font-dm-mono)] text-[0.62rem] mt-1.5" style={{ color: 'rgba(20,36,26,0.5)' }}>
+                      {progresoTexto}
+                    </div>
+                  )}
                 </div>
-                <div className="mx-5 mb-5">
+                <div className="mx-5 mb-4 flex-1">
                   <div className="text-[0.7rem] mb-2" style={{ color: 'rgba(20,36,26,0.45)' }}>
                     {ue ? <>Último: {ue.tipo} · {fechaCorta(ue.creadoEn)}</> : 'Sin exámenes registrados'}
                   </div>
                   <div className="text-[0.72rem]" style={{ color: 'rgba(20,36,26,0.4)' }}>{m.tutor?.email}</div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => abrirHistorial(m)}
+                  className="mx-5 mb-5 rounded-lg font-[family-name:var(--font-dm-mono)] text-[0.66rem] uppercase font-medium transition-all"
+                  style={{ letterSpacing: '0.12em', padding: '0.7rem 0.9rem', background: 'var(--admin-green-deep)', color: 'var(--admin-gold)', border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--admin-green-mid)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--admin-green-deep)'; }}
+                >
+                  Ver historial de citas
+                </button>
               </div>
             );
           })}
         </div>
       )}
+
+      <HistorialCitasDrawer mascota={historialPaciente} citas={citas} onClose={cerrarHistorial} />
     </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────── */
+/*  Drawer: Historial de citas de un paciente                    */
+/* ──────────────────────────────────────────────────────────── */
+
+const EXAM_ICON: Record<string, string> = {
+  hemograma: '🩸', t4: '🔬', tsh: '🔬', perfil: '🧪', bioquímico: '🧪', bioquimico: '🧪',
+  parvovirus: '🦠', distemper: '🦠', leucemia: '🦠', sida: '🦠', felino: '🦠',
+  chip: '📍', curación: '🩹', curacion: '🩹', control: '🩺', médico: '🩺', medico: '🩺',
+};
+function iconoServicio(tipo: string): string {
+  const lc = tipo.toLowerCase();
+  for (const k of Object.keys(EXAM_ICON)) {
+    if (lc.includes(k)) return EXAM_ICON[k];
+  }
+  return '🔬';
+}
+
+const NOMBRES_MES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+function HistorialCitasDrawer({ mascota, citas, onClose }: { mascota: Mascota | null; citas: Cita[]; onClose: () => void }) {
+  // Sincroniza el scroll del body con la apertura/cierre del drawer para que el
+  // usuario no haga scroll de fondo cuando esta viendo el historial.
+  useEffect(() => {
+    if (!mascota) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = original; };
+  }, [mascota]);
+
+  // Cerrar con Escape, accesibilidad basica del drawer.
+  useEffect(() => {
+    if (!mascota) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mascota, onClose]);
+
+  if (!mascota) return null;
+
+  // Solo citas CONFIRMADA o COMPLETADA (mismo criterio que el resto del admin):
+  // las PENDIENTE de aceptar y las CANCELADA no representan trabajo real.
+  const citasMascota = citas
+    .filter(c => c.mascotaId === mascota.id && (c.estado === 'CONFIRMADA' || c.estado === 'COMPLETADA'))
+    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+  // Agrupar por mes (más reciente arriba).
+  interface GrupoMes { key: string; anio: number; mes: number; citas: Cita[] }
+  const mesesMap = new Map<string, GrupoMes>();
+  for (const c of citasMascota) {
+    const f = new Date(c.fecha);
+    const k = `${f.getFullYear()}-${f.getMonth()}`;
+    const g = mesesMap.get(k) ?? { key: k, anio: f.getFullYear(), mes: f.getMonth(), citas: [] };
+    g.citas.push(c);
+    mesesMap.set(k, g);
+  }
+  const meses = Array.from(mesesMap.values()).sort((a, b) => b.anio - a.anio || b.mes - a.mes);
+
+  const fechaCortaCita = (iso: string) => {
+    const f = new Date(iso);
+    return `${String(f.getDate()).padStart(2, '0')}·${NOMBRES_MES[f.getMonth()].slice(0, 3).toLowerCase()}·${f.getFullYear()}`;
+  };
+  const fechaCortaSubida = (iso: string) => {
+    const f = new Date(iso);
+    return `${String(f.getDate()).padStart(2, '0')}·${NOMBRES_MES[f.getMonth()].slice(0, 3).toLowerCase()}·${f.getFullYear()}`;
+  };
+
+  const totalRegistros = citasMascota.reduce((acc, c) => acc + c.servicios.length, 0);
+
+  return (
+    <>
+      {/* Backdrop semitransparente. Click fuera cierra el drawer. */}
+      <div
+        onClick={onClose}
+        aria-hidden
+        style={{ position: 'fixed', inset: 0, background: 'rgba(13,40,24,0.35)', zIndex: 60, animation: 'adminRise 0.25s ease forwards', opacity: 0 }}
+      />
+      {/* Drawer derecho */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Historial de citas de ${mascota.nombre}`}
+        style={{
+          position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(520px, 92vw)',
+          background: 'var(--admin-card)', boxShadow: '-12px 0 48px rgba(13,40,24,0.18)', zIndex: 61,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          animation: 'adminPanelIn 0.32s cubic-bezier(.4,0,.2,1)',
+        }}
+      >
+        {/* Encabezado */}
+        <div className="relative overflow-hidden flex items-start justify-between gap-4" style={{ padding: '1.6rem 1.6rem 1.2rem', borderBottom: '1px solid rgba(20,36,26,0.07)' }}>
+          <span aria-hidden style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, background: 'radial-gradient(circle,rgba(216,233,200,0.5),transparent 70%)' }} />
+          <div className="relative z-10 flex items-center gap-3 min-w-0">
+            <PetEmojiCircle tipo={mascota.tipo} size="sm" />
+            <div className="min-w-0">
+              <div className="font-[family-name:var(--font-dm-mono)] text-[0.6rem] uppercase mb-1" style={{ letterSpacing: '0.14em', color: 'rgba(20,36,26,0.42)' }}>Historial de citas</div>
+              <div className="truncate" style={{ fontFamily: 'var(--font-newsreader)', fontStyle: 'italic', fontWeight: 300, fontSize: '1.45rem', color: 'var(--admin-green-deep)' }}>{mascota.nombre}</div>
+            </div>
+          </div>
+          <div className="relative z-10 flex items-center gap-2 flex-shrink-0">
+            {citasMascota.length > 0 && (
+              <span className="font-[family-name:var(--font-dm-mono)] text-[0.6rem] uppercase rounded-full" style={{ padding: '0.32rem 0.7rem', letterSpacing: '0.13em', background: 'var(--admin-bg)', color: 'rgba(20,36,26,0.55)' }}>
+                {totalRegistros} {totalRegistros === 1 ? 'registro' : 'registros'}
+              </span>
+            )}
+            <button onClick={onClose} aria-label="Cerrar historial" className="flex items-center justify-center text-[0.95rem] transition-all" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(20,36,26,0.1)', background: 'transparent', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(192,57,43,0.08)'; e.currentTarget.style.borderColor = 'var(--admin-red)'; e.currentTarget.style.color = 'var(--admin-red)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(20,36,26,0.1)'; e.currentTarget.style.color = 'inherit'; }}>✕</button>
+          </div>
+        </div>
+
+        {/* Cuerpo */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '1.2rem 1.6rem 2rem' }}>
+          {citasMascota.length === 0 ? (
+            <div className="text-center font-[family-name:var(--font-dm-mono)] text-[0.78rem]" style={{ padding: '3rem 1rem', color: 'rgba(20,36,26,0.4)', lineHeight: 1.7 }}>
+              <span className="block text-3xl mb-3" style={{ opacity: 0.4 }}>📅</span>
+              {mascota.nombre} no tiene citas<br />confirmadas ni completadas aún.
+            </div>
+          ) : (
+            meses.map(m => (
+              <div key={m.key} className="mb-4">
+                <div className="flex items-center gap-2 font-[family-name:var(--font-dm-mono)] text-[0.62rem] uppercase mb-2" style={{ letterSpacing: '0.18em', color: 'rgba(20,36,26,0.45)' }}>
+                  {NOMBRES_MES[m.mes]} {m.anio}
+                  <span aria-hidden style={{ flex: 1, height: 1, background: 'rgba(20,36,26,0.1)' }} />
+                </div>
+                {m.citas.map(c => (
+                  <div key={c.id} className="mb-3" style={{ paddingLeft: '0.85rem', borderLeft: '2px solid rgba(177,240,206,0.55)' }}>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-[family-name:var(--font-dm-mono)] text-[0.62rem] uppercase" style={{ letterSpacing: '0.14em', color: 'var(--admin-green-mid)' }}>
+                        Cita {fechaCortaCita(c.fecha)}
+                      </span>
+                      <CitaBadge estado={c.estado} />
+                    </div>
+                    <ul className="flex flex-col">
+                      {c.servicios.map(s => {
+                        const ex = SERVICIOS_EXAMEN.has(s)
+                          ? mascota.examenes.find(e => e.tipo === s && e.citaId === c.id)
+                          : null;
+                        return (
+                          <li key={`${c.id}-${s}`} className="flex items-center gap-3 py-2" style={{ borderBottom: '1px solid rgba(20,36,26,0.04)' }}>
+                            <span className="inline-flex items-center justify-center flex-shrink-0" style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--admin-soft)', fontSize: '1rem' }}>
+                              {iconoServicio(s)}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[0.86rem] font-semibold truncate" style={{ color: 'var(--admin-ink)' }}>{s}</div>
+                              {ex?.subidoEn && (
+                                <div className="font-[family-name:var(--font-dm-mono)] text-[0.62rem] mt-0.5" style={{ color: 'var(--admin-green-leaf)' }}>
+                                  Subido {fechaCortaSubida(ex.subidoEn)}
+                                </div>
+                              )}
+                            </div>
+                            {ex && <ExamBadge estado={ex.estado} />}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -1065,11 +1284,14 @@ function ExamenesView({ examenes, estado, setEstado, busqueda, setBusqueda, actu
 function estadoServicio(servicio: string, cita: Cita, mascotas: Mascota[]): 'DISPONIBLE' | 'PENDIENTE' | 'EN_PROCESO' | 'cancelado' {
   if (cita.estado === 'CANCELADA') return 'cancelado';
   if (SERVICIOS_EXAMEN.has(servicio)) {
+    // El estado se busca en el examen de ESTA cita, no en cualquier examen del
+    // mismo tipo de la mascota: si la mascota ya tuvo un Hemograma DISPONIBLE
+    // en una cita previa, eso no implica que el de la cita actual esté listo.
     const mascota = mascotas.find(m => m.id === cita.mascotaId);
-    const examenes = mascota?.examenes.filter(e => e.tipo === servicio) ?? [];
-    const prioridad = (s: string) => s === 'DISPONIBLE' ? 2 : s === 'EN_PROCESO' ? 1 : 0;
-    const mejor = examenes.sort((a, b) => prioridad(b.estado) - prioridad(a.estado))[0];
-    return (mejor?.estado ?? 'PENDIENTE') as 'DISPONIBLE' | 'PENDIENTE' | 'EN_PROCESO';
+    const examenDeCita = mascota?.examenes.find(
+      e => e.tipo === servicio && e.citaId === cita.id,
+    );
+    return (examenDeCita?.estado ?? 'PENDIENTE') as 'DISPONIBLE' | 'PENDIENTE' | 'EN_PROCESO';
   }
   if (cita.estado !== 'COMPLETADA') return 'PENDIENTE';
   return 'DISPONIBLE';

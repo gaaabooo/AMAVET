@@ -66,9 +66,24 @@ export class ExamsService {
       );
     }
 
+    // subidoEn refleja cuándo el PDF estuvo disponible para el tutor.
+    // - Al pasar a DISPONIBLE: lo marcamos con la hora actual.
+    // - Al volver a PENDIENTE (borrar PDF para resubir): lo limpiamos.
+    // - En cualquier otra transición (p.ej. PENDIENTE -> EN_PROCESO) no se toca.
+    const subidoEnUpdate: { subidoEn?: Date | null } = {};
+    if (estado === 'DISPONIBLE' && examen.estado !== 'DISPONIBLE') {
+      subidoEnUpdate.subidoEn = new Date();
+    } else if (estado === 'PENDIENTE' && examen.estado === 'DISPONIBLE') {
+      subidoEnUpdate.subidoEn = null;
+    }
+
     const actualizado = await this.prisma.examen.update({
       where: { id },
-      data: { estado, ...(archivoUrl !== undefined && { archivoUrl }) },
+      data: {
+        estado,
+        ...(archivoUrl !== undefined && { archivoUrl }),
+        ...subidoEnUpdate,
+      },
     });
     this.audit.registrar('EXAMEN_ESTADO_ACTUALIZADO', {
       examenId: id,
