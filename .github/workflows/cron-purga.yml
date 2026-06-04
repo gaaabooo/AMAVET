@@ -1,0 +1,80 @@
+name: Cron · Purga de cuentas vencidas
+
+# Reemplaza al cron externo (cron-job.org) que llamaba a /cuenta/purgar.
+# Ventajas: el horario y la lógica viven en el repo, el secreto se guarda en
+# GitHub Secrets, y los logs/retries son nativos de Actions.
+#
+# Horario: todos los días a las 13:00 UTC = 09:00 hora de Chile (UTC-4).
+# Render free duerme tras 15 min sin tráfico; 9 AM es horario activo, así el
+# servicio probablemente ya esté caliente y no caigamos en hibernate-wake-error.
+#
+# El workflow también es disparable manualmente desde la pestaña Actions
+# (workflow_dispatch) para probar o forzar una purga puntual.
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+# Si se acumulan ejecuciones (p.ej. el repo estuvo inactivo), solo corre la
+# última. La purga es idempotente, no tiene sentido encolar varias.
+concurrency:
+  group: cron-purga
+  cancel-in-progress: false
+
+jobs:
+  purgar:
+    name: POST /cuenta/purgar
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar al endpoint con reintentos
+        env:
+          API_URL: https://silvestra.onrender.com
+          PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
+        run: |
+          if [ -z "$PURGE_SECRET" ]; then
+            echo "::error::El secreto PURGE_SECRET no está configurado en el repositorio."
+            exit 1
+          fi
+
+          # Hasta 3 intentos (1 inicial + 2 reintentos), 60s entre cada uno.
+          # El primero puede caer en 503 porque Render free está dormido y
+          # responde con hibernate-wake-error; el segundo ya entra caliente.
+          for intento in 1 2 3; do
+            echo "Intento $intento de 3…"
+
+            # -s silencioso, -S muestra errores, -o /dev/null descarta el body,
+            # -w extrae el código HTTP, --max-time corta peticiones colgadas.
+            codigo=$(curl -sS -o /tmp/respuesta.txt -w "%{http_code}" \
+              --max-time 60 \
+              -X POST "$API_URL/cuenta/purgar" \
+              -H "X-Purge-Secret: $PURGE_SECRET" \
+              -H "Content-Type: application/json" \
+              || echo "000")
+
+            echo "Código HTTP: $codigo"
+            if [ -s /tmp/respuesta.txt ]; then
+              echo "Respuesta:"
+              cat /tmp/respuesta.txt
+              echo
+            fi
+
+            # 2xx = OK. Cualquier 4xx (excepto 503 envuelto por Cloudflare/Render)
+            # apunta a un problema persistente: no tiene sentido reintentar.
+            if [ "$codigo" -ge 200 ] && [ "$codigo" -lt 300 ]; then
+              echo "::notice::Purga completada con éxito en el intento $intento."
+              exit 0
+            fi
+            if [ "$codigo" -ge 400 ] && [ "$codigo" -lt 500 ] && [ "$codigo" != "408" ] && [ "$codigo" != "429" ]; then
+              echo "::error::El endpoint respondió $codigo, no se reintenta."
+              exit 1
+            fi
+
+            if [ "$intento" -lt 3 ]; then
+              echo "Esperando 60s antes del siguiente intento…"
+              sleep 60
+            fi
+          done
+
+          echo "::error::La purga falló tras 3 intentos."
+          exit 1

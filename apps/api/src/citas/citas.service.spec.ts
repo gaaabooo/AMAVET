@@ -34,6 +34,17 @@ const mockNotificaciones = {
   notificarEstadoCita: jest.fn().mockResolvedValue(undefined),
 };
 
+// Helper para extraer el primer argumento del último createMany llamado, con un
+// tipo razonable (los mocks de jest sin genéricos pierden el tipo del arg).
+interface CreateManyArg {
+  data: { tipo: string; citaId: string; mascotaId: string }[];
+}
+function leerArgCreateMany(): CreateManyArg {
+  const calls = mockPrisma.examen.createMany.mock
+    .calls as unknown as CreateManyArg[][];
+  return calls[0][0];
+}
+
 describe('CitasService', () => {
   let service: CitasService;
 
@@ -80,7 +91,12 @@ describe('CitasService', () => {
       mockPrisma.cita.findFirst.mockResolvedValue(null);
       mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
 
-      await service.crear(fechaFutura, 'Av. Test', ['Control Médico'], 'mascota-1');
+      await service.crear(
+        fechaFutura,
+        'Av. Test',
+        ['Control Médico'],
+        'mascota-1',
+      );
 
       expect(mockPrisma.examen.createMany).not.toHaveBeenCalled();
     });
@@ -99,11 +115,7 @@ describe('CitasService', () => {
       );
 
       expect(mockPrisma.examen.createMany).toHaveBeenCalledTimes(1);
-      const data = (
-        mockPrisma.examen.createMany.mock.calls[0][0] as {
-          data: { tipo: string; citaId: string; mascotaId: string }[];
-        }
-      ).data;
+      const data = leerArgCreateMany().data;
       // Solo los 2 servicios-examen, no la consulta general.
       expect(data.map((d) => d.tipo).sort()).toEqual([
         'Examen Hemograma',
