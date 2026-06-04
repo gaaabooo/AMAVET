@@ -1,0 +1,63 @@
+name: Cron · Keepalive Supabase
+
+# Mantiene viva la base de Supabase free, que se autopausa tras 7 días sin
+# actividad. La purga diaria ya toca la BD, pero si esa falla varios días
+# seguidos (ej. bug del backend, Render dormido, downtime) la BD se pausa y la
+# app entera queda rota. Este cron es defensa en profundidad: una query
+# trivial al endpoint /health (que hace SELECT 1) cada 3 días.
+#
+# Horario: cada 3 días a las 12:00 UTC = 08:00 hora de Chile (UTC-4). Una hora
+# antes del cron de purga, así si keepalive despierta a Render+Supabase, la
+# purga corre sobre infra ya caliente.
+on:
+  schedule:
+    - cron: '0 12 */3 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: cron-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: GET /health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar /health con reintentos
+        env:
+          API_URL: https://silvestra.onrender.com
+        run: |
+          # Hasta 3 intentos (1 inicial + 2 reintentos), 60s entre cada uno.
+          # El primer ping despierta a Render (que estará dormido si nadie usó
+          # la app en horas); el segundo ya entra caliente y la BD responde.
+          for intento in 1 2 3; do
+            echo "Intento $intento de 3…"
+
+            codigo=$(curl -sS -o /tmp/respuesta.txt -w "%{http_code}" \
+              --max-time 60 \
+              "$API_URL/health" \
+              || echo "000")
+
+            echo "Código HTTP: $codigo"
+            if [ -s /tmp/respuesta.txt ]; then
+              echo "Respuesta:"
+              cat /tmp/respuesta.txt
+              echo
+            fi
+
+            # 200 = API y BD responden. 503 = API arriba pero BD caída/pausada,
+            # en cuyo caso reintentar puede ayudar (Supabase tarda en despertar).
+            if [ "$codigo" = "200" ]; then
+              echo "::notice::Keepalive OK en el intento $intento (BD activa)."
+              exit 0
+            fi
+
+            if [ "$intento" -lt 3 ]; then
+              echo "Esperando 60s antes del siguiente intento…"
+              sleep 60
+            fi
+          done
+
+          echo "::error::Keepalive falló tras 3 intentos. Revisa Render y Supabase."
+          exit 1
