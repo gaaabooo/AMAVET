@@ -170,6 +170,40 @@ describe('ExamsService', () => {
       expect(updateArg.data.estado).toBe('PENDIENTE');
       expect(updateArg.data.subidoEn).toBeNull();
     });
+
+    it('borra el blob de Storage al volver DISPONIBLE -> PENDIENTE si habia archivoUrl (hallazgo M-1)', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+        archivoUrl: 'ex-1/abc-123.pdf',
+      });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'PENDIENTE',
+      });
+
+      await service.actualizarEstado('ex-1', 'PENDIENTE');
+
+      expect(mockSupabase.borrarArchivo).toHaveBeenCalledWith(
+        'ex-1/abc-123.pdf',
+      );
+    });
+
+    it('NO borra blob en transiciones que no son DISPONIBLE -> PENDIENTE', async () => {
+      mockPrisma.examen.findUnique.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'EN_PROCESO',
+        archivoUrl: null,
+      });
+      mockPrisma.examen.update.mockResolvedValue({
+        id: 'ex-1',
+        estado: 'DISPONIBLE',
+      });
+
+      await service.actualizarEstado('ex-1', 'DISPONIBLE');
+
+      expect(mockSupabase.borrarArchivo).not.toHaveBeenCalled();
+    });
   });
 
   describe('generarUrlDescarga', () => {

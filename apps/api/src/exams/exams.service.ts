@@ -85,6 +85,24 @@ export class ExamsService {
         ...subidoEnUpdate,
       },
     });
+
+    // Si la transición fue "borrar PDF" (DISPONIBLE -> PENDIENTE), borramos
+    // también el blob de Storage. Sin esto, cualquier signed URL emitida
+    // previamente (TTL 24h, posiblemente en el email del tutor) seguiría
+    // resolviendo al PDF antiguo durante su ventana de vida — que es justo el
+    // escenario problemático (PDF subido a la mascota equivocada).
+    // Fire-and-forget defensivo: borrarArchivo() ya loguea y no lanza, así que
+    // un fallo aquí no rompe la actualización de estado. La BD queda como
+    // fuente de verdad: si el blob no se borró, queda huérfano pero ya no es
+    // accesible vía la app (archivoUrl es null).
+    if (
+      estado === 'PENDIENTE' &&
+      examen.estado === 'DISPONIBLE' &&
+      examen.archivoUrl
+    ) {
+      void this.supabase.borrarArchivo(examen.archivoUrl);
+    }
+
     this.audit.registrar('EXAMEN_ESTADO_ACTUALIZADO', {
       examenId: id,
       estadoAnterior: examen.estado,
