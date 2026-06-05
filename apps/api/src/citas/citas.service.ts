@@ -59,60 +59,21 @@ export class CitasService {
     });
     if (!mascota) throw new NotFoundException('Mascota no encontrada');
 
-    // La verificación de límites y la creación van en una transacción para
-    // evitar la condición de carrera de dos solicitudes simultáneas.
-    const cita = await this.prisma.$transaction(async (tx) => {
-      // D-2: tope de citas activas por tutor.
-      const citasActivas = await tx.cita.count({
-        where: {
-          estado: { in: ESTADOS_ACTIVOS },
-          mascota: { tutorId: mascota.tutorId },
-        },
-      });
-      if (citasActivas >= MAX_CITAS_ACTIVAS_POR_TUTOR) {
-        throw new BadRequestException(
-          `Alcanzaste el máximo de ${MAX_CITAS_ACTIVAS_POR_TUTOR} citas activas. Espera a que se completen o cancela alguna.`,
-        );
-      }
-
-      // D-1: no permitir doble-booking. Una cita activa dentro del margen de
-      // traslado bloquea el slot (es agenda compartida del equipo, no por tutor).
-      const desde = new Date(fechaDate.getTime() - MARGEN_SLOT_MS);
-      const hasta = new Date(fechaDate.getTime() + MARGEN_SLOT_MS);
-      const solapada = await tx.cita.findFirst({
-        where: {
-          estado: { in: ESTADOS_ACTIVOS },
-          fecha: { gt: desde, lt: hasta },
-        },
-        select: { id: true },
-      });
-      if (solapada) {
-        throw new BadRequestException(
-          'Ya hay una cita agendada en ese horario. Elige otra hora.',
-        );
-      }
-
-      const citaCreada = await tx.cita.create({
-        data: { fecha: fechaDate, direccion, servicios, mascotaId },
-        include: { mascota: { include: { tutor: true } } },
-      });
-
-      // Cada servicio de laboratorio o test rápido genera un examen PENDIENTE
-      // ligado a esta cita. El admin solo subirá el PDF después; nunca crea
-      // exámenes a mano, así no pueden duplicarse dentro de la misma cita.
-      const tiposExamen = serviciosQueGeneranExamen(servicios);
-      if (tiposExamen.length > 0) {
-        await tx.examen.createMany({
-          data: tiposExamen.map((tipo) => ({
-            tipo,
-            mascotaId,
-            citaId: citaCreada.id,
-          })),
-        });
-      }
-
-      return citaCreada;
-    });
+    // La verificación de límites y la creación van en una transacción
+    // Serializable para evitar la race de dos solicitudes simultáneas:
+    // bajo READ COMMITTED (default de PostgreSQL) dos transacciones podrían
+    // leer "no hay solapamiento" y crear ambas la cita. Con Serializable
+    // PostgreSQL aborta una con el código 40001 (Prisma lo traduce a P2034);
+    // reintentamos una sola vez, y en la segunda corrida el findFirst ya
+    // verá la cita creada por la otra transacción y se lanzará el
+    // BadRequestException de slot ocupado, que es exactamente lo deseado.
+    const cita = await this.crearConSerializable(
+      fechaDate,
+      direccion,
+      servicios,
+      mascotaId,
+      mascota.tutorId,
+    );
 
     // Fire-and-forget: el envío del email no debe bloquear ni demorar la
     // respuesta. notificarCitaAgendada ya maneja sus propios errores.
@@ -189,5 +150,88 @@ export class CitasService {
       select: { tutorId: true },
     });
     return mascota?.tutorId === userId;
+  }
+
+  // Ejecuta el bloque "verificar límites + crear cita" en una transacción con
+  // aislamiento Serializable. Ver comentario en crear() sobre la race que
+  // esto cierra. Reintenta una sola vez si PostgreSQL aborta la transacción
+  // por conflicto de serialización (P2034 en Prisma, 40001 en pg). En tu
+  // volumen de tráfico el reintento prácticamente nunca se dispara; está como
+  // defensa en profundidad.
+  private async crearConSerializable(
+    fechaDate: Date,
+    direccion: string,
+    servicios: string[],
+    mascotaId: string,
+    tutorId: string,
+  ) {
+    for (let intento = 0; intento < 2; intento++) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            // D-2: tope de citas activas por tutor.
+            const citasActivas = await tx.cita.count({
+              where: {
+                estado: { in: ESTADOS_ACTIVOS },
+                mascota: { tutorId },
+              },
+            });
+            if (citasActivas >= MAX_CITAS_ACTIVAS_POR_TUTOR) {
+              throw new BadRequestException(
+                `Alcanzaste el máximo de ${MAX_CITAS_ACTIVAS_POR_TUTOR} citas activas. Espera a que se completen o cancela alguna.`,
+              );
+            }
+
+            // D-1: no permitir doble-booking. Una cita activa dentro del margen
+            // de traslado bloquea el slot (agenda compartida del equipo).
+            const desde = new Date(fechaDate.getTime() - MARGEN_SLOT_MS);
+            const hasta = new Date(fechaDate.getTime() + MARGEN_SLOT_MS);
+            const solapada = await tx.cita.findFirst({
+              where: {
+                estado: { in: ESTADOS_ACTIVOS },
+                fecha: { gt: desde, lt: hasta },
+              },
+              select: { id: true },
+            });
+            if (solapada) {
+              throw new BadRequestException(
+                'Ya hay una cita agendada en ese horario. Elige otra hora.',
+              );
+            }
+
+            const citaCreada = await tx.cita.create({
+              data: { fecha: fechaDate, direccion, servicios, mascotaId },
+              include: { mascota: { include: { tutor: true } } },
+            });
+
+            // Cada servicio de laboratorio o test rápido genera un examen
+            // PENDIENTE ligado a esta cita. El admin solo subirá el PDF
+            // después; nunca crea exámenes a mano, así no pueden duplicarse
+            // dentro de la misma cita.
+            const tiposExamen = serviciosQueGeneranExamen(servicios);
+            if (tiposExamen.length > 0) {
+              await tx.examen.createMany({
+                data: tiposExamen.map((tipo) => ({
+                  tipo,
+                  mascotaId,
+                  citaId: citaCreada.id,
+                })),
+              });
+            }
+
+            return citaCreada;
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (err) {
+        const codigo = (err as { code?: string }).code;
+        // P2034 = Prisma transaction failed due to write conflict or deadlock
+        // (incluye serialization_failure de PostgreSQL). Reintentamos 1 vez.
+        if (codigo === 'P2034' && intento === 0) continue;
+        throw err;
+      }
+    }
+    // Inalcanzable: el for siempre retorna o lanza dentro del bloque.
+    throw new Error('crearConSerializable: estado inalcanzable');
   }
 }

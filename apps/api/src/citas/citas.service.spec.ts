@@ -59,6 +59,10 @@ describe('CitasService', () => {
 
     service = module.get<CitasService>(CitasService);
     jest.clearAllMocks();
+    // $transaction acepta (callback, opciones). El aislamiento real solo
+    // aplica contra PostgreSQL, así que el mock ignora las opciones y solo
+    // ejecuta el callback. El test específico de Serializable verifica que
+    // el servicio sí pasa las opciones correctamente.
     mockPrisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) =>
       cb(mockPrisma),
     );
@@ -143,6 +147,52 @@ describe('CitasService', () => {
         service.crear(fechaFutura, 'Av. Test', ['Consulta'], 'mascota-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(mockPrisma.cita.create).not.toHaveBeenCalled();
+    });
+
+    it('ejecuta la transacción con isolationLevel Serializable (anti-race D-1/D-2)', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(0);
+      mockPrisma.cita.findFirst.mockResolvedValue(null);
+      mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
+
+      await service.crear(fechaFutura, 'Av. Test', ['Consulta'], 'mascota-1');
+
+      const txCalls = mockPrisma.$transaction.mock.calls as unknown as Array<
+        [unknown, { isolationLevel?: string } | undefined]
+      >;
+      expect(txCalls.length).toBeGreaterThan(0);
+      expect(txCalls[0][1]?.isolationLevel).toBe('Serializable');
+    });
+
+    it('reintenta una vez si Prisma aborta la transacción con P2034 (serialization_failure)', async () => {
+      mockPrisma.mascota.findUnique.mockResolvedValue(mascotaConTutorMock);
+      mockPrisma.cita.count.mockResolvedValue(0);
+      mockPrisma.cita.findFirst.mockResolvedValue(null);
+      mockPrisma.cita.create.mockResolvedValue({ id: 'cita-1' });
+
+      // Primera corrida: simulamos el conflicto de serialización. Segunda
+      // corrida: la transacción se ejecuta normal y la cita se crea.
+      const p2034 = Object.assign(new Error('serialization_failure'), {
+        code: 'P2034',
+      });
+      let llamada = 0;
+      mockPrisma.$transaction.mockImplementation(
+        (cb: (tx: unknown) => unknown) => {
+          llamada += 1;
+          if (llamada === 1) throw p2034;
+          return cb(mockPrisma);
+        },
+      );
+
+      const result = await service.crear(
+        fechaFutura,
+        'Av. Test',
+        ['Consulta'],
+        'mascota-1',
+      );
+
+      expect(llamada).toBe(2);
+      expect(result).toEqual(expect.objectContaining({ id: 'cita-1' }));
     });
 
     it('rechaza la cita si la fecha está demasiado lejos en el futuro', async () => {
