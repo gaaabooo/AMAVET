@@ -19,6 +19,12 @@ import { AdminModule } from './admin/admin.module';
       { name: 'short', ttl: 1_000, limit: 10 },
       { name: 'medium', ttl: 60_000, limit: 100 },
       { name: 'long', ttl: 3_600_000, limit: 1_000 },
+      // Throttler "default" para que los @Throttle({ default: { ... } }) por
+      // endpoint funcionen como override. Sin este throttler registrado,
+      // @nestjs/throttler v6 ignora silenciosamente el decorador y solo
+      // aplican los limites globales de arriba, dejando inactivos los
+      // limites estrictos de /auth/login, /auth/registro, etc.
+      { name: 'default', ttl: 60_000, limit: 1_000 },
     ]),
     PrismaModule,
     AuditModule,
