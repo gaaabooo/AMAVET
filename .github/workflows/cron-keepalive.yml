@@ -14,6 +14,11 @@ on:
     - cron: '0 12 */3 * *'
   workflow_dispatch:
 
+# Sin permisos sobre el repo: este workflow solo hace curl a un endpoint
+# publico, no necesita leer ni escribir contenidos, issues, ni PRs. Defensa
+# en profundidad: el GITHUB_TOKEN queda sin scopes.
+permissions: {}
+
 concurrency:
   group: cron-keepalive
   cancel-in-progress: false

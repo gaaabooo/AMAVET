@@ -15,6 +15,12 @@ on:
     - cron: '0 13 * * *'
   workflow_dispatch:
 
+# Sin permisos sobre el repo: este workflow solo hace POST a un endpoint
+# autenticado por secreto, no necesita leer ni escribir contenidos, issues,
+# ni PRs. Defensa en profundidad: el GITHUB_TOKEN queda sin scopes, asi un
+# step comprometido no podria modificar el repo.
+permissions: {}
+
 # Si se acumulan ejecuciones (p.ej. el repo estuvo inactivo), solo corre la
 # última. La purga es idempotente, no tiene sentido encolar varias.
 concurrency:
