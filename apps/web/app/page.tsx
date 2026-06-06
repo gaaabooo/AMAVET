@@ -103,31 +103,31 @@ export default function Home() {
                 <div className="ben-tag">EN CASA</div>
                 <h3 className="ben-title">Sin jaula, sin traslado, <em>sin sala de espera</em></h3>
               </div>
-              <p className="ben-text">Evita el pánico de la jaula de transporte. Tu mascota se queda en su sillón, su cama o su rincón favorito.</p>
+              <p className="ben-text">Tu mascota recibe atención en su propio espacio, tranquila y acompañada. Sin viajes, sin estrés y sin cambiar su rutina.</p>
             </div>
             <div className="ben-card dark">
               <div className="ben-num">02</div>
               <div>
                 <div className="ben-tag">DEDICACIÓN</div>
-                <h3 className="ben-title">Atención dedicada, <em>sin reloj</em></h3>
+                <h3 className="ben-title">Atención con <em>tiempo y calma</em></h3>
               </div>
-              <p className="ben-text">Una sola visita, una sola paciente. El tiempo es el que tu mascota necesite.</p>
+              <p className="ben-text">Cada visita se realiza con dedicación, respetando el ritmo de tu mascota y resolviendo tus dudas sin apuros.</p>
             </div>
             <div className="ben-card dark">
               <div className="ben-num">03</div>
               <div>
                 <div className="ben-tag">COMODIDAD</div>
-                <h3 className="ben-title">Nosotros vamos <em>hasta ti</em></h3>
+                <h3 className="ben-title">Nosotros vamos <em>hasta tu hogar</em></h3>
               </div>
-              <p className="ben-text">Cero traslados, cero salas de espera, cero estacionamiento. Tu día sigue como siempre.</p>
+              <p className="ben-text">Evita traslados, esperas y estacionamientos. Tú solo agendas la visita; la atención llega donde tu mascota se siente segura.</p>
             </div>
             <div className="ben-card">
               <div className="ben-num">04</div>
               <div>
                 <div className="ben-tag">RESPALDO CLÍNICO</div>
-                <h3 className="ben-title">Médica titulada, <em>con formación científica</em></h3>
+                <h3 className="ben-title">Atención profesional y <em>criterio clínico</em></h3>
               </div>
-              <p className="ben-text">Titulada de la Universidad Santo Tomás, bajo el enfoque de una salud: animal, humana y del medio ambiente.</p>
+              <p className="ben-text">Servicio realizado por médica veterinaria titulada, con formación basada en el cuidado animal, la salud pública y el bienestar del entorno.</p>
             </div>
           </div>
         </div>

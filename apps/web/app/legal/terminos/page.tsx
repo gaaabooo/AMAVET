@@ -12,82 +12,84 @@ const SECCIONES = [
   {
     num: 'I',
     titulo: 'Qué es Silvestra Vet',
-    resumen: 'Quién te atiende y bajo qué credenciales.',
+    resumen: 'Quién presta el servicio y bajo qué criterios clínicos.',
     parrafos: [
-      'Silvestra Vet es un servicio de medicina veterinaria a domicilio que opera en la Región de Valparaíso. Cada visita es realizada por un médico veterinario titulado, con cédula profesional vigente y registro habilitado para el ejercicio de la profesión en Chile.',
-      'Trabajamos bajo los protocolos clínicos reconocidos por la medicina veterinaria contemporánea. No prometemos resultados milagrosos: prometemos hacer las cosas bien, conversar contigo lo que estamos haciendo y entregarte un registro claro de cada visita.',
+      'Silvestra Vet es un servicio de medicina veterinaria a domicilio realizado por la médica veterinaria Amanda Castañeda Urbina, orientado a la atención de mascotas en su propio entorno y bajo condiciones compatibles con una visita domiciliaria. Cada atención se desarrolla conforme a criterios clínicos reconocidos por la medicina veterinaria, considerando el estado del paciente, los antecedentes entregados por el tutor y las condiciones reales disponibles al momento de la visita.',
+      'La atención a domicilio no reemplaza una clínica veterinaria, hospitalización, urgencia o servicio de especialidad cuando estos sean necesarios. En esos casos, la profesional podrá recomendar la derivación a un centro veterinario que cuente con el equipamiento o el nivel de atención requerido.',
+      'Silvestra Vet no garantiza resultados determinados. Su compromiso es prestar una atención diligente, explicar de forma clara los procedimientos realizados y entregar al tutor un registro comprensible de cada visita.',
     ],
   },
   {
     num: 'II',
     titulo: 'Cobertura y agendamiento',
-    resumen: 'Dónde llegamos y cómo coordinas una visita.',
+    resumen: 'Dónde llegamos y cómo se confirma una visita.',
     parrafos: [
-      'Atendemos en cobertura habitual en Valparaíso, Viña del Mar y Quilpué; y en cobertura extendida en Villa Alemana, Limache, Quillota, La Cruz, La Calera, Nogales y El Melón. Si vives en una comuna que no aparece en este listado, escríbenos antes de descartar la visita: muchas veces podemos coordinar.',
-      'Las visitas se agendan desde el dashboard de tu cuenta o por WhatsApp. Confirmamos por correo el día, la hora y los servicios contratados. No cobramos por adelantado al momento de agendar.',
+      'Atendemos en cobertura habitual en Valparaíso, Viña del Mar y Quilpué. También podemos coordinar visitas en cobertura extendida en Villa Alemana, Limache, Quillota, La Cruz, La Calera, Nogales y El Melón, según disponibilidad, distancia y horario.',
+      'Si vives en una comuna que no aparece en este listado, puedes consultarnos antes de descartar la visita. En algunos casos es posible coordinar una atención especial. Las visitas se pueden agendar desde la cuenta del usuario, por WhatsApp u otros canales oficiales. La hora queda confirmada cuando se informa el día, horario, domicilio y servicio solicitado.',
+      'En periodos de alta demanda, se informará la próxima fecha disponible.',
     ],
   },
   {
     num: 'III',
     titulo: 'Cancelación y reagendamiento',
-    resumen: 'Lo que pedimos cuando algo cambia.',
+    resumen: 'Plazos y condiciones para mover o cancelar una hora.',
     parrafos: [
-      'Sabemos que la vida pasa: si necesitas mover o cancelar una visita, te pedimos avisarnos con al menos 4 horas de anticipación, sin costo. Cancelaciones bajo ese plazo pueden estar sujetas a un cargo administrativo, que se informa de manera transparente al momento de agendar.',
-      'Si somos nosotros quienes debemos reagendar por una emergencia clínica de otro paciente o por imposibilidad de traslado, te avisaremos lo antes posible y propondremos la primera hora disponible.',
+      'Si necesitas cancelar o cambiar una visita, pedimos avisar con al menos 4 horas de anticipación. Las cancelaciones con menor aviso pueden estar sujetas a un cargo administrativo, especialmente si el traslado ya fue iniciado.',
+      'Si Silvestra Vet debe reagendar por emergencia, traslado o fuerza mayor, se informará lo antes posible y se ofrecerá una nueva hora disponible.',
     ],
   },
   {
     num: 'IV',
-    titulo: 'Alcance y límites del servicio',
-    resumen: 'Hasta dónde llega lo que se puede hacer en casa.',
+    titulo: 'Alcance del servicio',
+    resumen: 'Qué procedimientos se realizan en domicilio y cuáles no.',
     parrafos: [
-      'En la visita podemos realizar examen clínico general, vacunaciones, desparasitación, toma de muestras, controles de seguimiento, eutanasia humanitaria con acompañamiento, recetas y certificados, entre otros procedimientos compatibles con la atención en hogar.',
-      'Algunos procedimientos —cirugías mayores, hospitalización, imagenología avanzada, cuidados intensivos— requieren equipamiento que solo está disponible en clínica. En esos casos te derivaremos a una clínica asociada de la zona y, si lo necesitas, ayudaremos a coordinar el traslado.',
+      'En domicilio se pueden realizar atenciones compatibles con este tipo de servicio, como vacunación, desparasitación interna, control médico, curación de heridas simples, administración de microchip y toma de muestras para exámenes.',
+      'Procedimientos como cirugías mayores, hospitalización, imagenología avanzada o urgencias complejas requieren atención en clínica o centro especializado.',
     ],
   },
   {
     num: 'V',
     titulo: 'Resultados de exámenes',
-    resumen: 'Cómo y cuándo te llegan los resultados.',
+    resumen: 'Cómo y cuándo se entregan los resultados de laboratorio.',
     parrafos: [
-      'Las muestras se procesan en laboratorios veterinarios externos certificados. El plazo habitual de entrega es de 24 a 72 horas hábiles, dependiendo del tipo de examen; algunos paneles especializados pueden tomar más tiempo y siempre te informaremos el plazo estimado.',
-      'Los resultados se publican en formato PDF dentro de tu cuenta y, cuando corresponda, los comentamos contigo en una breve llamada o mensaje para asegurarnos de que entiendas qué significan y cuáles son los siguientes pasos.',
+      'Las muestras pueden ser procesadas por laboratorios veterinarios externos. El plazo habitual de entrega puede variar según el tipo de examen.',
+      'Como referencia, algunos resultados pueden estar disponibles entre 24 y 72 horas hábiles. Los resultados se entregarán en formato PDF dentro de la cuenta del tutor o mediante un canal seguro definido por Silvestra Vet.',
     ],
   },
   {
     num: 'VI',
     titulo: 'Pagos y tarifas',
-    resumen: 'Cuándo y cómo se paga la visita.',
+    resumen: 'Cuándo se paga y qué medios se aceptan.',
     parrafos: [
-      'El pago se realiza al finalizar la visita. Aceptamos transferencia bancaria, tarjetas y los medios digitales habituales del comercio chileno. Emitimos boleta o factura electrónica según corresponda.',
-      'Las tarifas se informan al momento de agendar y pueden ajustarse si en la visita surgen procedimientos adicionales no previstos: en ese caso, siempre te lo conversaremos antes de realizarlos.',
+      'El pago se realiza al finalizar la visita, salvo que se indique otra modalidad al momento de agendar. Las tarifas se informan antes de confirmar la atención.',
+      'Si durante la visita se requiere un procedimiento adicional, se explicará previamente al tutor junto con su costo aproximado. Se podrán aceptar transferencia bancaria, tarjetas u otros medios de pago disponibles.',
     ],
   },
   {
     num: 'VII',
-    titulo: 'Lo que necesitamos de ti',
-    resumen: 'Tu rol en que la atención salga bien.',
+    titulo: 'Información que debe entregar el tutor',
+    resumen: 'Antecedentes médicos que el tutor debe aportar.',
     parrafos: [
-      'Para que la visita sea segura y útil, necesitamos que nos cuentes los antecedentes médicos relevantes de tu mascota: enfermedades previas, medicamentos en uso, alergias conocidas y cualquier cambio de comportamiento reciente. Si hay otro veterinario tratante, también es valioso tener su contacto o sus indicaciones.',
-      'Las indicaciones que te dejamos al final de la visita —dosis, controles, signos de alarma— son parte del tratamiento. Seguirlas con cuidado es lo que asegura que el trabajo clínico tenga el efecto esperado.',
+      'Para una atención segura, el tutor debe entregar información clara y completa sobre la mascota. Esto incluye enfermedades previas, medicamentos en uso, alergias, vacunas, exámenes anteriores y cambios recientes de conducta o salud.',
+      'Las indicaciones entregadas al finalizar la visita forman parte del tratamiento y deben ser seguidas por el tutor.',
     ],
   },
   {
     num: 'VIII',
     titulo: 'Responsabilidad',
-    resumen: 'Hasta dónde respondemos y por qué.',
+    resumen: 'Hasta dónde responde Silvestra Vet por la atención prestada.',
     parrafos: [
-      'Aplicamos los protocolos vigentes de la medicina veterinaria con el mejor estándar a nuestro alcance. La medicina, sin embargo, no es una ciencia exacta: existen reacciones individuales, condiciones subyacentes no detectables a simple vista y evoluciones que escapan al control de cualquier profesional. Asumimos responsabilidad por los actos clínicos realizados conforme a la lex artis.',
-      'No respondemos por consecuencias derivadas de información clínica incompleta o inexacta entregada por el tutor, ni por el incumplimiento de las indicaciones posteriores a la visita. Tampoco respondemos por servicios prestados por terceros (clínicas asociadas, laboratorios, traslados) más allá del cuidado en su elección.',
+      'Silvestra Vet responde por los actos clínicos realizados directamente durante la visita, conforme a la información disponible y a los estándares razonables de la medicina veterinaria. La evolución de una mascota puede depender de factores que no siempre son detectables en una primera atención.',
+      'Silvestra Vet no será responsable por consecuencias derivadas de información incompleta entregada por el tutor, incumplimiento de indicaciones o servicios prestados por terceros externos.',
     ],
   },
   {
     num: 'IX',
-    titulo: 'Modificaciones y vigencia',
-    resumen: 'Qué pasa si estos términos cambian.',
+    titulo: 'Modificaciones',
+    resumen: 'Cómo se publican y entran en vigencia los cambios.',
     parrafos: [
-      'Estos términos pueden actualizarse cuando lo amerite la operación o el marco regulatorio. Cualquier cambio sustancial se publicará en esta misma página con fecha visible y, cuando afecte de forma material tus derechos como tutor, te avisaremos por correo con razonable antelación.',
-      'El uso continuado del servicio después de la entrada en vigencia de los nuevos términos implica su aceptación. Si no estás de acuerdo con un cambio, puedes solicitar la baja de tu cuenta escribiéndonos al correo de contacto.',
+      'Silvestra Vet podrá actualizar estos términos cuando sea necesario por cambios operativos, técnicos o legales. La versión vigente estará disponible en esta página.',
+      'El uso del servicio después de una actualización implica la aceptación de los términos vigentes.',
     ],
   },
 ];
@@ -117,9 +119,12 @@ export default function TerminosPage() {
           </h1>
 
           <p className="terms-intro">
-            Este documento explica cómo trabajamos contigo: qué hacemos, qué
-            necesitamos de ti y qué puedes esperar a cambio. Está escrito para
-            que se entienda, no para esconderse detrás del lenguaje legal.
+            Estos términos regulan la prestación de servicios veterinarios a
+            domicilio realizados por Amanda Castañeda Urbina, médica
+            veterinaria responsable de Silvestra Vet. El documento explica qué
+            comprende la atención, cómo se agenda, cuáles son los límites del
+            servicio en domicilio, cómo se gestionan los resultados de
+            exámenes y qué responsabilidades asume cada parte.
           </p>
 
           <div className="terms-meta">
