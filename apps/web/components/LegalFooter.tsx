@@ -7,8 +7,8 @@ const NAV = [
   {
     title: 'Documentos',
     links: [
-      { href: '/legal/privacidad', label: 'Privacidad' },
-      { href: '/legal/terminos', label: 'Términos' },
+      { href: '/legal/privacidad', label: 'Política de privacidad' },
+      { href: '/legal/terminos', label: 'Términos de servicio' },
     ],
   },
   {

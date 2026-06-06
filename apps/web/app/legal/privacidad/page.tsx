@@ -12,63 +12,75 @@ const SECCIONES = [
     num: 'I',
     titulo: 'Datos que recopilamos',
     parrafos: [
-      'Para prestar atención veterinaria a domicilio en la Región de Valparaíso recopilamos dos tipos de información: (a) datos de identificación del tutor —nombre completo, RUT, correo electrónico, número de teléfono y dirección de visita— y (b) datos clínicos de la mascota —especie, raza, edad, peso, antecedentes médicos relevantes, vacunas, alergias y resultados de exámenes—.',
-      'La recopilación se realiza únicamente con la información que el tutor entrega al momento del registro, durante la consulta o al solicitar exámenes. No obtenemos datos desde fuentes externas sin consentimiento explícito.',
+      'Para prestar atención veterinaria a domicilio, podemos solicitar datos del tutor, como nombre completo, RUT, correo electrónico, teléfono y dirección de visita.',
+      'También recopilamos información necesaria sobre la mascota, como nombre, especie, raza, edad, antecedentes médicos, medicamentos, alergias, vacunas, exámenes y observaciones clínicas relevantes.',
+      'La información se obtiene principalmente a través del registro de usuario, la solicitud de atención, la consulta veterinaria y la gestión de exámenes. No recopilamos datos desde fuentes externas sin una justificación válida o sin autorización cuando corresponda.',
     ],
   },
   {
     num: 'II',
-    titulo: 'Finalidad del tratamiento',
+    titulo: 'Finalidad del uso de datos',
     parrafos: [
-      'Los datos se utilizan exclusivamente para coordinar visitas, registrar la ficha clínica de la mascota, entregar resultados de exámenes, emitir recetas y certificados veterinarios, y mantener comunicación con el tutor sobre el estado de salud y los controles posteriores.',
-      'Bajo ninguna circunstancia los datos personales o clínicos son cedidos, vendidos o compartidos con terceros con fines comerciales, publicitarios o de elaboración de perfiles.',
+      'Utilizamos la información únicamente para prestar y gestionar el servicio veterinario.',
+      'Esto incluye coordinar visitas, registrar antecedentes clínicos, contactar al tutor, entregar resultados de exámenes, emitir indicaciones veterinarias, generar certificados o recetas cuando corresponda y mantener un historial básico de atención.',
+      'No vendemos datos personales ni los usamos para publicidad de terceros.',
     ],
   },
   {
     num: 'III',
     titulo: 'Almacenamiento y seguridad',
     parrafos: [
-      'La información se almacena en servidores ubicados en territorio chileno o en jurisdicciones que cuentan con estándares de protección equivalentes a la legislación nacional. Los datos en tránsito y en reposo se cifran mediante protocolos estándar de la industria (TLS 1.3 y AES-256 respectivamente).',
-      'El acceso a la información clínica está restringido al personal veterinario y administrativo expresamente autorizado, bajo registro de auditoría. Las contraseñas se almacenan con algoritmos de hashing irreversibles y los resultados de exámenes requieren sesión activa para ser visualizados.',
+      'La información se almacena en sistemas digitales con acceso restringido. Solo pueden acceder quienes necesiten esos datos para prestar, administrar o mantener el servicio.',
+      'Aplicamos medidas razonables de seguridad, como control de acceso por usuario, autenticación, restricciones por rol y protección de resultados clínicos. Los resultados de exámenes no deben publicarse de forma abierta ni quedar disponibles en enlaces públicos sin control.',
+      'Aunque ningún sistema es completamente inmune a incidentes, Silvestra Vet procura resguardar la información con medidas técnicas y administrativas proporcionales al tipo de datos tratados.',
     ],
   },
   {
     num: 'IV',
-    titulo: 'Laboratorios y terceros operadores',
+    titulo: 'Laboratorios y proveedores externos',
     parrafos: [
-      'Cuando un examen requiere procesamiento en un laboratorio externo certificado, se transmite únicamente la información mínima necesaria para su análisis (identificación de la muestra y datos clínicos pertinentes), bajo acuerdo de confidencialidad por escrito con el laboratorio.',
-      'Los proveedores tecnológicos que operan nuestra infraestructura (servidor, correo, mensajería) actúan en calidad de encargados del tratamiento y están sujetos a obligaciones contractuales de confidencialidad, seguridad y prohibición de uso secundario de los datos.',
+      'Cuando un examen requiere procesamiento externo, podemos compartir con el laboratorio la información mínima necesaria para identificar la muestra y realizar el análisis solicitado.',
+      'También podemos utilizar proveedores tecnológicos para operar la plataforma, correo, almacenamiento, autenticación o mensajería. Estos proveedores actúan como apoyo operativo y no están autorizados para usar la información con fines propios.',
     ],
   },
   {
     num: 'V',
-    titulo: 'Plazo de conservación',
+    titulo: 'Conservación de la información',
     parrafos: [
-      'Los datos clínicos de la mascota se conservan durante toda la vigencia del vínculo veterinario y hasta cinco (5) años posteriores al último contacto, en cumplimiento de las obligaciones de la profesión médico veterinaria. Los datos administrativos (facturación, contacto) se conservan por los plazos exigidos por la legislación tributaria y comercial vigente.',
-      'Cumplidos los plazos, la información se elimina de forma segura o se anonimiza definitivamente.',
+      'Los datos se conservarán mientras exista una relación activa entre el tutor y Silvestra Vet, y por el tiempo necesario para cumplir fines clínicos, administrativos, legales o tributarios.',
+      'Cuando la información deje de ser necesaria, podrá ser eliminada, bloqueada o anonimizada, según corresponda.',
     ],
   },
   {
     num: 'VI',
     titulo: 'Cookies y tecnologías similares',
     parrafos: [
-      'El sitio utiliza cookies estrictamente necesarias para el funcionamiento del dashboard (sesión, autenticación y preferencias de interfaz). Estas cookies son técnicas y no requieren consentimiento adicional conforme a la práctica internacional.',
-      'No utilizamos cookies de publicidad, seguimiento de comportamiento entre sitios ni herramientas de analítica que perfilen al usuario. Si en el futuro se incorporara analítica anónima agregada, se actualizará esta política y se solicitará el consentimiento correspondiente.',
+      'El sitio puede utilizar cookies necesarias para el funcionamiento de la plataforma, como inicio de sesión, seguridad y preferencias básicas.',
+      'No utilizamos cookies publicitarias ni herramientas de seguimiento comercial sin informar previamente al usuario. Si en el futuro se incorporan herramientas de analítica o publicidad, esta política será actualizada y se solicitará el consentimiento cuando corresponda.',
     ],
   },
   {
     num: 'VII',
     titulo: 'Derechos del titular',
     parrafos: [
-      'Conforme a la Ley N° 19.628 sobre Protección de la Vida Privada y sus modificaciones, el tutor titular de los datos puede ejercer en cualquier momento los derechos de acceso, rectificación, cancelación, oposición y portabilidad respecto de su información personal.',
-      'Las solicitudes deben dirigirse al correo señalado al pie de esta política. Serán respondidas dentro de los plazos legales aplicables, sin costo para el titular y previa verificación de identidad para resguardar la confidencialidad.',
+      'El tutor puede solicitar el acceso, rectificación, actualización o eliminación de sus datos personales, conforme a la Ley N° 19.628 sobre Protección de la Vida Privada y sus modificaciones vigentes.',
+      'Para ejercer estos derechos, deberá escribir al correo de contacto informado por Silvestra Vet. Antes de responder, podremos solicitar antecedentes mínimos para verificar la identidad del solicitante y resguardar la confidencialidad de la información.',
+      'También consideraremos los cambios introducidos por la Ley N° 21.719 sobre protección y tratamiento de datos personales, en la medida en que sus disposiciones resulten aplicables.',
     ],
   },
   {
     num: 'VIII',
+    titulo: 'Confidencialidad clínica',
+    parrafos: [
+      'La información clínica de la mascota será tratada con reserva. Los antecedentes médicos, resultados de exámenes, indicaciones y observaciones de la atención no serán compartidos con terceros ajenos al servicio, salvo autorización del tutor, requerimiento legal o necesidad clínica justificada.',
+    ],
+  },
+  {
+    num: 'IX',
     titulo: 'Modificaciones',
     parrafos: [
-      'Toda modificación material a la presente política será publicada en esta misma página con fecha de actualización visible. Cuando los cambios afecten de manera sustancial los derechos del titular, se notificará por correo electrónico con razonable antelación a su entrada en vigencia.',
+      'Silvestra Vet podrá actualizar esta política cuando existan cambios legales, técnicos u operativos.',
+      'La versión vigente estará disponible en esta página. Si los cambios afectan de forma relevante el tratamiento de datos personales, se informará por los canales de contacto registrados.',
     ],
   },
 ];
@@ -97,10 +109,11 @@ export default function PrivacidadPage() {
           </h1>
 
           <p className="priv-intro">
-            Tu confianza y la de tu mascota son la base de nuestro trabajo. Este
-            documento describe, con el detalle que merece, cómo recopilamos,
-            tratamos, almacenamos y resguardamos la información personal y
-            clínica que nos confías.
+            En Silvestra Vet cuidamos la información de tutores y mascotas
+            con la misma seriedad con que abordamos la atención clínica.
+            Esta política explica qué datos recopilamos, para qué los
+            usamos, cómo los protegemos y qué derechos puedes ejercer sobre
+            ellos.
           </p>
 
           <div className="priv-meta">
